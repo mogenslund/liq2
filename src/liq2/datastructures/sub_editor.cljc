@@ -6,13 +6,33 @@
 (defn sub-editor
   [text]
   {::lines (mapv (fn [l] (mapv #(hash-map ::char %) l)) (str/split-lines text))
-   ::encoding :?
    ::line-ending :unix
    ::col 1
    ::row 1
-   ::insert false                 ; This allows cursor to be "after line", like vim
-   ::major-mode :fundamental-mode
-   ::minor-modes []})
+   ::mem-col 1                ; Remember column when moving up and down
+   ::mode ::normal})          ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
+
+(defn insert-mode?
+  [se]
+  (= (se ::mode) ::insert))
+
+(defn normal-mode?
+  [se]
+  (= (se ::mode) ::normal))
+
+(defn set-insert-mode
+  [se]
+  (if (insert-mode? se)
+    se
+    (assoc se ::mode ::insert)))
+
+(defn set-normal-mode
+  [se]
+  (cond (insert-mode? se)
+          (assoc se ::mode ::normal
+                    ::col (max 1 (dec (se ::col))))
+        (normal-mode? se)
+          se))
 
 (defn get-col
   [se]
@@ -22,22 +42,45 @@
   [se]
   (se ::row))
 
-(defn get-current-char
+(defn get-char
   [se]
   (-> se
       ::lines
-      (get (dec (get-col se)))
-      (get (dec (get-row se))) ::char))
+      (get (dec (get-row se)))
+      (get (dec (get-col se))) ::char))
 
 (defn forward-char
-  [se]
-  (cond (< (-> se ::lines (se ::col)) count) (se ::col)) (update se ::col inc)
-        true se))
+  ([se n]
+   (let [linevec (-> se ::lines (get (dec (get-row se))))
+         maxcol (+ (count linevec) (if (insert-mode? se) 1 0))
+         newcol (max 1 (min maxcol (+ (se ::col) n)))]
+     (assoc se ::col newcol ::mem-col newcol))) 
+  ([se]
+   (forward-char 1)))
 
-(def se (sub-editor "This is a test\nLine 2"))
+(defn backward-char
+  ([se n]
+   (forward-char se (- n)))
+  ([se]
+   (backward-char se 1)))
 
-(-> se get-current-char)
-(-> se forward-char get-current-char)
-(get-current-char se)
+(defn next-line
+  ([se n]
+   (let [newrow (max 1 (min (count (se ::lines)) (+ (se ::row) n)))
+         linevec (-> se ::lines (get (dec newrow)))
+         maxcol (+ (count linevec) (if (insert-mode? se) 1 0))
+         newcol (max 1 (min maxcol (se ::mem-col)))]
+     (assoc se ::row newrow ::col newcol))) 
+  ([se]
+   (next-line se 1)))
 
-(-> se ::lines (get (dec (get-col se))) (get (dec (get-row se))) ::char)
+(defn previous-line
+  ([se n]
+   (next-line se (- n)))
+  ([se]
+   (previous-line se 1)))
+
+(comment
+  (-> (sub-editor "abcd\nxyz") (forward-char 3) next-line)
+  (= (-> (sub-editor "abcd\nxyz") (forward-char 3) next-line get-char) \z)
+)
