@@ -2,6 +2,9 @@
   (:require [clojure.string :as str]))
 
 ; https://devhints.io/vimscript-functions
+;
+; STRATEGY:
+; Sub_editor and frameing to work optimal clj + cljs, then fill out the in-between
 
 (defn sub-editor
   [text]
@@ -19,7 +22,7 @@
      (if (<= n0 0)
        se0
        (recur (update se0 ::lines conj []) (dec n0)))))
-  ([se] (append-lines se 1)))
+  ([se] (append-line-at-end se 1)))
 
 (defn append-spaces-to-row
   [se row n]
@@ -78,12 +81,31 @@
       (get (dec (get-row se)))
       (get (dec (get-col se))) ::char))
 
+(defn get-attribute
+  [se attr]
+  (-> se
+      ::lines
+      (get (dec (get-row se)))
+      (get (dec (get-col se))) attr))
+
+
 (defn set-char
   [se row col char]
   (-> se
       (append-line-at-end (- row (line-count se)))
       (append-spaces-to-row row (- col (col-count se row)))
       (assoc-in [::lines (dec row) (dec col)] {::char char})))
+
+(defn insert-char
+  [se char]
+  )
+
+(defn set-attribute
+  [se row col attr value]
+  (-> se
+      (append-line-at-end (- row (line-count se)))
+      (append-spaces-to-row row (- col (col-count se row)))
+      (assoc-in [::lines (dec row) (dec col)] {attr value})))
 
 (comment
   

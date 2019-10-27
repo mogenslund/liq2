@@ -36,6 +36,10 @@
         (= raw 13) "\n"
         true (str (char raw))))
 
+(defn handle-input
+  [c]
+  )
+
 ; https://stackoverflow.com/questions/48039759/how-to-distinguish-between-escape-and-escape-sequence
 (defn input-handler
   "Loop inside i thread waiting for user input"
