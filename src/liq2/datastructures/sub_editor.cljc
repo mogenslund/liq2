@@ -15,6 +15,13 @@
    ::mem-col 1                ; Remember column when moving up and down
    ::mode ::normal})          ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
 
+(defn insert-in-vector
+  [v n elem]
+  (into [] (concat
+             (into [] (subvec v 0 n))
+             [elem]
+             (into [] (subvec v n)))))
+
 (defn append-line-at-end
   "Append empty lines at end"
   ([se n]
@@ -75,11 +82,26 @@
   (se ::row))
 
 (defn get-char
-  [se]
-  (-> se
-      ::lines
-      (get (dec (get-row se)))
-      (get (dec (get-col se))) ::char))
+  ([se row col]
+   (-> se
+       ::lines
+       (get (dec row))
+       (get (dec col))
+       ::char))
+  ([se]
+   (get-char se (get-row se) (get-col se))))
+
+
+(comment
+  
+  (let [se (sub-editor "abcd\nxyz")]
+    (-> se
+        get-char))
+
+  (let [se (sub-editor "abcd\nxyz")]
+    (-> se
+        (get-char 2 3))))
+
 
 (defn get-attribute
   [se attr]
@@ -97,8 +119,22 @@
       (assoc-in [::lines (dec row) (dec col)] {::char char})))
 
 (defn insert-char
-  [se char]
-  )
+  ([se row col char]
+   (update-in se [::lines (dec row)] #(insert-in-vector % (dec col) {::char char})))
+  ([se char]
+   (-> se
+       (insert-char (get-row se) (get-col se) char)
+       (update ::col inc))))
+
+(comment
+  (let [se (sub-editor "abcd\nxyz")]
+    (-> se
+        ;(insert-char 2 4 \k)
+        (insert-char \k)
+        (insert-char \l)
+        forward-char
+        (insert-char \m)
+        get-text)))
 
 (defn set-attribute
   [se row col attr value]
@@ -122,7 +158,13 @@
          newcol (max 1 (min maxcol (+ (se ::col) n)))]
      (assoc se ::col newcol ::mem-col newcol))) 
   ([se]
-   (forward-char 1)))
+   (forward-char se 1)))
+
+(comment
+  (let [se (sub-editor "abcd\nxyz")]
+    (-> se
+        forward-char
+        get-text)))
 
 (defn backward-char
   ([se n]
