@@ -12,6 +12,35 @@
    ::mem-col 1                ; Remember column when moving up and down
    ::mode ::normal})          ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
 
+(defn append-line-at-end
+  "Append empty lines at end"
+  ([se n]
+   (loop [se0 se n0 n]
+     (if (<= n0 0)
+       se0
+       (recur (update se0 ::lines conj []) (dec n0)))))
+  ([se] (append-lines se 1)))
+
+(defn append-spaces-to-row
+  [se row n]
+  (update-in se [::lines (dec row)] #(into [] (concat % (repeat n {::char \space}))))) 
+
+(comment
+  (let [se (sub-editor "abcd\nxyz")
+        row 4
+        spaces 5]
+    (append-spaces-to-row se 2 10)
+  ))
+
+
+(defn line-count
+  [se]
+  (count (se ::lines)))
+
+(defn col-count
+  [se row]
+  (-> se ::lines (get (dec row)) count))
+
 (defn insert-mode?
   [se]
   (= (se ::mode) ::insert))
@@ -49,6 +78,21 @@
       (get (dec (get-row se)))
       (get (dec (get-col se))) ::char))
 
+(defn set-char
+  [se row col char]
+  (-> se
+      (append-line-at-end (- row (line-count se)))
+      (append-spaces-to-row row (- col (col-count se row)))
+      (assoc-in [::lines (dec row) (dec col)] {::char char})))
+
+(comment
+  
+  (let [se (sub-editor "abcd\nxyz")]
+    (-> se
+        (set-char 5 6 \k)
+        get-text)
+  ))
+
 (defn forward-char
   ([se n]
    (let [linevec (-> se ::lines (get (dec (get-row se))))
@@ -80,7 +124,15 @@
   ([se]
    (previous-line se 1)))
 
+(defn get-text
+  [se]
+  (str/join "\n" (map (fn [line] (str/join "" (map ::char line))) (se ::lines))))
+
 (comment
   (-> (sub-editor "abcd\nxyz") (forward-char 3) next-line)
   (= (-> (sub-editor "abcd\nxyz") (forward-char 3) next-line get-char) \z)
+  (-> (sub-editor "abcd\nxyz") (insert-char 4 5 \k) get-text)
+
+  (get-text (sub-editor "abcd\nxyz"))
 )
+
