@@ -3,7 +3,7 @@
             [liq2.datastructures.sub-editor :as se]))
 
 (def state (atom {::tmp (se/sub-editor "abc\ndef")
-                  ::output-handler}))
+                  ::output-handler nil}))
 
 (defn set-output-handler
   [output-handler]
@@ -15,7 +15,7 @@
 
 (defn push-output
   []
-  ((@state ::output-handler) get-current-sub-editor "...")) 
+  ((@state ::output-handler) (get-current-sub-editor) "...")) 
 
 (defn handle-input
   [c]
