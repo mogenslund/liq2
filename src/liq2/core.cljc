@@ -8,4 +8,5 @@
 (defn -main
   []
   (editor/set-output-handler output/output-handler)
-  (input/input-handler editor/handle-input))
+  (input/input-handler editor/handle-input)
+  (editor/push-output))

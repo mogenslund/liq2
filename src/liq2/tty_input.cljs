@@ -14,6 +14,10 @@
     (.emitKeypressEvents readline process.stdin
       (js/process.stdin.setRawMode true))))
 
+(def translate-name
+  {"return" "\n"
+   "space" ""})
+
 (defn input-handler
   [fun]
   (set-raw-mode)
@@ -22,5 +26,5 @@
   (js/process.stdin.on "keypress"
     (fn [chunk key]
       (if (not= js/key.name "q")
-        (fun js/key.name)
+        (fun (or (translate-name js/key.name) js/key.name))
         (js/process.exit)))))

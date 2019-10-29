@@ -110,6 +110,17 @@
       (get (dec (get-row se)))
       (get (dec (get-col se))) attr))
 
+;(into [] (subvec v 0 n))
+(defn insert-line-break
+  [se row col]
+  (update se ::lines
+    (fn [lines]
+      (let [l (lines (dec row))
+            l1 (into [] (subvec l 0 (dec col)))
+            l2 (into [] (subvec l (dec col)))]
+        (-> lines
+            (assoc (dec row) l1)
+            (insert-in-vector row l2))))))
 
 (defn set-char
   [se row col char]
@@ -120,17 +131,23 @@
 
 (defn insert-char
   ([se row col char]
-   (update-in se [::lines (dec row)] #(insert-in-vector % (dec col) {::char char})))
+   (if (= char \newline)
+     (insert-line-break se row col)
+     (update-in se [::lines (dec row)] #(insert-in-vector % (dec col) {::char char}))))
   ([se char]
    (-> se
        (insert-char (get-row se) (get-col se) char)
-       (update ::col inc))))
+       (assoc ::col (if (= char \newline) 1 (inc (get-col se)))
+              ::row (if (= char \newline) (inc (get-row se)) (get-row se))))))
 
 (comment
   (let [se (sub-editor "abcd\nxyz")]
     (-> se
         ;(insert-char 2 4 \k)
-        (insert-char \k)
+        (insert-char \1)
+        (insert-char \2)
+        backward-char
+        (insert-char \newline)
         (insert-char \l)
         forward-char
         (insert-char \m)
