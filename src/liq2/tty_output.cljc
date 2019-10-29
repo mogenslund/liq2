@@ -1,4 +1,4 @@
-(ns liq2.experiments.tty-output
+(ns liq2.tty-output
   (:require [liq2.datastructures.sub-editor :as sub-editor]
             [clojure.string :as str]))
 
@@ -7,7 +7,8 @@
 
 (defn- tty-print
   [& args]
-  (.print (System/out) (str/join "" args)))
+  #?(:clj (.print (System/out) (str/join "" args))
+     :cljs (js/process.stdout.write (str/join "" args))))
 
 (defn output-handler
   [se frame]

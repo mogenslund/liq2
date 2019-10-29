@@ -1,4 +1,4 @@
-(ns liq2.experiments.editor
+(ns liq2.editor
   (:require [clojure.string :as str]
             [liq2.datastructures.sub-editor :as se]))
 
