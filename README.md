@@ -1,7 +1,7 @@
 # liq2
 Hi all
 
-This repo is a *playground* for trying out different constructs and functions in the process of evolving a *text editor*.
+This repo is a **playground** for trying out different constructs and functions in the process of evolving a **text editor**.
 
 The end goal will be to have some pieces that can be dragged out and assembled to a text editor.
 
@@ -15,9 +15,11 @@ A lot of pieces will be constructed and only some of them will make it to the en
 
 Also, I will try to make as much as possible work using both clj and Lumo.
 
-I will attempt to use the wiki in this repo to blog about the progress and what I am trying out.
+## Wiki
 
-# To run the pieces
+I will attempt to use the [Wiki](https://github.com/mogenslund/liq2/wiki) in this repo to blog about the progress and what I am trying out.
+
+## To run the pieces
 
     clj -m liq2.core
     lumo -c src -m liq2.core
