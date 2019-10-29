@@ -16,7 +16,8 @@
 
 (def translate-name
   {"return" "\n"
-   "space" ""})
+   "space" ""
+   "escape" "esc"})
 
 (defn input-handler
   [fun]

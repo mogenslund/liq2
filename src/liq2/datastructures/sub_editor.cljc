@@ -65,15 +65,6 @@
         (set-mode :insert)
         get-mode)))
 
-
-(defn insert-mode?
-  [se]
-  (= (se ::mode) :insert))
-
-(defn normal-mode?
-  [se]
-  (= (se ::mode) :normal))
-
 (defn get-col
   [se]
   (se ::col))
@@ -205,6 +196,15 @@
    (next-line se (- n)))
   ([se]
    (previous-line se 1)))
+
+(defn end-of-line
+  [se]
+  (assoc se ::col (col-count se (se ::row))
+            ::mem-col (col-count se (se ::row))))
+
+(defn beginning-of-line
+  [se]
+  (assoc se ::col 1 ::mem-col 1))
 
 (defn get-text
   [se]

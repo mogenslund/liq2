@@ -8,4 +8,6 @@
             "h" {:function se/backward-char :type :sub-editor}
             "j" {:function se/next-line :type :sub-editor}
             "k" {:function se/previous-line :type :sub-editor}
-            "l" {:function se/forward-char :type :sub-editor}}})
+            "l" {:function se/forward-char :type :sub-editor}
+            "0" {:function se/beginning-of-line :type :sub-editor}
+            "$" {:function se/end-of-line :type :sub-editor}}})

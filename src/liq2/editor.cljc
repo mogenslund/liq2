@@ -29,7 +29,7 @@
 
 (defn handle-input
   [c]
-  ;(spit "/tmp/liq2.log" (str "INPUT: " c "\n") :append true)
+  (spit "/tmp/liq2.log" (str "INPUT: " c "\n"))
   (let [mode (se/get-mode (get-current-sub-editor))
         action (((get-mode :fundamental-mode) mode) c)]
     (cond action (swap! state update ::tmp (action :function))
