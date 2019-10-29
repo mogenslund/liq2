@@ -13,7 +13,7 @@
    ::col 1
    ::row 1
    ::mem-col 1                ; Remember column when moving up and down
-   ::mode ::normal})          ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
+   ::mode :normal})           ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
 
 (defn insert-in-vector
   [v n elem]
@@ -51,27 +51,28 @@
   [se row]
   (-> se ::lines (get (dec row)) count))
 
+(defn get-mode
+  [se]
+  (se ::mode))
+
+(defn set-mode
+  [se m]
+  (assoc se ::mode m))
+
+(comment 
+  (let [se (sub-editor "abcd\nxyz")]
+    (-> se
+        (set-mode :insert)
+        get-mode)))
+
+
 (defn insert-mode?
   [se]
-  (= (se ::mode) ::insert))
+  (= (se ::mode) :insert))
 
 (defn normal-mode?
   [se]
-  (= (se ::mode) ::normal))
-
-(defn set-insert-mode
-  [se]
-  (if (insert-mode? se)
-    se
-    (assoc se ::mode ::insert)))
-
-(defn set-normal-mode
-  [se]
-  (cond (insert-mode? se)
-          (assoc se ::mode ::normal
-                    ::col (max 1 (dec (se ::col))))
-        (normal-mode? se)
-          se))
+  (= (se ::mode) :normal))
 
 (defn get-col
   [se]
@@ -171,7 +172,7 @@
 (defn forward-char
   ([se n]
    (let [linevec (-> se ::lines (get (dec (get-row se))))
-         maxcol (+ (count linevec) (if (insert-mode? se) 1 0))
+         maxcol (+ (count linevec) (if (= (get-mode se) :insert) 1 0))
          newcol (max 1 (min maxcol (+ (se ::col) n)))]
      (assoc se ::col newcol ::mem-col newcol))) 
   ([se]
@@ -193,7 +194,7 @@
   ([se n]
    (let [newrow (max 1 (min (count (se ::lines)) (+ (se ::row) n)))
          linevec (-> se ::lines (get (dec newrow)))
-         maxcol (+ (count linevec) (if (insert-mode? se) 1 0))
+         maxcol (+ (count linevec) (if (= (get-mode se) :insert) 1 0))
          newcol (max 1 (min maxcol (se ::mem-col)))]
      (assoc se ::row newrow ::col newcol))) 
   ([se]
