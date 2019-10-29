@@ -1,5 +1,5 @@
 (ns liq2.tty-output
-  (:require [liq2.datastructures.sub-editor :as sub-editor]
+  (:require [liq2.buffer :as buffer]
             [clojure.string :as str]))
 
 (def esc "\033[")
@@ -11,11 +11,11 @@
      :cljs (js/process.stdout.write (str/join "" args))))
 
 (defn output-handler
-  [se frame]
+  [buf frame]
   (doseq [row (range 1 20) col (range 1 80)]
     ;; Check if row has changed...
-    (let [c (or (sub-editor/get-char se row col) \space)]
+    (let [c (or (buffer/get-char buf row col) \space)]
       (when (not= c (@cache [row col]))
-        (tty-print esc (+ row 10) ";" (+ col 10) "H" esc "s" (or (sub-editor/get-char se row col) \space))
+        (tty-print esc (+ row 10) ";" (+ col 10) "H" esc "s" (or (buffer/get-char buf row col) \space))
         (swap! cache assoc [row col] c))))
-  (tty-print esc (+ (sub-editor/get-row se) 10) ";" (+ (sub-editor/get-col se) 10) "H" esc "s"))
+  (tty-print esc (+ (buffer/get-row buf) 10) ";" (+ (buffer/get-col buf) 10) "H" esc "s"))

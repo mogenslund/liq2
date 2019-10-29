@@ -8,7 +8,10 @@
 ;; clj -m liq2.experiments.core
 (defn -main
   []
-  (editor/add-mode :fundamental-mode fundamental-mode/mode)
+  (editor/add-mode
+    :fundamental-mode
+    (assoc-in fundamental-mode/mode [:normal "m"] (fn [] (editor/switch-to-buffer 2))))
   (editor/set-output-handler output/output-handler)
   (input/input-handler editor/handle-input)
   (editor/push-output))
+
