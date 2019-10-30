@@ -10,12 +10,27 @@
   #?(:clj (.print (System/out) (str/join "" args))
      :cljs (js/process.stdout.write (str/join "" args))))
 
+(defn calculate-wrapped-row-dist
+  [buf cols tow]
+  (let [r1 (buffer/get-row buf)
+        r2 (tow 0)]
+  ))
+
+(defn recalculate-tow
+  [buf rows cols tow]
+  (let [towmargin (if (> rows 12) 5 0)]
+  ))
+
 (defn output-handler
   [buf frame]
+  (let [left 0
+        top 0]
   (doseq [row (range 1 20) col (range 1 80)]
     ;; Check if row has changed...
-    (let [c (or (buffer/get-char buf row col) \space)]
+    (let [c (or (buffer/get-char buf row col)
+                (if (and (= col 1) (> row (buffer/line-count buf))) (str esc "36m~" esc "0m") \space))]
       (when (not= c (@cache [row col]))
-        (tty-print esc (+ row 10) ";" (+ col 10) "H" esc "s" (or (buffer/get-char buf row col) \space))
+        (tty-print esc (+ row top) ";" (+ col left) "H" esc "s" c)
         (swap! cache assoc [row col] c))))
-  (tty-print esc (+ (buffer/get-row buf) 10) ";" (+ (buffer/get-col buf) 10) "H" esc "s"))
+  (tty-print esc (+ (buffer/get-row buf) top) ";" (+ (buffer/get-col buf) left) "H" esc "s")))
+

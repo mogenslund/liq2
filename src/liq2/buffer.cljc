@@ -20,26 +20,16 @@
              [elem]
              (into [] (subvec v n)))))
 
-(defn append-line-at-end
-  "Append empty lines at end"
-  ([buf n]
-   (loop [buf0 buf n0 n]
-     (if (<= n0 0)
-       buf0
-       (recur (update buf0 ::lines conj []) (dec n0)))))
-  ([buf] (append-line-at-end buf 1)))
+(defn remove-from-vector
+  [v n]
+  (if (<= 1 n (count v))
+    (into [] (concat
+               (into [] (subvec v 0 (dec n)))
+               (into [] (subvec v n))))
+    v))
 
-(defn append-spaces-to-row
-  [buf row n]
-  (update-in buf [::lines (dec row)] #(into [] (concat % (repeat n {::char \space}))))) 
-
-(comment
-  (let [buf (buffer "abcd\nxyz")
-        row 4
-        spaces 5]
-    (append-spaces-to-row buf 2 10)
-  ))
-
+;; Information
+;; ===========
 
 (defn line-count
   [buf]
@@ -70,6 +60,76 @@
 (defn get-row
   [buf]
   (buf ::row))
+
+(defn get-text
+  [buf]
+  (str/join "\n" (map (fn [line] (str/join "" (map ::char line))) (buf ::lines))))
+
+;; Movements
+;; =========
+
+(defn forward-char
+  ([buf n]
+   (let [linevec (-> buf ::lines (get (dec (get-row buf))))
+         maxcol (+ (count linevec) (if (= (get-mode buf) :insert) 1 0))
+         newcol (max 1 (min maxcol (+ (buf ::col) n)))]
+     (assoc buf ::col newcol ::mem-col newcol))) 
+  ([buf]
+   (forward-char buf 1)))
+
+(defn backward-char
+  ([buf n]
+   (forward-char buf (- n)))
+  ([buf]
+   (backward-char buf 1)))
+
+(defn next-line
+  ([buf n]
+   (let [newrow (max 1 (min (count (buf ::lines)) (+ (buf ::row) n)))
+         linevec (-> buf ::lines (get (dec newrow)))
+         maxcol (+ (count linevec) (if (= (get-mode buf) :insert) 1 0))
+         newcol (max 1 (min maxcol (buf ::mem-col)))]
+     (assoc buf ::row newrow ::col newcol))) 
+  ([buf]
+   (next-line buf 1)))
+
+(defn previous-line
+  ([buf n]
+   (next-line buf (- n)))
+  ([buf]
+   (previous-line buf 1)))
+
+(defn end-of-line
+  [buf]
+  (assoc buf ::col (col-count buf (buf ::row))
+            ::mem-col (col-count buf (buf ::row))))
+
+(defn beginning-of-line
+  [buf]
+  (assoc buf ::col 1 ::mem-col 1))
+
+;; Modifications
+;; =============
+
+(defn append-line-at-end
+  "Append empty lines at end"
+  ([buf n]
+   (loop [buf0 buf n0 n]
+     (if (<= n0 0)
+       buf0
+       (recur (update buf0 ::lines conj []) (dec n0)))))
+  ([buf] (append-line-at-end buf 1)))
+
+(defn append-spaces-to-row
+  [buf row n]
+  (update-in buf [::lines (dec row)] #(into [] (concat % (repeat n {::char \space}))))) 
+
+(comment
+  (let [buf (buffer "abcd\nxyz")
+        row 4
+        spaces 5]
+    (append-spaces-to-row buf 2 10)
+  ))
 
 (defn get-char
   ([buf row col]
@@ -130,6 +190,24 @@
        (assoc ::col (if (= char \newline) 1 (inc (get-col buf)))
               ::row (if (= char \newline) (inc (get-row buf)) (get-row buf))))))
 
+(defn append-line
+  ([buf row]
+   (-> buf
+       (update ::lines #(insert-in-vector % row []))
+       (update ::row inc)
+       (assoc ::col 1)
+       (set-mode :insert)))
+  ([buf]
+   (append-line buf (buf ::row))))
+
+(defn delete-char
+  ([buf row col]
+   (update-in buf [::lines (dec row)] #(remove-from-vector % col)))
+  ([buf]
+   (-> buf
+       (delete-char (get-row buf) (get-col buf)))))
+
+
 (comment
   (let [buf (buffer "abcd\nxyz")]
     (-> buf
@@ -158,14 +236,6 @@
         get-text)
   ))
 
-(defn forward-char
-  ([buf n]
-   (let [linevec (-> buf ::lines (get (dec (get-row buf))))
-         maxcol (+ (count linevec) (if (= (get-mode buf) :insert) 1 0))
-         newcol (max 1 (min maxcol (+ (buf ::col) n)))]
-     (assoc buf ::col newcol ::mem-col newcol))) 
-  ([buf]
-   (forward-char buf 1)))
 
 (comment
   (let [buf (buffer "abcd\nxyz")]
@@ -173,45 +243,12 @@
         forward-char
         get-text)))
 
-(defn backward-char
-  ([buf n]
-   (forward-char buf (- n)))
-  ([buf]
-   (backward-char buf 1)))
-
-(defn next-line
-  ([buf n]
-   (let [newrow (max 1 (min (count (buf ::lines)) (+ (buf ::row) n)))
-         linevec (-> buf ::lines (get (dec newrow)))
-         maxcol (+ (count linevec) (if (= (get-mode buf) :insert) 1 0))
-         newcol (max 1 (min maxcol (buf ::mem-col)))]
-     (assoc buf ::row newrow ::col newcol))) 
-  ([buf]
-   (next-line buf 1)))
-
-(defn previous-line
-  ([buf n]
-   (next-line buf (- n)))
-  ([buf]
-   (previous-line buf 1)))
-
-(defn end-of-line
-  [buf]
-  (assoc buf ::col (col-count buf (buf ::row))
-            ::mem-col (col-count buf (buf ::row))))
-
-(defn beginning-of-line
-  [buf]
-  (assoc buf ::col 1 ::mem-col 1))
-
-(defn get-text
-  [buf]
-  (str/join "\n" (map (fn [line] (str/join "" (map ::char line))) (buf ::lines))))
 
 (comment
   (-> (buffer "abcd\nxyz") (forward-char 3) next-line)
   (= (-> (buffer "abcd\nxyz") (forward-char 3) next-line get-char) \z)
   (-> (buffer "abcd\nxyz") (insert-char 4 5 \k) get-text)
+  (-> (buffer "abcd\nxyz") append-line get-text)
 
   (get-text (buffer "abcd\nxyz"))
 )
