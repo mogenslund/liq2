@@ -44,7 +44,7 @@
                                       (recur (conj res (.read r)))))
                                  input0))))]
       (loop [input (read-input)]
-        (when (not= input "q")
+        (when (not= input "C-q")
           (fun input)
           (recur (read-input)))))
     (shutdown-agents)

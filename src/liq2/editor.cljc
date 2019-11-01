@@ -107,7 +107,7 @@
 
 (defn handle-input
   [c]
-  ; (spit "/tmp/liq2.log" (str "INPUT: " c "\n"))
+  (spit "/tmp/liq2.log" (str "INPUT: " c "\n"))
   (let [mode (buffer/get-mode (get-current-buffer))
         action (((get-mode :fundamental-mode) mode) c)]
     (cond (fn? action) (action)

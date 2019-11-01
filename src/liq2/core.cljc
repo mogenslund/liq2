@@ -9,7 +9,7 @@
 (defn -main
   []
   ;(editor/new-frame 10 10 20 30)
-  (editor/new-frame 1 1 5 10)
+  (editor/new-frame 0 0 20 80)
   (editor/new-buffer)
   ;(editor/new-frame 10 50 20 30)
   (editor/new-buffer)
