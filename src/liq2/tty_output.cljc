@@ -40,7 +40,9 @@
         top (frame/get-top fr)
         rows (frame/get-rows fr)
         cols (frame/get-cols fr)
-        tow (recalculate-tow buf rows cols (or (@tow-cache fr) {:row 1 :col 1}))]
+        tow (recalculate-tow buf rows cols (or (@tow-cache fr) {:row 1 :col 1}))
+        crow (buffer/get-row buf)
+        ccol (buffer/get-col buf)]
   (swap! tow-cache assoc fr tow)
   (loop [trow (+ top 1) tcol (+ left 1) row (tow :row) col (tow :col) cursor-row nil cursor-col nil]
     (if (<= trow (+ rows top))
@@ -48,8 +50,10 @@
       ;; Check if row has changed...
         (let [c (or (buffer/get-char buf row col)
                     (if (and (= col 1) (> row (buffer/line-count buf))) (str esc "36m~" esc "0m") \space))
-              new-cursor-row (if (and (= row (buffer/get-row buf)) (= col (buffer/get-col buf))) trow cursor-row)
-              new-cursor-col (if (and (= row (buffer/get-row buf)) (= col (buffer/get-col buf))) tcol cursor-col)]
+              cursor-match (or (and (= row crow) (= col ccol))
+                               (and (not cursor-row) (> row crow)))
+              new-cursor-row (if cursor-match trow cursor-row)
+              new-cursor-col (if cursor-match tcol cursor-col)]
           (when (not= c (@cache [trow tcol]))
             (tty-print esc trow ";" tcol "H" esc "s" c)
             (swap! cache assoc [trow tcol] c))
