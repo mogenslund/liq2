@@ -1,11 +1,14 @@
 (ns liq2.editor
   (:require [clojure.string :as str]
             #?(:cljs [lumo.io :as io :refer [slurp spit]])
+            [liq2.util :as util]
+            [liq2.frame :as frame]
             [liq2.buffer :as buffer]))
 
-(def state (atom {::buffers [(buffer/buffer "abc\ndef") (buffer/buffer "aaa\nbbb")]
-                  ::output-handler nil
-                  ::modes {}}))
+(def state (atom {::buffers {}
+                  ::modes {}
+                  ::frames {}
+                  ::output-handler nil}))
 
 (defn set-output-handler
   [output-handler]
@@ -19,29 +22,97 @@
   [keyw]
   (or ((@state ::modes) keyw) {}))
 
+(defn get-buffer
+  [id]
+  ((@state ::buffers) id))
+
+(defn get-buffer-id-by-idx
+  [idx]
+  ((first (filter #(= (% ::idx) idx) (vals (@state ::buffers)))) ::id))
+
+(defn get-current-buffer-id
+  "Highest idx is current buffer.
+  So idx is updated each time buffer is switched."
+  []
+  (let [idxs (filter number? (map ::idx (vals (@state ::buffers))))]
+    (when (not (empty? idxs))
+      (get-buffer-id-by-idx (apply max idxs)))))
+
+(comment
+  (map ::idx (vals (@state ::buffers)))
+  (get-current-buffer-id))
+
 (defn get-current-buffer
   []
-  (-> @state ::buffers (get 0)))
+  (get-buffer (get-current-buffer-id)))
+
+(defn new-frame
+  [top left rows cols]
+  (let [fr (frame/frame top left rows cols)]
+    (swap! state update ::frames assoc (fr ::id) fr)
+    (fr ::id)))
+
+(defn get-frame
+  [id]
+  ((@state ::frames) id))
+
+(defn get-buffer-frame-id
+  "Given index of buffer, return id of frame."
+  [id]
+  (when-let [fr (first (filter #(= (frame/get-buffer-id %) id) (vals (@state ::frames))))]
+    (fr ::id)))
+
+(defn get-buffer-frame
+  [id]
+  (get-frame (get-buffer-frame-id id)))
+
+(defn get-empty-frames
+  []
+  (filter #(nil? (frame/get-buffer-id %)) (vals (@state ::frames))))
 
 (defn switch-to-buffer
+  [id]
+  (let [empty-frame (first (get-empty-frames))
+        frameid (get-buffer-frame-id (get-current-buffer-id))]
+    (when (not (get-buffer-frame-id id))
+      (if empty-frame
+        (swap! state update-in [::frames (empty-frame ::id)] #(frame/set-buffer-id % id))  
+        (swap! state update-in [::frames frameid] #(frame/set-buffer-id % id)))))
+  (swap! state assoc-in [::buffers id ::idx] (util/counter-next))
+  id)
+
+(defn previous-buffer
+  "n = 1 means previous"
   [n]
-  (swap! state assoc ::buffers
-         (into [] (concat [((@state ::buffers) (dec n))]
-                          (subvec (@state ::buffers) 0 (dec n))
-                          (subvec (@state ::buffers) n)))))
+  (let [idx (first (drop n (reverse (sort (map ::idx (vals (@state ::buffers)))))))]
+    (when idx
+      (switch-to-buffer (get-buffer-id-by-idx idx)))))
+
+(defn new-buffer
+  []
+  (let [id (util/counter-next)
+        buf (assoc (buffer/buffer "abc\ndef") ::id id)]
+    (swap! state update ::buffers assoc id buf) 
+    (switch-to-buffer id)))
+
+(comment
+  (new-buffer)
+  (new-frame 10 10 10 10)
+  (get-empty-frames)
+  )
 
 (defn push-output
   []
-  ((@state ::output-handler) (get-current-buffer) "...")) 
+  ((@state ::output-handler) (get-current-buffer) (get-buffer-frame (get-current-buffer-id)))) 
 
 (defn handle-input
   [c]
-  (spit "/tmp/liq2.log" (str "INPUT: " c "\n"))
+  ; (spit "/tmp/liq2.log" (str "INPUT: " c "\n"))
   (let [mode (buffer/get-mode (get-current-buffer))
         action (((get-mode :fundamental-mode) mode) c)]
     (cond (fn? action) (action)
-          action (swap! state update-in [::buffers 0] (action :function))
-          (= mode :insert) (swap! state update-in [::buffers 0] #(buffer/insert-char % (first c)))))
+          action (swap! state update-in [::buffers (get-current-buffer-id)] (action :function))
+          (= mode :insert) (swap! state update-in [::buffers (get-current-buffer-id)] #(buffer/insert-char % (first c)))))
   (push-output))
 
 
