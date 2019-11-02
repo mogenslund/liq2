@@ -25,7 +25,7 @@
           (recalculate-tow buf rows cols (update tow1 :row inc)) ; Moving tow one line at the time (Not optimized!!!)
         true tow1))
 
-(def tow (atom {:row 1 :col 1})) ; TMP: Until frame is implemented
+;(def tow (atom {:row 1 :col 1})) ; TMP: Until frame is implemented
 
 (comment
   (calculate-wrapped-row-dist (buffer/buffer "aaaaaaaaaaaaaaaaaaaaaaaaaa\nbbbbbbbbbbbbbb") 10 2 3)
@@ -40,12 +40,13 @@
         top (frame/get-top fr)
         rows (frame/get-rows fr)
         cols (frame/get-cols fr)
-        tow (recalculate-tow buf rows cols (or (@tow-cache fr) {:row 1 :col 1}))
+        tow (recalculate-tow buf rows cols (or (@tow-cache (frame/get-id fr)) {:row 1 :col 1}))
         crow (buffer/get-row buf)
         ccol (buffer/get-col buf)]
-  (swap! tow-cache assoc fr tow)
-  (loop [trow (+ top 1) tcol (+ left 1) row (tow :row) col (tow :col) cursor-row nil cursor-col nil]
-    (if (<= trow (+ rows top))
+  (swap! tow-cache assoc (frame/get-id fr) tow)
+  ;(tty-print esc "?25l") ; Hide cursor
+  (loop [trow top tcol left row (tow :row) col (tow :col) cursor-row nil cursor-col nil]
+    (if (< trow (+ rows top))
       (do
       ;; Check if row has changed...
         (let [c (or (buffer/get-char buf row col)
@@ -59,8 +60,8 @@
             (swap! cache assoc [trow tcol] c))
           (if (> tcol cols)
             (if (> (buffer/col-count buf row) col) 
-              (recur (inc trow) (+ left 1) row (inc col) new-cursor-row new-cursor-col) 
-              (recur (inc trow) (+ left 1) (inc row) 1 new-cursor-row new-cursor-col))
+              (recur (inc trow) left row (inc col) new-cursor-row new-cursor-col) 
+              (recur (inc trow) left (inc row) 1 new-cursor-row new-cursor-col))
             (recur trow (inc tcol) row (inc col) new-cursor-row new-cursor-col))))
-      (tty-print esc cursor-row ";" cursor-col "H" esc "s")))))
+      (tty-print esc "?25h" esc cursor-row ";" cursor-col "H" esc "s")))))
 

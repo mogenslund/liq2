@@ -49,22 +49,22 @@
 (defn new-frame
   [top left rows cols]
   (let [fr (frame/frame top left rows cols)]
-    (swap! state update ::frames assoc (fr ::id) fr)
-    (fr ::id)))
+    (swap! state update ::frames assoc (frame/get-id fr) fr)
+    (frame/get-id fr)))
 
 (defn get-frame
   [id]
   ((@state ::frames) id))
 
-(defn get-buffer-frame-id
+(defn get-frame-id-from-buffer-id
   "Given index of buffer, return id of frame."
   [id]
   (when-let [fr (first (filter #(= (frame/get-buffer-id %) id) (vals (@state ::frames))))]
-    (fr ::id)))
+    (frame/get-id fr)))
 
 (defn get-buffer-frame
   [id]
-  (get-frame (get-buffer-frame-id id)))
+  (get-frame (get-frame-id-from-buffer-id id)))
 
 (defn get-empty-frames
   []
@@ -73,10 +73,10 @@
 (defn switch-to-buffer
   [id]
   (let [empty-frame (first (get-empty-frames))
-        frameid (get-buffer-frame-id (get-current-buffer-id))]
-    (when (not (get-buffer-frame-id id))
+        frameid (get-frame-id-from-buffer-id (get-current-buffer-id))]
+    (when (not (get-frame-id-from-buffer-id id))
       (if empty-frame
-        (swap! state update-in [::frames (empty-frame ::id)] #(frame/set-buffer-id % id))  
+        (swap! state update-in [::frames (frame/get-id empty-frame)] #(frame/set-buffer-id % id))  
         (swap! state update-in [::frames frameid] #(frame/set-buffer-id % id)))))
   (swap! state assoc-in [::buffers id ::idx] (util/counter-next))
   id)
@@ -91,7 +91,7 @@
 (defn new-buffer
   []
   (let [id (util/counter-next)
-        buf (assoc (buffer/buffer "abc\ndef") ::id id)]
+        buf (assoc (buffer/buffer (str "12345678901234567890123\nType C-q to quit (for now)\n\na\nb\nc\nd\ne\nf\ng\nh" (slurp "./README.md") )) ::id id)]
     (swap! state update ::buffers assoc id buf) 
     (switch-to-buffer id)))
 

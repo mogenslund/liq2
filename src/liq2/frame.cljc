@@ -1,9 +1,11 @@
 (ns liq2.frame
-  (:require [clojure.string :as str]))
+  (:require [liq2.util :as util]
+            [clojure.string :as str]))
 
 (defn frame
   [top left rows cols]
-  {::top top
+  {::id (util/counter-next)
+   ::top top
    ::left left
    ::rows rows 
    ::cols cols
@@ -24,6 +26,10 @@
 (defn get-cols
   [fr]
   (fr ::cols))
+
+(defn get-id
+  [fr]
+  (fr ::id))
 
 (defn set-buffer-id
   [fr id]
