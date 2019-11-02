@@ -83,17 +83,22 @@
 
 (defn previous-buffer
   "n = 1 means previous"
-  [n]
-  (let [idx (first (drop n (reverse (sort (map ::idx (vals (@state ::buffers)))))))]
-    (when idx
-      (switch-to-buffer (get-buffer-id-by-idx idx)))))
+  ([n]
+   (let [idx (first (drop n (reverse (sort (map ::idx (vals (@state ::buffers)))))))]
+     (when idx
+       (switch-to-buffer (get-buffer-id-by-idx idx)))))
+  ([] (previous-buffer 1)))
 
 (defn new-buffer
   []
   (let [id (util/counter-next)
-        buf (assoc (buffer/buffer (str "12345678901234567890123\nType C-q to quit (for now)\n\na\nb\nc\nd\ne\nf\ng\nh" (slurp "./README.md") )) ::id id)]
+        buf (assoc (buffer/buffer "") ::id id)]
     (swap! state update ::buffers assoc id buf) 
     (switch-to-buffer id)))
+
+(defn apply-to-buffer
+  [id fun]
+  (swap! state update-in [::buffers id] fun))
 
 (comment
   (new-buffer)
@@ -109,7 +114,8 @@
   [c]
   (spit "/tmp/liq2.log" (str "INPUT: " c "\n"))
   (let [mode (buffer/get-mode (get-current-buffer))
-        action (((get-mode :fundamental-mode) mode) c)]
+        major-mode (buffer/get-major-mode (get-current-buffer))
+        action (((get-mode major-mode) mode) c)]
     (cond (fn? action) (action)
           action (swap! state update-in [::buffers (get-current-buffer-id)] (action :function))
           (= mode :insert) (swap! state update-in [::buffers (get-current-buffer-id)] #(buffer/insert-char % (first c)))))

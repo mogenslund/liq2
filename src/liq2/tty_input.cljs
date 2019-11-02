@@ -26,16 +26,17 @@
 (defn input-handler
   [fun]
   (set-raw-mode)
-  (tty-print esc "0;37m" esc "2J")
+  ;(tty-print esc "0;37m" esc "2J")
   (tty-print esc "0;0H" esc "s")
   (js/process.stdin.on "keypress"
     (fn [chunk key]
       (let [k (or (translate-name js/key.name)
                   (str (when js/key.ctrl "C-")
                      (when js/key.meta "M-")
-                     (if js/key.shift
-                       (str/upper-case js/key.name)
-                       js/key.name)))] 
+                     (cond (= js/key.sequence "/") "/"
+                           (= js/key.sequence ":") ":"
+                           js/key.shift (str/upper-case js/key.name)
+                           true js/key.name)))] 
         (if (not= k "C-q")
           (fun k)
           (js/process.exit))))))

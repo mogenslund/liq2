@@ -16,13 +16,13 @@
 (defn set-raw-mode
   []
   (cmd "/bin/sh" "-c" "stty -echo raw </dev/tty")
-  (tty-print esc "0;37m" esc "2J")
+  ;(tty-print esc "0;37m" esc "2J")
   (tty-print esc "?7l"))  ; disable line wrap
 
 
 (defn set-line-mode
   []
-  (tty-print esc "0;37m" esc "2J")
+  ;(tty-print esc "0;37m" esc "2J")
   (cmd "/bin/sh" "-c" "stty -echo cooked </dev/tty")
   (cmd "/bin/sh" "-c" "stty -echo sane </dev/tty")
   (tty-print esc "0;0H" esc "s"))
@@ -30,7 +30,7 @@
 (defn input-handler
   [fun]
   (set-raw-mode)
-  (tty-print esc "0;37m" esc "2J")
+  ;(tty-print esc "0;37m" esc "2J")
   (tty-print esc "0;0H" esc "s")
   (future
     (let [r (java.io.BufferedReader. *in*)

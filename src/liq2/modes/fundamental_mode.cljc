@@ -1,15 +1,17 @@
 (ns liq2.modes.fundamental-mode
   (:require [clojure.string :as str]
+            [liq2.editor :as editor]
             [liq2.buffer :as buffer]))
 
 (def mode
-  {:insert {"esc" {:function #(-> % (buffer/set-mode :normal) buffer/backward-char) :type :sub-editor}}
-   :normal {"i" {:function #(buffer/set-mode % :insert) :type :sub-editor}
-            "h" {:function buffer/backward-char :type :sub-editor}
-            "j" {:function buffer/next-line :type :sub-editor}
-            "k" {:function buffer/previous-line :type :sub-editor}
-            "l" {:function buffer/forward-char :type :sub-editor}
-            "0" {:function buffer/beginning-of-line :type :sub-editor}
-            "$" {:function buffer/end-of-line :type :sub-editor}
-            "x" {:function buffer/delete-char :type :sub-editor}
-            "o" {:function buffer/append-line :type :sub-editor}}})
+  {:insert {"esc" {:function #(-> % (buffer/set-mode :normal) buffer/backward-char) :type :buffer}}
+   :normal {"i" {:function #(buffer/set-mode % :insert) :type :buffer}
+            "h" {:function buffer/backward-char :type :buffer}
+            "j" {:function buffer/next-line :type :buffer}
+            "k" {:function buffer/previous-line :type :buffer}
+            "l" {:function buffer/forward-char :type :buffer}
+            "0" {:function buffer/beginning-of-line :type :buffer}
+            "$" {:function buffer/end-of-line :type :buffer}
+            "x" {:function buffer/delete-char :type :buffer}
+            "/" editor/previous-buffer
+            "o" {:function buffer/append-line :type :buffer}}})

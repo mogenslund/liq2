@@ -47,6 +47,14 @@
   [buf m]
   (assoc buf ::mode m))
 
+(defn set-major-mode
+  [buf m]
+  (assoc buf ::major-mode m))
+
+(defn get-major-mode
+  [buf]
+  (buf ::major-mode))
+
 (comment 
   (let [buf (buffer "abcd\nxyz")]
     (-> buf
@@ -227,6 +235,13 @@
       (append-line-at-end (- row (line-count buf)))
       (append-spaces-to-row row (- col (col-count buf row)))
       (assoc-in [::lines (dec row) (dec col)] {attr value})))
+
+(defn clear
+  [buf]
+  (assoc buf ::lines []
+             ::col 1
+             ::row 1
+             ::mem-col 1))
 
 (comment
   
