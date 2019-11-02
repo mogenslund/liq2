@@ -97,8 +97,9 @@
     (switch-to-buffer id)))
 
 (defn apply-to-buffer
-  [id fun]
-  (swap! state update-in [::buffers id] fun))
+  ([id fun]
+   (swap! state update-in [::buffers id] fun))
+  ([fun] (apply-to-buffer (get-current-buffer-id) fun)))
 
 (comment
   (new-buffer)
@@ -110,13 +111,21 @@
   []
   ((@state ::output-handler) (get-current-buffer) (get-buffer-frame (get-current-buffer-id)))) 
 
+(def tmp-keymap (atom nil))
+
+
 (defn handle-input
   [c]
-  (spit "/tmp/liq2.log" (str "INPUT: " c "\n"))
+  ;(spit "/tmp/liq2.log" (str "INPUT: " c "\n"))
   (let [mode (buffer/get-mode (get-current-buffer))
         major-mode (buffer/get-major-mode (get-current-buffer))
-        action (((get-mode major-mode) mode) c)]
+        tmp-k (and @tmp-keymap (@tmp-keymap c))
+        _ (reset! tmp-keymap nil)
+        action (or
+                 tmp-k
+                 (((get-mode major-mode) mode) c))]
     (cond (fn? action) (action)
+          (and action (action :keymap)) (reset! tmp-keymap (action :keymap))
           action (swap! state update-in [::buffers (get-current-buffer-id)] (action :function))
           (= mode :insert) (swap! state update-in [::buffers (get-current-buffer-id)] #(buffer/insert-char % (first c)))))
   (push-output))

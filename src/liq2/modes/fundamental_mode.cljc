@@ -13,5 +13,7 @@
             "0" {:function buffer/beginning-of-line :type :buffer}
             "$" {:function buffer/end-of-line :type :buffer}
             "x" {:function buffer/delete-char :type :buffer}
-            "/" editor/previous-buffer
+            "g" {:keymap {"g" {:function buffer/beginning-of-buffer :type :buffer}}}
+            "/" (fn [] (editor/previous-buffer) (editor/apply-to-buffer #(-> % buffer/clear (buffer/insert-char \/))))
+            ":" (fn [] (editor/previous-buffer) (editor/apply-to-buffer #(-> % buffer/clear (buffer/insert-char \:))))
             "o" {:function buffer/append-line :type :buffer}}})

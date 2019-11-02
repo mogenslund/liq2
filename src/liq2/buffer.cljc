@@ -116,6 +116,10 @@
   [buf]
   (assoc buf ::col 1 ::mem-col 1))
 
+(defn beginning-of-buffer
+  [buf]
+  (assoc buf ::row 1 ::col 1 ::mem-col 1))
+
 ;; Modifications
 ;; =============
 
@@ -238,7 +242,7 @@
 
 (defn clear
   [buf]
-  (assoc buf ::lines []
+  (assoc buf ::lines [[]]
              ::col 1
              ::row 1
              ::mem-col 1))

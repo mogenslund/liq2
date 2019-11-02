@@ -5,10 +5,10 @@
 
 (defn execute
   [content]
-  )
+  (editor/previous-buffer))
 
 (def mode
   {:insert {"esc" editor/previous-buffer
-            "enter" #(execute %)}
+            "enter" (fn [] (execute ""))}
    :normal {"esc" {:function #(buffer/set-mode % :insert) :type :buffer}
             "l" {:function buffer/forward-char :type :buffer}}})
