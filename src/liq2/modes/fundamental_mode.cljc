@@ -20,7 +20,8 @@
             "$" {:function buffer/end-of-line :type :buffer}
             "x" {:function buffer/delete-char :type :buffer}
             "g" {:keymap {"g" {:function buffer/beginning-of-buffer :type :buffer}}}
+            "G" {:function buffer/end-of-buffer :type :buffer}
             "c" {:keymap {"p" {:keymap {"p" #(tmp-eval "(+ 1 2 3)")}}}}
-            "/" (fn [] (editor/previous-buffer) (editor/apply-to-buffer #(-> % buffer/clear (buffer/insert-char \/))))
+            "/" (fn [] (editor/switch-to-buffer (editor/get-buffer-id-by-name "-minibuffer-")) (editor/apply-to-buffer #(-> % buffer/clear (buffer/insert-char \/))))
             ":" (fn [] (editor/previous-buffer) (editor/apply-to-buffer #(-> % buffer/clear (buffer/insert-char \:))))
             "o" {:function buffer/append-line :type :buffer}}})

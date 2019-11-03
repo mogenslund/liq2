@@ -2,8 +2,10 @@
   (:require [clojure.string :as str]))
 
 (defn buffer
-  [text]
-  {::lines (mapv (fn [l] (mapv #(hash-map ::char %) l)) (str/split-lines text))
+  [text {:keys [name] :as options}]
+  {::name name
+   ::filename nil
+   ::lines (mapv (fn [l] (mapv #(hash-map ::char %) l)) (str/split-lines text))
    ::line-ending :unix
    ::col 1
    ::row 1
@@ -30,6 +32,10 @@
 
 ;; Information
 ;; ===========
+
+(defn get-name
+  [buf]
+  (buf ::name))
 
 (defn line-count
   [buf]
@@ -119,6 +125,10 @@
 (defn beginning-of-buffer
   [buf]
   (assoc buf ::row 1 ::col 1 ::mem-col 1))
+
+(defn end-of-buffer
+  [buf]
+  (assoc buf ::row (line-count buf) ::col (col-count buf (line-count buf)) ::mem-col 1))
 
 ;; Modifications
 ;; =============

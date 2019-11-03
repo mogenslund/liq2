@@ -30,6 +30,10 @@
   [idx]
   ((first (filter #(= (% ::idx) idx) (vals (@state ::buffers)))) ::id))
 
+(defn get-buffer-id-by-name
+  [name]
+  ((first (filter #(= (buffer/get-name %) name) (vals (@state ::buffers)))) ::id))
+
 (defn get-current-buffer-id
   "Highest idx is current buffer.
   So idx is updated each time buffer is switched."
@@ -90,9 +94,9 @@
   ([] (previous-buffer 1)))
 
 (defn new-buffer
-  []
+  [text {:keys [name] :as options}]
   (let [id (util/counter-next)
-        buf (assoc (buffer/buffer "") ::id id)]
+        buf (assoc (buffer/buffer text options) ::id id)]
     (swap! state update ::buffers assoc id buf) 
     (switch-to-buffer id)))
 

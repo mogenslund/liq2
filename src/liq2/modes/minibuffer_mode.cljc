@@ -4,11 +4,13 @@
             [liq2.buffer :as buffer]))
 
 (defn execute
-  [content]
+  []
+  (editor/apply-to-buffer buffer/clear)
+  (editor/push-output)
   (editor/previous-buffer))
 
 (def mode
   {:insert {"esc" editor/previous-buffer
-            "enter" (fn [] (execute ""))}
+            "\n" execute}
    :normal {"esc" {:function #(buffer/set-mode % :insert) :type :buffer}
             "l" {:function buffer/forward-char :type :buffer}}})
