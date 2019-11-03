@@ -23,5 +23,5 @@
             "G" {:function buffer/end-of-buffer :type :buffer}
             "c" {:keymap {"p" {:keymap {"p" #(tmp-eval "(+ 1 2 3)")}}}}
             "/" (fn [] (editor/switch-to-buffer (editor/get-buffer-id-by-name "-minibuffer-")) (editor/apply-to-buffer #(-> % buffer/clear (buffer/insert-char \/))))
-            ":" (fn [] (editor/previous-buffer) (editor/apply-to-buffer #(-> % buffer/clear (buffer/insert-char \:))))
+            ":" (fn [] (editor/switch-to-buffer (editor/get-buffer-id-by-name "-minibuffer-")) (editor/apply-to-buffer #(-> % buffer/clear (buffer/insert-char \:))))
             "o" {:function buffer/append-line :type :buffer}}})

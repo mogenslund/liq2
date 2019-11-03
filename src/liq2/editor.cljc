@@ -117,6 +117,10 @@
 
 (def tmp-keymap (atom nil))
 
+(defn exit-program
+  []
+  #?(:clj (System/exit 0)
+     :cljs (js/process.exit 0)))
 
 (defn handle-input
   [c]

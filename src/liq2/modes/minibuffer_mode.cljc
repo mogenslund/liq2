@@ -5,9 +5,12 @@
 
 (defn execute
   []
-  (editor/apply-to-buffer buffer/clear)
-  (editor/push-output)
-  (editor/previous-buffer))
+  (let [content (buffer/get-text (editor/get-current-buffer))]
+    (editor/apply-to-buffer buffer/clear)
+    (editor/push-output)
+    (editor/previous-buffer)
+    (when (= content ":q")
+      (editor/exit-program))))
 
 (def mode
   {:insert {"esc" editor/previous-buffer
