@@ -34,6 +34,11 @@
   (tty-print "\n")
   (js/process.exit 0))
 
+(defn init
+  []
+  (tty-print esc "0;0H" esc "s")
+  (set-raw-mode))
+
 (defn input-handler
   [fun]
   (set-raw-mode)

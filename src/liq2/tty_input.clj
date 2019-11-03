@@ -13,6 +13,10 @@
   [& args]
   (.print (System/out) (str/join "" args)))
 
+(defn- tty-println
+  [& args]
+  (.println (System/out) (str/join "" args)))
+
 (defn set-raw-mode
   []
   (cmd "/bin/sh" "-c" "stty -echo raw </dev/tty")
@@ -27,6 +31,26 @@
   (cmd "/bin/sh" "-c" "stty -echo sane </dev/tty")
   (tty-print esc "0;0H" esc "s"))
 
+(defn rows
+  []
+  (loop [shellinfo (with-out-str (cmd "/bin/sh" "-c" "stty size </dev/tty")) n 0]
+    (if (or (re-find #"^\d+" shellinfo) (> n 10)) 
+      (Integer/parseInt (re-find #"^\d+" shellinfo))
+      (do
+        (tty-println n)
+        (Thread/sleep 100)
+        (recur (with-out-str (cmd "/bin/sh" "-c" "stty size </dev/tty")) (inc n))))))
+
+(defn cols
+  []
+  (loop [shellinfo (with-out-str (cmd "/bin/sh" "-c" "stty size </dev/tty")) n 0]
+    (if (or (re-find #"\d+$" shellinfo) (> n 10)) 
+      (Integer/parseInt (re-find #"\d+$" shellinfo))
+      (do
+        (tty-println n)
+        (Thread/sleep 100)
+        (recur (with-out-str (cmd "/bin/sh" "-c" "stty size </dev/tty")) (inc n))))))
+
 (defn exit-handler
   []
   (tty-print "\033[0;37m\033[2J")
@@ -36,9 +60,13 @@
   (tty-print "\n")
   (System/exit 0))
 
+(defn init
+  []
+  (tty-print esc "0;0H" esc "s")
+  (set-raw-mode))
+
 (defn input-handler
   [fun]
-  (set-raw-mode)
   ;(tty-print esc "0;37m" esc "2J")
   (tty-print esc "0;0H" esc "s")
   (future

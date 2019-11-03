@@ -10,17 +10,20 @@
 ;; clj -m liq2.experiments.core
 (defn -main
   []
-  (editor/add-mode :fundamental-mode fundamental-mode/mode)
-  (editor/add-mode :minibuffer-mode minibuffer-mode/mode)
-  (editor/new-frame 1 1 10 80)
-  (editor/new-buffer "" {})
-  (editor/set-output-handler output/output-handler)
-  (editor/set-exit-handler input/exit-handler)
-  (input/input-handler editor/handle-input)
-  (editor/push-output)
-  (editor/new-frame 11 1 1 80)
-  (editor/apply-to-buffer (editor/new-buffer "" {:name "-minibuffer-"}) #(-> % (buffer/set-major-mode :minibuffer-mode) (buffer/set-mode :insert)))
-  (editor/previous-buffer)
-  (editor/push-output))
+  (input/init)
+  (let [rows 16 ; (input/rows)
+        cols 80]  ;(input/cols)
+    (editor/add-mode :fundamental-mode fundamental-mode/mode)
+    (editor/add-mode :minibuffer-mode minibuffer-mode/mode)
+    (editor/new-frame 1 1 (dec rows) cols)
+    (editor/new-buffer "" {})
+    (editor/set-output-handler output/output-handler)
+    (editor/set-exit-handler input/exit-handler)
+    (input/input-handler editor/handle-input)
+    (editor/push-output)
+    (editor/new-frame rows 1 1 cols)
+    (editor/apply-to-buffer (editor/new-buffer "" {:name "-minibuffer-"}) #(-> % (buffer/set-major-mode :minibuffer-mode) (buffer/set-mode :insert)))
+    (editor/previous-buffer)
+    (editor/push-output)))
 
 
