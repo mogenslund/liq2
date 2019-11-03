@@ -12,7 +12,8 @@
   []
   (let [readline (js/require "readline")]
     (.emitKeypressEvents readline process.stdin
-      (js/process.stdin.setRawMode true))))
+      (js/process.stdin.setRawMode true)))
+  (tty-print esc "0;37m" esc "2J"))
 
 (def translate-name
   {"return" "\n"
@@ -22,6 +23,16 @@
 (defn jsx->clj
   [x]
   (into {} (for [k (.keys js/Object x)] [k (aget x k)])))
+
+(defn exit-handler
+  []
+  (tty-print "\033[0;37m\033[2J")
+  (tty-print "\033[?25h")
+  (let [readline (js/require "readline")]
+    (.emitKeypressEvents readline process.stdin
+      (js/process.stdin.setRawMode false)))
+  (tty-print "\n")
+  (js/process.exit 0))
 
 (defn input-handler
   [fun]

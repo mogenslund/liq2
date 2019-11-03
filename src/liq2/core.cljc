@@ -15,6 +15,7 @@
   (editor/new-frame 1 1 10 80)
   (editor/new-buffer "" {})
   (editor/set-output-handler output/output-handler)
+  (editor/set-exit-handler input/exit-handler)
   (input/input-handler editor/handle-input)
   (editor/push-output)
   (editor/new-frame 11 1 1 80)

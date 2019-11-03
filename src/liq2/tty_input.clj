@@ -16,7 +16,7 @@
 (defn set-raw-mode
   []
   (cmd "/bin/sh" "-c" "stty -echo raw </dev/tty")
-  ;(tty-print esc "0;37m" esc "2J")
+  (tty-print esc "0;37m" esc "2J")
   (tty-print esc "?7l"))  ; disable line wrap
 
 
@@ -26,6 +26,15 @@
   (cmd "/bin/sh" "-c" "stty -echo cooked </dev/tty")
   (cmd "/bin/sh" "-c" "stty -echo sane </dev/tty")
   (tty-print esc "0;0H" esc "s"))
+
+(defn exit-handler
+  []
+  (tty-print "\033[0;37m\033[2J")
+  (tty-print "\033[?25h")
+  (cmd "/bin/sh" "-c" "stty -echo cooked </dev/tty")
+  (cmd "/bin/sh" "-c" "stty -echo sane </dev/tty")
+  (tty-print "\n")
+  (System/exit 0))
 
 (defn input-handler
   [fun]

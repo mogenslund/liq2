@@ -8,11 +8,16 @@
 (def state (atom {::buffers {}
                   ::modes {}
                   ::frames {}
+                  ::exit-handler nil
                   ::output-handler nil}))
 
 (defn set-output-handler
   [output-handler]
   (swap! state assoc ::output-handler output-handler))
+
+(defn set-exit-handler
+  [exit-handler]
+  (swap! state assoc ::exit-handler exit-handler))
 
 (defn add-mode
   [keyw mode]
@@ -119,8 +124,7 @@
 
 (defn exit-program
   []
-  #?(:clj (System/exit 0)
-     :cljs (js/process.exit 0)))
+  ((@state ::exit-handler)))
 
 (defn handle-input
   [c]
