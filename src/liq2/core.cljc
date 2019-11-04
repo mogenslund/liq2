@@ -5,14 +5,15 @@
             [liq2.buffer :as buffer]
             [liq2.editor :as editor]
             [liq2.tty-input :as input]
+            [liq2.util :as util]
             [liq2.tty-output :as output]))
 
 ;; clj -m liq2.experiments.core
 (defn -main
   []
   (input/init)
-  (let [rows 16 ; (input/rows)
-        cols 80]  ;(input/cols)
+  (let [rows (input/rows)
+        cols (input/cols)]
     (editor/add-mode :fundamental-mode fundamental-mode/mode)
     (editor/add-mode :minibuffer-mode minibuffer-mode/mode)
     (editor/new-frame 1 1 (dec rows) cols)

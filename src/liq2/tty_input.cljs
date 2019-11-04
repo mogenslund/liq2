@@ -24,6 +24,14 @@
   [x]
   (into {} (for [k (.keys js/Object x)] [k (aget x k)])))
 
+(defn rows
+  []
+  (aget (js/process.stdout.getWindowSize) 1))
+
+(defn cols
+  []
+  (aget (js/process.stdout.getWindowSize) 0))
+
 (defn exit-handler
   []
   (tty-print "\033[0;37m\033[2J")

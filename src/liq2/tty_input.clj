@@ -1,27 +1,55 @@
 (ns liq2.tty-input
   (:require [clojure.string :as str]
+            [clojure.java.io :as io]
+            [liq2.util :as util]
             [liq2.tty-shared :as shared]))
 
 (def esc "\033[")
+(def ^:private sysout (System/out))
 
 ; https://github.com/mogenslund/liquidjs/blob/master/src/dk/salza/liq/adapters/tty.cljs
-(defn cmd
-  [& args]
-  (.waitFor (.exec (Runtime/getRuntime) (into-array args))))
 
 (defn- tty-print
   [& args]
-  (.print (System/out) (str/join "" args)))
+  (.print sysout (str/join "" args)))
 
 (defn- tty-println
   [& args]
-  (.println (System/out) (str/join "" args)))
+  (.println sysout (str/join "" args)))
+
+(defn cmd
+  "Execute a native command.
+  Adding :timeout 60 or similar as last command will
+  add a timeout to the process."
+  [& args]
+  (let [builder (doto (ProcessBuilder. args)
+                  (.redirectErrorStream true))
+        process (.start builder)
+        lineprocessor (future (doseq [line (line-seq (io/reader (.getInputStream process)))]
+                                (println line)))
+        monitor (future (.waitFor process))
+        starttime (quot (System/currentTimeMillis) 1000)]
+    (try
+      (while (and (not (future-done? monitor))
+                  (< (- (quot (System/currentTimeMillis) 1000) starttime)))
+        (Thread/sleep 1000))
+      (catch Exception e
+        (do (.destroy process)
+            (println "Exception" (.getMessage e))
+            (future-cancel monitor))))
+    (when (not (future-done? monitor))
+      (println "TimeoutException or Interrupted")
+      (.destroy process))))
+
 
 (defn set-raw-mode
   []
   (cmd "/bin/sh" "-c" "stty -echo raw </dev/tty")
   (tty-print esc "0;37m" esc "2J")
-  (tty-print esc "?7l"))  ; disable line wrap
+  (tty-print esc "?7l")  ; disable line wrap
+  (tty-print esc "5000;5000H" esc "s")
+  (tty-print esc "K"))
+
 
 
 (defn set-line-mode
