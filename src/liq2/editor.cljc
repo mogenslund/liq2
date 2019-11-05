@@ -2,12 +2,10 @@
   (:require [clojure.string :as str]
             #?(:cljs [lumo.io :as io :refer [slurp spit]])
             [liq2.util :as util]
-            [liq2.frame :as frame]
             [liq2.buffer :as buffer]))
 
 (def state (atom {::buffers {}
                   ::modes {}
-                  ::frames {}
                   ::exit-handler nil
                   ::output-handler nil}))
 
@@ -30,6 +28,10 @@
 (defn get-buffer
   [id]
   ((@state ::buffers) id))
+
+(defn regular-buffers
+  []
+  (filter #(not= (subs (str (buffer/get-name %) " ") 0 1) "-") (vals (@state ::buffers))))
 
 (defn get-buffer-id-by-idx
   [idx]
@@ -55,38 +57,13 @@
   []
   (get-buffer (get-current-buffer-id)))
 
-(defn new-frame
-  [top left rows cols]
-  (let [fr (frame/frame top left rows cols)]
-    (swap! state update ::frames assoc (frame/get-id fr) fr)
-    (frame/get-id fr)))
-
-(defn get-frame
-  [id]
-  ((@state ::frames) id))
-
-(defn get-frame-id-from-buffer-id
-  "Given index of buffer, return id of frame."
-  [id]
-  (when-let [fr (first (filter #(= (frame/get-buffer-id %) id) (vals (@state ::frames))))]
-    (frame/get-id fr)))
-
-(defn get-buffer-frame
-  [id]
-  (get-frame (get-frame-id-from-buffer-id id)))
-
-(defn get-empty-frames
+(defn push-output
   []
-  (filter #(nil? (frame/get-buffer-id %)) (vals (@state ::frames))))
+  (when (@state ::output-handler)
+    ((@state ::output-handler) (get-current-buffer))))
 
 (defn switch-to-buffer
   [id]
-  (let [empty-frame (first (get-empty-frames))
-        frameid (get-frame-id-from-buffer-id (get-current-buffer-id))]
-    (when (not (get-frame-id-from-buffer-id id))
-      (if empty-frame
-        (swap! state update-in [::frames (frame/get-id empty-frame)] #(frame/set-buffer-id % id))  
-        (swap! state update-in [::frames frameid] #(frame/set-buffer-id % id)))))
   (swap! state assoc-in [::buffers id ::idx] (util/counter-next))
   id)
 
@@ -98,10 +75,23 @@
        (switch-to-buffer (get-buffer-id-by-idx idx)))))
   ([] (previous-buffer 1)))
 
+(defn oldest-buffer
+  []
+  (let [idx (first (sort (map ::idx (regular-buffers))))]
+    (when idx
+      (switch-to-buffer (get-buffer-id-by-idx idx)))))
+
 (defn new-buffer
   [text {:keys [name] :as options}]
   (let [id (util/counter-next)
-        buf (assoc (buffer/buffer text options) ::id id)]
+        b (get-current-buffer)
+        o (if (options :rows)
+            options
+            (assoc options :top (buffer/get-top b)
+                           :left (buffer/get-left b)
+                           :rows (buffer/get-rows b)
+                           :cols (buffer/get-cols b))) 
+        buf (assoc (buffer/buffer text o) ::id id)]
     (swap! state update ::buffers assoc id buf) 
     (switch-to-buffer id)))
 
@@ -112,13 +102,7 @@
 
 (comment
   (new-buffer)
-  (new-frame 10 10 10 10)
-  (get-empty-frames)
   )
-
-(defn push-output
-  []
-  ((@state ::output-handler) (get-current-buffer) (get-buffer-frame (get-current-buffer-id)))) 
 
 (def tmp-keymap (atom nil))
 

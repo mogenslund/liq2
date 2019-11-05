@@ -2,13 +2,17 @@
   (:require [clojure.string :as str]))
 
 (defn buffer
-  [text {:keys [name] :as options}]
+  [text {:keys [name top left rows cols] :as options}]
   {::name name
    ::filename nil
    ::lines (mapv (fn [l] (mapv #(hash-map ::char %) l)) (str/split-lines text))
    ::line-ending :unix
    ::col 1
    ::row 1
+   ::top top
+   ::left left
+   ::rows rows
+   ::cols cols
    ::mem-col 1                ; Remember column when moving up and down
    ::mode :normal
    ::encoding :?              ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
@@ -33,33 +37,22 @@
 ;; Information
 ;; ===========
 
-(defn get-name
-  [buf]
-  (buf ::name))
+(defn get-name [buf] (buf ::name))
 
-(defn line-count
-  [buf]
-  (count (buf ::lines)))
+(defn set-filename [buf path] (assoc buf ::filename path))
+(defn get-filename [buf] (buf ::filename))
 
-(defn col-count
-  [buf row]
-  (-> buf ::lines (get (dec row)) count))
+(defn line-count [buf] (count (buf ::lines)))
 
-(defn get-mode
-  [buf]
-  (buf ::mode))
+(defn col-count [buf row] (-> buf ::lines (get (dec row)) count))
 
-(defn set-mode
-  [buf m]
-  (assoc buf ::mode m))
+(defn set-mode [buf m] (assoc buf ::mode m))
+(defn get-mode [buf] (buf ::mode))
 
-(defn set-major-mode
-  [buf m]
-  (assoc buf ::major-mode m))
 
-(defn get-major-mode
-  [buf]
-  (buf ::major-mode))
+(defn set-major-mode [buf m] (assoc buf ::major-mode m))
+
+(defn get-major-mode [buf] (buf ::major-mode))
 
 (comment 
   (let [buf (buffer "abcd\nxyz")]
@@ -67,17 +60,25 @@
         (set-mode :insert)
         get-mode)))
 
-(defn get-col
-  [buf]
-  (buf ::col))
+(defn get-col [buf] (buf ::col))
 
-(defn get-row
-  [buf]
-  (buf ::row))
+(defn get-row [buf] (buf ::row))
 
 (defn get-text
   [buf]
   (str/join "\n" (map (fn [line] (str/join "" (map ::char line))) (buf ::lines))))
+
+(defn set-top [buf n] (assoc buf ::top n))
+(defn get-top [buf] (buf ::top))
+
+(defn set-left [buf n] (assoc buf ::left n))
+(defn get-left [buf] (buf ::left))
+
+(defn set-rows [buf n] (assoc buf ::rows n))
+(defn get-rows [buf] (buf ::rows))
+
+(defn set-cols [buf n] (assoc buf ::cols n))
+(defn get-cols [buf] (buf ::cols))
 
 ;; Movements
 ;; =========
@@ -211,6 +212,10 @@
        (insert-char (get-row buf) (get-col buf) char)
        (assoc ::col (if (= char \newline) 1 (inc (get-col buf)))
               ::row (if (= char \newline) (inc (get-row buf)) (get-row buf))))))
+
+(defn insert-string
+  [buf text]
+  (reduce insert-char buf text))
 
 (defn append-line
   ([buf row]

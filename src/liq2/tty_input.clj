@@ -73,7 +73,7 @@
   []
   (loop [shellinfo (with-out-str (cmd "/bin/sh" "-c" "stty size </dev/tty")) n 0]
     (if (or (re-find #"\d+$" shellinfo) (> n 10)) 
-      (Integer/parseInt (re-find #"\d+$" shellinfo))
+      (dec (Integer/parseInt (re-find #"\d+$" shellinfo)))
       (do
         (tty-println n)
         (Thread/sleep 100)
