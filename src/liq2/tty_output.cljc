@@ -34,7 +34,7 @@
 
 (defn print-buffer
   [buf]
-  (let [cache-id [(buffer/get-rows buf) (buffer/get-cols buf)]
+  (let [cache-id [(buffer/get-rows buf) (buffer/get-cols buf) (buffer/get-name buf) (buffer/get-filename buf)]
         left (buffer/get-left buf)
         top (buffer/get-top buf)
         rows (buffer/get-rows buf)
