@@ -46,7 +46,7 @@
   (tty-print esc "?25l") ; Hide cursor
   (when (= cache-id @last-buffer)
     (tty-print "█")) ; To make it look like the cursor is still there while drawing.
-  (loop [trow top tcol left row (tow :row) col (tow :col) cursor-row nil cursor-col nil]
+  (loop [trow top tcol left row (tow :row) col (tow :col) cursor-row nil cursor-col nil bgcolor nil]
     (if (< trow (+ rows top))
       (do
       ;; Check if row has changed...
@@ -56,17 +56,18 @@
                     (buffer/get-char buf row col)
                     (if (and (= col 1) (> row (buffer/line-count buf))) (str esc "36m~" esc "0m") \space))
               new-cursor-row (if cursor-match trow cursor-row)
-              new-cursor-col (if cursor-match tcol cursor-col)]
-          ;(when (not= c (@cache [trow tcol]))
+              new-cursor-col (if cursor-match tcol cursor-col)
+              new-bgcolor (if (buffer/selected? buf row col) "48;5;17" "49")]
+            (when (not= bgcolor new-bgcolor) (tty-print esc new-bgcolor "m"))
             (if (= tcol left)
               (tty-print esc trow ";" tcol "H" esc "s" c)
               (tty-print c))
           ;  (swap! cache assoc [trow tcol] c))
           (if (> tcol cols)
             (if (> (buffer/col-count buf row) col) 
-              (recur (inc trow) left row (inc col) new-cursor-row new-cursor-col) 
-              (recur (inc trow) left (inc row) 1 new-cursor-row new-cursor-col))
-            (recur trow (inc tcol) row (inc col) new-cursor-row new-cursor-col))))
+              (recur (inc trow) left row (inc col) new-cursor-row new-cursor-col new-bgcolor) 
+              (recur (inc trow) left (inc row) 1 new-cursor-row new-cursor-col new-bgcolor))
+            (recur trow (inc tcol) row (inc col) new-cursor-row new-cursor-col new-bgcolor))))
       (do
         (tty-print esc cursor-row ";" cursor-col "H" esc "s" (or (buffer/get-char buf) \space))
         (tty-print esc "?25h" esc cursor-row ";" cursor-col "H" esc "s")

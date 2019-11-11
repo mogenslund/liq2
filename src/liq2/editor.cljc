@@ -31,7 +31,7 @@
 
 (defn regular-buffers
   []
-  (filter #(not= (subs (str (buffer/get-name %) " ") 0 1) "-") (vals (@state ::buffers))))
+  (filter #(not= (subs (str (buffer/get-name %) " ") 0 1) "*") (vals (@state ::buffers))))
 
 (defn get-buffer-id-by-idx
   [idx]
@@ -71,6 +71,7 @@
   "n = 1 means previous"
   ([n]
    (let [idx (first (drop n (reverse (sort (map ::idx (vals (@state ::buffers)))))))]
+     ;(javax.swing.JOptionPane/showMessageDialog nil (str "IDX " idx " " (pr-str (map ::idx (regular-buffers)))))
      (when idx
        (switch-to-buffer (get-buffer-id-by-idx idx)))))
   ([] (previous-buffer 1)))
@@ -93,7 +94,8 @@
                            :cols (buffer/get-cols b))) 
         buf (assoc (buffer/buffer text o) ::id id)]
     (swap! state update ::buffers assoc id buf) 
-    (switch-to-buffer id)))
+    (switch-to-buffer id)
+    (push-output)))
 
 (defn apply-to-buffer
   ([id fun]

@@ -1,22 +1,27 @@
 (ns liq2.buffer
   (:require [clojure.string :as str]))
 
+(defn point
+  [row col]
+  {::row row
+   ::col col})
+
 (defn buffer
-  [text {:keys [name top left rows cols] :as options}]
+  [text {:keys [name top left rows cols major-mode mode] :as options}]
   {::name name
    ::filename nil
    ::lines (mapv (fn [l] (mapv #(hash-map ::char %) l)) (str/split-lines text))
-   ::line-ending :unix
-   ::col 1
-   ::row 1
+   ::line-ending "\n" 
+   ::cursor (point 1 1)
+   ::selection nil
    ::top top
    ::left left
    ::rows rows
    ::cols cols
    ::mem-col 1                ; Remember column when moving up and down
-   ::mode :normal
-   ::encoding :?              ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
-   ::major-mode :fundamental-mode
+   ::mode (or mode :normal)
+   ::encoding :utf-8          ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
+   ::major-mode (or major-mode :fundamental-mode)
    ::minor-modes []})           
 
 (defn insert-in-vector
@@ -60,9 +65,9 @@
         (set-mode :insert)
         get-mode)))
 
-(defn get-col [buf] (buf ::col))
+(defn get-col [buf] (-> buf ::cursor ::col))
 
-(defn get-row [buf] (buf ::row))
+(defn get-row [buf] (-> buf ::cursor ::row))
 
 (defn get-text
   [buf]
@@ -80,6 +85,43 @@
 (defn set-cols [buf n] (assoc buf ::cols n))
 (defn get-cols [buf] (buf ::cols))
 
+(defn set-point
+  ([buf p] (assoc buf ::cursor p))
+  ([buf row col] (set-point (point row col))))
+
+(defn get-point
+  [buf]
+  (buf ::cursor))
+
+(defn set-selection
+  ([buf p] (assoc buf ::selection p))
+  ([buf row col] (set-selection buf (point row col)))
+  ([buf] (set-selection buf (get-point buf))))
+
+(defn get-selection
+  [buf]
+  (buf ::selection))
+
+(defn remove-selection
+  [buf]
+  (assoc buf ::selection nil))
+  
+
+(defn point-compare
+  [p1 p2]
+  (compare [(p1 ::row) (p1 ::col)]
+           [(p2 ::row) (p2 ::col)]))
+
+(defn selected?
+  ([buf p]
+   (let [s (get-selection buf)
+         c (get-point buf)]
+     (cond (nil? s) false
+           (and (<= (point-compare s p) 0) (<= (point-compare p c) 0)) true
+           (and (<= (point-compare c p) 0) (<= (point-compare p s) 0)) true
+           true false)))
+   ([buf row col] (selected? buf (point row col))))
+
 ;; Movements
 ;; =========
 
@@ -87,8 +129,10 @@
   ([buf n]
    (let [linevec (-> buf ::lines (get (dec (get-row buf))))
          maxcol (+ (count linevec) (if (= (get-mode buf) :insert) 1 0))
-         newcol (max 1 (min maxcol (+ (buf ::col) n)))]
-     (assoc buf ::col newcol ::mem-col newcol))) 
+         newcol (max 1 (min maxcol (+ (get-col buf) n)))]
+     (-> buf
+         (set-point (point (get-row buf) newcol))
+         (assoc ::mem-col newcol)))) 
   ([buf]
    (forward-char buf 1)))
 
@@ -100,11 +144,11 @@
 
 (defn next-line
   ([buf n]
-   (let [newrow (max 1 (min (count (buf ::lines)) (+ (buf ::row) n)))
+   (let [newrow (max 1 (min (count (buf ::lines)) (+ (get-row buf) n)))
          linevec (-> buf ::lines (get (dec newrow)))
          maxcol (+ (count linevec) (if (= (get-mode buf) :insert) 1 0))
          newcol (max 1 (min maxcol (buf ::mem-col)))]
-     (assoc buf ::row newrow ::col newcol))) 
+     (set-point buf (point newrow newcol)))) 
   ([buf]
    (next-line buf 1)))
 
@@ -116,20 +160,28 @@
 
 (defn end-of-line
   [buf]
-  (assoc buf ::col (col-count buf (buf ::row))
-            ::mem-col (col-count buf (buf ::row))))
+  (-> buf
+      (set-point (point (get-row buf) (col-count buf (get-row buf)))) 
+      (assoc ::mem-col (col-count buf (get-row buf)))))
 
 (defn beginning-of-line
   [buf]
-  (assoc buf ::col 1 ::mem-col 1))
+  (-> buf
+      (set-point (point (get-row buf) 1)) 
+      (assoc ::mem-col 1)))
 
 (defn beginning-of-buffer
   [buf]
-  (assoc buf ::row 1 ::col 1 ::mem-col 1))
+  (-> buf
+      (set-point (point 1 1)) 
+      (assoc ::mem-col 1)))
+
 
 (defn end-of-buffer
   [buf]
-  (assoc buf ::row (line-count buf) ::col (col-count buf (line-count buf)) ::mem-col 1))
+  (-> buf
+      (set-point (point (line-count buf) (col-count buf (line-count buf))))
+      (assoc ::mem-col 1)))
 
 ;; Modifications
 ;; =============
@@ -210,8 +262,8 @@
   ([buf char]
    (-> buf
        (insert-char (get-row buf) (get-col buf) char)
-       (assoc ::col (if (= char \newline) 1 (inc (get-col buf)))
-              ::row (if (= char \newline) (inc (get-row buf)) (get-row buf))))))
+       (set-point (point (if (= char \newline) (inc (get-row buf)) (get-row buf))
+                         (if (= char \newline) 1 (inc (get-col buf))))))))
 
 (defn insert-string
   [buf text]
@@ -221,8 +273,7 @@
   ([buf row]
    (-> buf
        (update ::lines #(insert-in-vector % row []))
-       (update ::row inc)
-       (assoc ::col 1)
+       (set-point (point (inc (get-row buf)) 1))
        (set-mode :insert)))
   ([buf]
    (append-line buf (buf ::row))))
@@ -258,8 +309,7 @@
 (defn clear
   [buf]
   (assoc buf ::lines [[]]
-             ::col 1
-             ::row 1
+             ::cursor (point 1 1)
              ::mem-col 1))
 
 (comment

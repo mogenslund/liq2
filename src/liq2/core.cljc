@@ -17,15 +17,20 @@
     (editor/add-mode :fundamental-mode fundamental-mode/mode)
     (editor/add-mode :minibuffer-mode minibuffer-mode/mode)
     ;(editor/new-frame 1 1 (dec rows) cols)
-    (editor/new-buffer "" {:top 1 :left 1 :rows (dec rows) :cols cols})
     (editor/set-output-handler output/output-handler)
     (editor/set-exit-handler input/exit-handler)
     (input/input-handler editor/handle-input)
     (editor/push-output)
     ;(editor/new-frame rows 1 1 cols)
-    (editor/apply-to-buffer (editor/new-buffer "" {:name "-minibuffer-" :top rows :left 1 :rows 1 :cols cols})
-                            #(-> % (buffer/set-major-mode :minibuffer-mode) (buffer/set-mode :insert)))
-    (editor/previous-buffer)
+    (editor/new-buffer ""
+                       {:name "*minibuffer*" :top rows :left 1 :rows 1 :cols cols
+                        :major-mode :minibuffer-mode :mode :insert})
+    (Thread/sleep 100)
+    (editor/new-buffer "Output" {:name "*output*" :top (- rows 5) :left 1 :rows 5 :cols cols :mode :insert})
+    (Thread/sleep 100)
+    (editor/new-buffer "-----------------------------" {:name "*delimeter*" :top (- rows 6) :left 1 :rows 1 :cols cols})
+    (Thread/sleep 100)
+    (editor/new-buffer "" {:top 1 :left 1 :rows (- rows 7) :cols cols})
     (editor/push-output)))
 
 

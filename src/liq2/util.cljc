@@ -1,5 +1,8 @@
 (ns liq2.util
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            #?(:clj [clojure.java.io :as io]
+               :cljs [lumo.io :as io :refer [slurp spit]])))
+
 
 
 (def counter (atom 0))
@@ -12,6 +15,11 @@
   []
   #?(:clj (System/currentTimeMillis)
      :cljs (.getTime (js/Date.))))
+
+(defn read-file
+  [path]
+  (when (.exists (io/file path))
+    (slurp path)))
 
 ;(defn clipboard-content
 ;  []
