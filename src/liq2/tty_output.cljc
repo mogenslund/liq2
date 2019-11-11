@@ -51,6 +51,7 @@
       (do
       ;; Check if row has changed...
         (let [cursor-match (or (and (= row crow) (= col ccol))
+                               (and (= row crow) (not cursor-col) (> col ccol))
                                (and (not cursor-row) (> row crow)))
               c (or (when cursor-match "█") 
                     (buffer/get-char buf row col)

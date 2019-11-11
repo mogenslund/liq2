@@ -6,10 +6,15 @@
 
 (defn tmp-eval
   [s]
-  #?(:clj (load-string s)
+  #?(:clj (let [res (load-string s)]
+            (editor/switch-to-buffer (editor/get-buffer-id-by-name "*output*"))
+            (editor/apply-to-buffer #(buffer/insert-string % (str res)))
+            (editor/push-output)
+            (Thread/sleep 10)
+            (editor/previous-buffer))
      :cljs (do (set! cljs.js/*eval-fn* cljs.js/js-eval) (eval-str (empty-state) s str))))
 
-(def sample-code "(ns user.user (:require [liq2.editor :as editor] [liq2.buffer :as buffer])) (liq2.editor/apply-to-buffer liq2.buffer/end-of-line)")
+(def sample-code "(ns user.user (:require [liq2.editor :as editor] [liq2.buffer :as buffer])) (liq2.editor/apply-to-buffer liq2.buffer/end-of-line) :something")
 
 (def mode
   {:insert {"esc" {:function #(-> % (buffer/set-mode :normal) buffer/backward-char) :type :buffer}
