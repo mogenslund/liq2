@@ -326,6 +326,13 @@
         (insert-char \m)
         get-text)))
 
+(defn insert-at-line-end
+  [buf]
+  (-> buf
+      end-of-line
+      (set-mode :insert)
+      forward-char))
+
 (defn set-attribute
   [buf row col attr value]
   (-> buf

@@ -2,15 +2,16 @@
   (:require [clojure.string :as str]
             [liq2.editor :as editor :refer [apply-to-buffer switch-to-buffer get-buffer]]
             [liq2.buffer :as buffer]
+            [liq2.util :as util]
             #?(:cljs [cljs.js :refer [eval eval-str empty-state]])))
 
 (defn tmp-eval
   []
-  #?(:clj (let [res (load-string (buffer/get-selected-text (editor/get-current-buffer)))]
+  #?(:clj (let [res (util/eval-safe (buffer/get-selected-text (editor/get-current-buffer)))]
             (editor/switch-to-buffer (editor/get-buffer-id-by-name "*output*"))
-            (editor/apply-to-buffer #(buffer/insert-string % (str res)))
+            (editor/apply-to-buffer #(-> % buffer/clear (buffer/insert-string (str res))))
             (editor/push-output)
-            (Thread/sleep 10)
+            (util/sleep 10)
             (editor/previous-buffer))
      :cljs (do (set! cljs.js/*eval-fn* cljs.js/js-eval) (eval-str (empty-state) (buffer/get-selected-text (editor/get-current-buffer)) str))))
 
@@ -42,6 +43,7 @@
             "v" #(apply-to-buffer buffer/set-selection)
             "g" {"g" #(editor/apply-to-buffer buffer/beginning-of-buffer)}
             "G" #(apply-to-buffer buffer/end-of-buffer)
+            "A" #(apply-to-buffer buffer/insert-at-line-end)
             "c" {"p" {"p" tmp-eval
                       "t" tmp-get-text}}
             "/" (fn [] (switch-to-buffer "*minibuffer*")

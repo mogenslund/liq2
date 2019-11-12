@@ -27,6 +27,12 @@
   (when (.exists (io/file path))
     (slurp path)))
 
+(defn eval-safe
+  [text]
+  (try
+    (load-string text)
+    (catch Exception e (str e))))
+
 ;(defn clipboard-content
 ;  []
 ;  (if (java.awt.GraphicsEnvironment/isHeadless)
