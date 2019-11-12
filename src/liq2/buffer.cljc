@@ -7,22 +7,23 @@
    ::col col})
 
 (defn buffer
-  [text {:keys [name top left rows cols major-mode mode] :as options}]
-  {::name (or name "")
-   ::filename nil
-   ::lines (mapv (fn [l] (mapv #(hash-map ::char %) l)) (str/split-lines text))
-   ::line-ending "\n" 
-   ::cursor (point 1 1)
-   ::selection nil
-   ::top top
-   ::left left
-   ::rows rows
-   ::cols cols
-   ::mem-col 1                ; Remember column when moving up and down
-   ::mode (or mode :normal)
-   ::encoding :utf-8          ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
-   ::major-mode (or major-mode :fundamental-mode)
-   ::minor-modes []})           
+  ([text {:keys [name top left rows cols major-mode mode] :as options}]
+   {::name (or name "")
+    ::filename nil
+    ::lines (mapv (fn [l] (mapv #(hash-map ::char %) l)) (str/split-lines text))
+    ::line-ending "\n" 
+    ::cursor (point 1 1)
+    ::selection nil
+    ::top top
+    ::left left
+    ::rows rows
+    ::cols cols
+    ::mem-col 1                ; Remember column when moving up and down
+    ::mode (or mode :normal)
+    ::encoding :utf-8          ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
+    ::major-mode (or major-mode :fundamental-mode)
+    ::minor-modes []})           
+  ([text] (buffer text {})))
 
 (defn insert-in-vector
   [v n elem]

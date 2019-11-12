@@ -1,1 +1,13 @@
-{:paths ["src"]}
+{:paths ["src"]
+ :aliases
+  {:test
+   {:extra-paths ["test"]
+    :extra-deps
+     {com.cognitect/test-runner
+      {:git/url "https://github.com/cognitect-labs/test-runner.git",
+       :sha "209b64504cb3bd3b99ecfec7937b358a879f55c1"}},
+    :main-opts ["-m" "cognitect.test-runner"]},
+   :dev
+    {:extra-deps {nrepl/nrepl {:mvn/version "0.6.0"}},
+     :main-opts ["-m" "nrepl.cmdline" "--port" "12000" "--interactive" "debug=true"],
+     :extra-paths ["test"]}}}

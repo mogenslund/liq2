@@ -23,3 +23,7 @@ I will attempt to use the [Wiki](https://github.com/mogenslund/liq2/wiki) in thi
 
     clj -m liq2.core
     lumo -c src -m liq2.core
+
+## Test
+
+    clj -A:test
