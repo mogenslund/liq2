@@ -16,6 +16,12 @@
   #?(:clj (System/currentTimeMillis)
      :cljs (.getTime (js/Date.))))
 
+(defn sleep
+  ""
+  [ms]
+  #?(:clj (Thread/sleep ms)
+     :cljs (do)))
+
 (defn read-file
   [path]
   (when (.exists (io/file path))

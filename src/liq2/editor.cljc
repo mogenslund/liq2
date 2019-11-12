@@ -25,14 +25,6 @@
   [keyw]
   (or ((@state ::modes) keyw) {}))
 
-(defn get-buffer
-  [id]
-  ((@state ::buffers) id))
-
-(defn regular-buffers
-  []
-  (filter #(not= (subs (str (buffer/get-name %) " ") 0 1) "*") (vals (@state ::buffers))))
-
 (defn get-buffer-id-by-idx
   [idx]
   ((first (filter #(= (% ::idx) idx) (vals (@state ::buffers)))) ::id))
@@ -40,6 +32,16 @@
 (defn get-buffer-id-by-name
   [name]
   ((first (filter #(= (buffer/get-name %) name) (vals (@state ::buffers)))) ::id))
+
+(defn get-buffer
+  [idname]
+  (if (number? idname)
+    ((@state ::buffers) idname)
+    (get-buffer (get-buffer-id-by-name idname))))
+
+(defn regular-buffers
+  []
+  (filter #(not= (subs (str (buffer/get-name %) " ") 0 1) "*") (vals (@state ::buffers))))
 
 (defn get-current-buffer-id
   "Highest idx is current buffer.
@@ -63,9 +65,12 @@
     ((@state ::output-handler) (get-current-buffer))))
 
 (defn switch-to-buffer
-  [id]
-  (swap! state assoc-in [::buffers id ::idx] (util/counter-next))
-  id)
+  [idname]
+  (if (number? idname)
+    (do
+      (swap! state assoc-in [::buffers idname ::idx] (util/counter-next))
+      idname)
+    (switch-to-buffer (get-buffer-id-by-name idname)))) 
 
 (defn previous-buffer
   "n = 1 means previous"
@@ -85,21 +90,23 @@
 (defn new-buffer
   [text {:keys [name] :as options}]
   (let [id (util/counter-next)
-        b (get-current-buffer)
         o (if (options :rows)
             options
-            (assoc options :top (buffer/get-top b)
-                           :left (buffer/get-left b)
-                           :rows (buffer/get-rows b)
-                           :cols (buffer/get-cols b))) 
-        buf (assoc (buffer/buffer text o) ::id id)]
+            (let [b (get-current-buffer)]
+              (assoc options :top (buffer/get-top b)
+                             :left (buffer/get-left b)
+                             :rows (buffer/get-rows b)
+                             :cols (buffer/get-cols b)))) 
+        buf (assoc (buffer/buffer text o) ::id id ::idx id)]
     (swap! state update ::buffers assoc id buf) 
     (switch-to-buffer id)
     (push-output)))
 
 (defn apply-to-buffer
-  ([id fun]
-   (swap! state update-in [::buffers id] fun))
+  ([idname fun]
+   (if (number? idname)
+     (swap! state update-in [::buffers idname] fun)
+     (apply-to-buffer (get-buffer-id-by-name idname) fun)))
   ([fun] (apply-to-buffer (get-current-buffer-id) fun)))
 
 (comment
@@ -123,8 +130,8 @@
                  tmp-k
                  (((get-mode major-mode) mode) c))]
     (cond (fn? action) (action)
-          (and action (action :keymap)) (reset! tmp-keymap (action :keymap))
-          action (swap! state update-in [::buffers (get-current-buffer-id)] (action :function))
+          (map? action) (reset! tmp-keymap action)
+          ;action (swap! state update-in [::buffers (get-current-buffer-id)] (action :function))
           (= mode :insert) (swap! state update-in [::buffers (get-current-buffer-id)] #(buffer/insert-char % (first c)))))
   (push-output))
 

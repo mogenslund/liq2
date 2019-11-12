@@ -8,7 +8,7 @@
 
 (defn buffer
   [text {:keys [name top left rows cols major-mode mode] :as options}]
-  {::name name
+  {::name (or name "")
    ::filename nil
    ::lines (mapv (fn [l] (mapv #(hash-map ::char %) l)) (str/split-lines text))
    ::line-ending "\n" 
@@ -69,10 +69,6 @@
 
 (defn get-row [buf] (-> buf ::cursor ::row))
 
-(defn get-text
-  [buf]
-  (str/join "\n" (map (fn [line] (str/join "" (map ::char line))) (buf ::lines))))
-
 (defn set-top [buf n] (assoc buf ::top n))
 (defn get-top [buf] (buf ::top))
 
@@ -111,6 +107,36 @@
   [p1 p2]
   (compare [(p1 ::row) (p1 ::col)]
            [(p2 ::row) (p2 ::col)]))
+
+(defn get-text
+  ([buf]
+   (str/join "\n" (map (fn [line] (str/join "" (map ::char line))) (buf ::lines))))
+  ([buf p1 p2]
+    (let [p (if (= (point-compare p1 p2) -1) p1 p2)  ; first 
+          q (if (= (point-compare p1 p2) -1) p2 p1)  ; second
+          lines (buf ::lines)]
+    (str/join "\n"
+      (filter #(not (nil? %))
+        (for [n (range (count lines))]
+          (cond (< (inc n) (p ::row)) nil
+                (= (inc n) (p ::row) (q ::row)) (str/join "" (map ::char (subvec (lines n) (dec (p ::col)) (min (q ::col) (count (lines n))))))
+                (= (inc n) (p ::row)) (str/join "" (map ::char (subvec (lines n) (dec (p ::col)))))
+                (= (inc n) (q ::row)) (str/join "" (map ::char (subvec (lines n) 0 (min (q ::col) (count (lines n))))))
+                (>= n (q ::row)) nil
+                true (str/join "" (map ::char (lines n))))))))))
+
+(comment
+  (get-text (buffer "abcdefg\n1234567\nABCDEF" {}) (point 1 1) (point 2 3))
+  (get-text (buffer "abcdefg\n1234567\nABCDEF" {}) (point 1 2) (point 2 3))
+  (get-text (buffer "abcdefg\n1234567\nABCDEF" {}) (point 2 2) (point 2 3))
+  (get-text (buffer "abcdefg\n\nABCDEF\n\n" {}) (point 1 2) (point 6 1))
+)
+
+(defn get-selected-text
+  [buf]
+  (if-let [p (get-selection buf)]
+    (get-text buf (get-point buf) p)
+    ""))
 
 (defn selected?
   ([buf p]
@@ -276,7 +302,7 @@
        (set-point (point (inc (get-row buf)) 1))
        (set-mode :insert)))
   ([buf]
-   (append-line buf (buf ::row))))
+   (append-line buf (get-row buf))))
 
 (defn delete-char
   ([buf row col]
