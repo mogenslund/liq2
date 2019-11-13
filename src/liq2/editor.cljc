@@ -31,13 +31,18 @@
 
 (defn get-buffer-id-by-name
   [name]
-  ((first (filter #(= (buffer/get-name %) name) (vals (@state ::buffers)))) ::id))
+  (when-let [buf (first (filter #(= (buffer/get-name %) name) (vals (@state ::buffers))))]
+    (buf ::id)))
 
 (defn get-buffer
   [idname]
   (if (number? idname)
     ((@state ::buffers) idname)
     (get-buffer (get-buffer-id-by-name idname))))
+
+(defn all-buffers
+  []
+  (reverse (sort-by ::idx (vals (@state ::buffers)))))
 
 (defn regular-buffers
   []
@@ -128,7 +133,8 @@
         _ (reset! tmp-keymap nil)
         action (or
                  tmp-k
-                 (((get-mode major-mode) mode) c))]
+                 (((get-mode major-mode) mode) c)
+                 (when (not= mode :insert) (((get-mode major-mode) :normal) c)))]
     (cond (fn? action) (action)
           (map? action) (reset! tmp-keymap action)
           ;action (swap! state update-in [::buffers (get-current-buffer-id)] (action :function))

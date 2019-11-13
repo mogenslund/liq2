@@ -102,7 +102,24 @@
 (defn remove-selection
   [buf]
   (assoc buf ::selection nil))
+
+(defn set-visual-mode
+  [buf]
+  (-> buf
+    (set-mode :visual)
+    set-selection))
+
+(defn set-normal-mode
+  [buf]
+  (-> buf
+      (set-mode :normal)
+      remove-selection))
   
+(defn set-insert-mode
+  [buf]
+  (-> buf
+      (set-mode :insert)
+      remove-selection))
 
 (defn point-compare
   [p1 p2]

@@ -29,10 +29,9 @@
 (def mode
   {:insert {"esc" (fn [] (apply-to-buffer #(-> % (buffer/set-mode :normal) buffer/backward-char)))
             "backspace" (fn [] (apply-to-buffer #(if (> (buffer/get-col %) 1) (-> % buffer/backward-char buffer/delete-char) %)))}
-   :normal {"esc" #(apply-to-buffer buffer/remove-selection)
-            "t" (fn [] (apply-to-buffer #(buffer/insert-string % "Just\nTesting")))
+   :normal {"t" (fn [] (apply-to-buffer #(buffer/insert-string % "Just\nTesting")))
             "f2" editor/oldest-buffer
-            "i" (fn [] (apply-to-buffer #(buffer/set-mode % :insert)))
+            "i" #(apply-to-buffer buffer/set-insert-mode)
             "h" #(apply-to-buffer buffer/backward-char)
             "j" #(apply-to-buffer buffer/next-line)
             "k" #(apply-to-buffer buffer/previous-line)
@@ -40,7 +39,7 @@
             "0" #(apply-to-buffer buffer/beginning-of-line)
             "$" #(apply-to-buffer buffer/end-of-line)
             "x" #(apply-to-buffer buffer/delete-char)
-            "v" #(apply-to-buffer buffer/set-selection)
+            "v" #(apply-to-buffer buffer/set-visual-mode)
             "g" {"g" #(editor/apply-to-buffer buffer/beginning-of-buffer)}
             "G" #(apply-to-buffer buffer/end-of-buffer)
             "A" #(apply-to-buffer buffer/insert-at-line-end)
@@ -50,4 +49,7 @@
                        (apply-to-buffer #(-> % buffer/clear (buffer/insert-char \/))))
             ":" (fn [] (switch-to-buffer "*minibuffer*")
                        (apply-to-buffer #(-> % buffer/clear (buffer/insert-char \:))))
-            "o" #(apply-to-buffer buffer/append-line)}})
+            "o" #(apply-to-buffer buffer/append-line)}
+    :visual {"esc" #(apply-to-buffer buffer/set-normal-mode)
+             ;"y" editor/yank
+             }})

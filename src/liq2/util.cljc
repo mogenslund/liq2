@@ -1,7 +1,8 @@
 (ns liq2.util
   (:require [clojure.string :as str]
             #?(:clj [clojure.java.io :as io]
-               :cljs [lumo.io :as io :refer [slurp spit]])))
+               :cljs [lumo.io :as io :refer [slurp spit]])
+            #?(:cljs [cljs.js :refer [eval eval-str empty-state]])))
 
 
 
@@ -29,9 +30,10 @@
 
 (defn eval-safe
   [text]
-  (try
-    (load-string text)
-    (catch Exception e (str e))))
+  #?(:clj (try
+            (load-string text)
+            (catch Exception e (str e)))
+     :cljs (do (set! cljs.js/*eval-fn* cljs.js/js-eval) (eval-str (empty-state) text str))))
 
 ;(defn clipboard-content
 ;  []

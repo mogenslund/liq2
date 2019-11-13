@@ -2,6 +2,7 @@
   (:require [clojure.string :as str]
             [liq2.modes.fundamental-mode :as fundamental-mode]
             [liq2.modes.minibuffer-mode :as minibuffer-mode]
+            [liq2.modes.buffer-chooser-mode :as buffer-chooser-mode]
             [liq2.buffer :as buffer]
             [liq2.editor :as editor]
             [liq2.tty-input :as input]
@@ -16,6 +17,7 @@
         cols (input/cols)]
     (editor/add-mode :fundamental-mode fundamental-mode/mode)
     (editor/add-mode :minibuffer-mode minibuffer-mode/mode)
+    (editor/add-mode :buffer-chooser-mode buffer-chooser-mode/mode)
     (editor/set-output-handler output/output-handler)
     (editor/set-exit-handler input/exit-handler)
     (input/input-handler editor/handle-input)
