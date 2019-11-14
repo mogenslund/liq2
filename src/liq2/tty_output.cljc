@@ -12,6 +12,10 @@
   #?(:clj (.print (System/out) (str/join "" args))
      :cljs (js/process.stdout.write (str/join "" args))))
 
+(defn buffer-footprint
+  [buf]
+  [(buffer/get-rows buf) (buffer/get-cols buf) (buffer/get-name buf) (buffer/get-filename buf)])
+
 (defn calculate-wrapped-row-dist
   [buf cols row1 row2]
   (reduce #(+ 1 %1 (quot (dec (buffer/col-count buf %2)) cols)) 0 (range row1 row2))) 
@@ -34,7 +38,7 @@
 
 (defn print-buffer
   [buf]
-  (let [cache-id [(buffer/get-rows buf) (buffer/get-cols buf) (buffer/get-name buf) (buffer/get-filename buf)]
+  (let [cache-id (buffer-footprint buf)
         left (buffer/get-left buf)
         top (buffer/get-top buf)
         rows (buffer/get-rows buf)
@@ -75,17 +79,22 @@
         (reset! last-buffer cache-id))))))
 
 (def ^:private updater (atom nil))
-(def ^:private queue (atom nil))
+(def ^:private queue (atom []))
+
 (defn output-handler
   [buf]
-  #?(:clj (do
-            (reset! queue buf)
+  #?(:clj (let [fp (buffer-footprint buf)]
+            ;; Replace outdated versions of buf 
+            (swap! queue
+              (fn [q] (conj
+                        (filterv #(not= (buffer-footprint %) fp) q)
+                        buf)))
             (when (not @updater) (reset! updater (future nil)))
-          (when (future-done? @updater)
-            (reset! updater
-              (future
-                (while @queue
-                  (when-let [b @queue]
-                    (reset! queue nil)
-                    (print-buffer b)))))))
+            (when (future-done? @updater)
+              (reset! updater
+                (future
+                  (while (not (empty? @queue))
+                    (when-let [b (first @queue)]
+                      (swap! queue #(subvec % 1))
+                      (print-buffer b)))))))
      :cljs (print-buffer buf)))

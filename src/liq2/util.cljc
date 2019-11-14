@@ -25,8 +25,13 @@
 
 (defn read-file
   [path]
-  (when (.exists (io/file path))
-    (slurp path)))
+  #?(:clj (when (.exists (io/file path))
+            (slurp path))
+     :cljs (slurp path)))
+
+(defn write-file
+  [path content]
+  (spit path content))
 
 (defn eval-safe
   [text]

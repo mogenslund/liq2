@@ -37,4 +37,5 @@
             "G" #(apply-to-buffer buffer/end-of-buffer)
             ":" (fn [] (switch-to-buffer "*minibuffer*")
                        (apply-to-buffer #(-> % buffer/clear (buffer/insert-char \:))))}
-    :visual {"esc" #(apply-to-buffer buffer/set-normal-mode)}})
+    :visual {"esc" #(apply-to-buffer buffer/set-normal-mode)}
+    :init run})

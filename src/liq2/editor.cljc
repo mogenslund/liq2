@@ -64,10 +64,12 @@
   []
   (get-buffer (get-current-buffer-id)))
 
-(defn push-output
-  []
-  (when (@state ::output-handler)
-    ((@state ::output-handler) (get-current-buffer))))
+(defn paint-buffer
+  ([buf]
+   (when (@state ::output-handler)
+     ((@state ::output-handler) buf)))
+  ([]
+   (paint-buffer (get-current-buffer))))
 
 (defn switch-to-buffer
   [idname]
@@ -105,7 +107,7 @@
         buf (assoc (buffer/buffer text o) ::id id ::idx id)]
     (swap! state update ::buffers assoc id buf) 
     (switch-to-buffer id)
-    (push-output)))
+    (paint-buffer)))
 
 (defn apply-to-buffer
   ([idname fun]
@@ -139,6 +141,6 @@
           (map? action) (reset! tmp-keymap action)
           ;action (swap! state update-in [::buffers (get-current-buffer-id)] (action :function))
           (= mode :insert) (swap! state update-in [::buffers (get-current-buffer-id)] #(buffer/insert-char % (first c)))))
-  (push-output))
+  (paint-buffer))
 
 

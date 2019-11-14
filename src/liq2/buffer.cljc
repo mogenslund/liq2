@@ -7,9 +7,9 @@
    ::col col})
 
 (defn buffer
-  ([text {:keys [name top left rows cols major-mode mode] :as options}]
+  ([text {:keys [name filename top left rows cols major-mode mode] :as options}]
    {::name (or name "")
-    ::filename nil
+    ::filename filename
     ::lines (mapv (fn [l] (mapv #(hash-map ::char %) l)) (str/split-lines text))
     ::line-ending "\n" 
     ::cursor (point 1 1)
@@ -39,6 +39,7 @@
                (into [] (subvec v 0 (dec n)))
                (into [] (subvec v n))))
     v))
+
 
 ;; Information
 ;; ===========
@@ -150,6 +151,24 @@
   (get-text (buffer "abcdefg\n\nABCDEF\n\n" {}) (point 1 2) (point 6 1))
 )
 
+(defn previous-point
+  [buf p]
+  (cond (> (p ::col) 1) (point (p ::row) (dec (p ::col)))
+        (> (p ::row) 1) (point (dec (p ::row)) (col-count buf (dec (p ::row)))))) 
+
+(defn next-point
+  [buf p]
+  (cond (< (p ::col) (col-count buf (p ::row))) (point (p ::row) (inc (p ::col)))
+        (< (p ::row) (line-count buf)) (point (inc (p ::row)) (min 1 (col-count buf (inc (p ::row))))))) 
+
+(comment
+  (let [buf (buffer "aaa\n\nbbb\nccc")]
+    (loop [p (point 4 3)]
+      (when (previous-point buf p)
+        (println (previous-point buf p))
+        (recur (previous-point buf p))))))
+
+
 (defn get-selected-text
   [buf]
   (if-let [p (get-selection buf)]
@@ -225,7 +244,7 @@
   [buf]
   (-> buf
       (set-point (point (line-count buf) (col-count buf (line-count buf))))
-      (assoc ::mem-col 1)))
+      (assoc ::mem-col (col-count buf (line-count buf)))))
 
 ;; Modifications
 ;; =============
@@ -257,6 +276,8 @@
        (get (dec row))
        (get (dec col))
        ::char))
+  ([buf p]
+   (get-char buf (p ::row) (p ::col)))
   ([buf]
    (get-char buf (get-row buf) (get-col buf))))
 
@@ -269,7 +290,12 @@
 
   (let [buf (buffer "abcd\nxyz")]
     (-> buf
-        (get-char 2 3))))
+        (get-char 2 3))
+
+  (let [buf (buffer "abcd\n\nxyz")]
+    (-> buf
+        next-line
+        get-char))))
 
 
 (defn get-attribute
@@ -309,6 +335,9 @@
        (set-point (point (if (= char \newline) (inc (get-row buf)) (get-row buf))
                          (if (= char \newline) 1 (inc (get-col buf))))))))
 
+;; TODO There should be a insert-buffer to insert buffer into buffer
+;;      It should be optimized. Right now (buffer text) is much faster than
+;;      (-> (buffer "") (insert-string text))
 (defn insert-string
   [buf text]
   (reduce insert-char buf text))
@@ -363,13 +392,66 @@
              ::cursor (point 1 1)
              ::mem-col 1))
 
+(defn end-of-word
+  [buf]
+  buf
+  )
+
+(defn paren-match-before
+  "(abc (def) hi|jk)"
+  [buf p0 paren]
+  (let [pmatch {\( \) \) \( \{ \} \} \{ \[ \] \] \[}]
+    (loop [p p0 stack (list (pmatch paren))]
+      (when p
+        (let [c (get-char buf p)
+              nstack (cond (nil? c) stack
+                           (= (pmatch c) (first stack)) (rest stack)
+                           (some #{c} (keys pmatch)) (conj stack c)
+                           true stack)]
+          (if (empty? nstack)
+            p
+            (recur (previous-point buf p) nstack)))))))
+
+(defn paren-match-after
+  "(abc (def) hi|jk)"
+  [buf p0 paren]
+  (let [pmatch {\( \) \) \( \{ \} \} \{ \[ \] \] \[}]
+    (loop [p p0 stack (list (pmatch paren))]
+      (when p
+        (let [c (get-char buf p)
+              nstack (cond (nil? c) stack
+                           (= (pmatch c) (first stack)) (rest stack)
+                           (some #{c} (keys pmatch)) (conj stack c)
+                           true stack)]
+          (if (empty? nstack)
+            p
+            (recur (next-point buf p) nstack)))))))
+
+(defn sexp-at-point
+  ([buf p]
+   (let [p0 (paren-match-before buf (if (= (get-char buf p) \)) (previous-point buf p) p) \()
+         p1 (when p0 (paren-match-after buf (next-point buf p0) \)))]
+     (when p1 (get-text buf p0 p1))))
+  ([buf] (sexp-at-point buf (get-point buf))))
+
 (comment
+
+  (let [buf (buffer "ab[[cd]\nx[asdf]yz]")]
+    (paren-match-before buf (point 2 8) \[))
   
+  (let [buf (buffer "ab[[cd]\nx[asdf]yz]")]
+    (paren-match-before buf (point 1 3) \]))
+
+  (let [buf (buffer "ab((cd)\nx(asdf)yz)")]
+    (paren-match-before buf (point 2 5) \)))
+
+  (let [buf (buffer "ab((cd)\nx(asdf)yz)")]
+    (sexp-at-point buf (point 2 2)))
+
   (let [buf (buffer "abcd\nxyz")]
     (-> buf
         (set-char 5 6 \k)
-        get-text)
-  ))
+        get-text)))
 
 
 (comment
