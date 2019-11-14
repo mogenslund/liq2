@@ -57,8 +57,7 @@
       (let [k (or (translate-name js/key.name)
                   (str (when js/key.ctrl "C-")
                      (when js/key.meta "M-")
-                     (cond (= js/key.sequence "/") "/"
-                           (= js/key.sequence ":") ":"
+                     (cond (= (count js/key.sequence) 1) js/key.sequence
                            js/key.shift (str/upper-case js/key.name)
                            true js/key.name)))] 
         (if (not= k "C-q")

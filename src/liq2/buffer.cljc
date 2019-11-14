@@ -85,7 +85,7 @@
 
 (defn set-point
   ([buf p] (assoc buf ::cursor p))
-  ([buf row col] (set-point (point row col))))
+  ([buf row col] (set-point buf (point row col))))
 
 (defn get-point
   [buf]
