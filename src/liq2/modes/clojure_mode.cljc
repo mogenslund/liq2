@@ -11,8 +11,11 @@
    :match-string-begin #"(?<!\\\\)(\")"
    :match-string-escape #"(\\\")"
    :match-string-end "\""
-   :match-comment-begin #"(?<!\\\\);"
-   :match-comment-end #"$"})
+   :match-comment-begin #"(?<!\\\\);|^#"
+   :match-comment-end #"$"
+   :match-special-begin #"(?<=\()def(n|n-|test|record|protocol|macro)? "
+   :match-definition-begin #"[\w\#\.\-\_\:\+\=\>\<\/\!\?\*]+"
+   :match-definition-end #"."})
 
 (def mode
   (assoc fundamental-mode/mode
@@ -21,7 +24,8 @@
        {:style :plain1 ; style
         :matchers {(match-keys :match-string-begin) :string
                    (match-keys :match-keyword-begin) :keyword
-                   (match-keys :match-comment-begin) :comment}}
+                   (match-keys :match-comment-begin) :comment
+                   (match-keys :match-special-begin) :special}}
       :string
        {:style :string
         :matchers {(match-keys :match-string-escape) :string
@@ -29,10 +33,20 @@
       :string-end
        {:style :string
         :matchers {#".|$|^" :plain}}
+
       :comment
        {:style :comment
         :matchers {(match-keys :match-comment-end) :plain}}
+
       :keyword
        {:style :keyword
-        :matchers {(match-keys :match-keyword-end) :plain}}}))
+        :matchers {(match-keys :match-keyword-end) :plain}}
+      
+      :special
+       {:style :special
+        :matchers {(match-keys :match-definition-begin) :definition}}
+
+      :definition
+       {:style :definition
+        :matchers {(match-keys :match-definition-end) :plain}}}))
 
