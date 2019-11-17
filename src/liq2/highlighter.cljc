@@ -24,7 +24,7 @@
           next-context (if (and hit (hit :pos)) (hit :context) context)
           match (or (and hit (hit :match)) "")]
       (cond (> row (buffer/line-count b)) b 
-            (>= col (buffer/col-count b row)) (recur b (inc row) 1 context)
+            (>= col (buffer/col-count b row)) (recur (buffer/set-style b row col (-> hl context :style)) (inc row) 1 next-context)
             true (recur (-> b (buffer/set-style row col col1 (-> hl context :style))
                               (buffer/set-style row col1 (+ col1 (dec (count match))) (-> hl next-context :style)))
                         row
@@ -82,6 +82,8 @@
   (highlight (buffer/buffer "a :bbb ccc") hl1)
   (first-match "a :bbb" #"(?<=(\s|\(|\[|\{)):[\w\#\.\-\_\:\+\=\>\<\/\!\?\*]+(?=(\s|\)|\]|\}|\,|$))")
 
-  (let [buf (highlight (buffer/buffer "a :bbb") hl1)]
-    (map #(buffer/get-style buf 1 %) (range 1 (buffer/col-count buf 1))))
+  (let [buf (highlight (buffer/buffer "aa \"\"\na") hl1)]
+    (map #(buffer/get-style buf 1 %) (range 1 (inc (buffer/col-count buf 1)))))
+  (let [buf (highlight (buffer/buffer "a :a\na") hl1)]
+    (map #(buffer/get-style buf 1 %) (range 1 (inc (buffer/col-count buf 1)))))
   (highlight buf1 hl1))
