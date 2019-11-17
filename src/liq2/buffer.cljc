@@ -21,7 +21,7 @@
     ::mem-col 1                ; Remember column when moving up and down
     ::mode (or mode :normal)
     ::encoding :utf-8          ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
-    ::major-mode (or major-mode :fundamental-mode)
+    ::major-mode (or major-mode :clojure-mode)
     ::minor-modes []})           
   ([text] (buffer text {})))
 
@@ -126,6 +126,24 @@
   [p1 p2]
   (compare [(p1 ::row) (p1 ::col)]
            [(p2 ::row) (p2 ::col)]))
+
+(defn get-line
+  "Get line as string"
+  ([buf row]
+   (str/join (map ::char (get (buf ::lines) (dec row)))))
+  ([buf row col]
+   (let [r (get (buf ::lines) (dec row))]
+     (if (> col (count r))
+       ""
+       (str/join (map ::char (subvec r (dec col))))))))
+
+(comment
+  (str/join (map ::char (get ((buffer "abcde") :liq2.buffer/lines) 1)))
+  (get-line (buffer "abcde") 1)
+  (get-line (buffer "abcde") 1 2)
+  (type (get-line (buffer "abcde") 2 2))
+  (type (get-line (buffer "abcde") 10))
+  (get-line (buffer "abcde") 1 10))
 
 (defn get-text
   ([buf]
@@ -324,6 +342,23 @@
       (append-spaces-to-row row (- col (col-count buf row)))
       (assoc-in [::lines (dec row) (dec col)] {::char char})))
 
+(defn set-style
+  ([buf row col style]
+   (assoc-in buf [::lines (dec row) (dec col) ::style] style))
+  ([buf row col1 col2 style]
+   (loop [b buf col col1]
+     (if (> col col2)
+       b
+       (recur (set-style b row col style) (inc col))))))
+
+(defn get-style
+  [buf row col]
+  (-> buf
+      ::lines
+      (get (dec row))
+      (get (dec col))
+      ::style))
+
 (defn insert-char
   ([buf row col char]
    (if (= char \newline)
@@ -433,6 +468,30 @@
          p1 (when p0 (paren-match-after buf (next-point buf p0) \)))]
      (when p1 (get-text buf p0 p1))))
   ([buf] (sexp-at-point buf (get-point buf))))
+
+;; Emacs has two stages:
+;; 1. Where comments and strings are highlighted
+;;    Define comment start and comment end
+;;    Define string delimiter and escape-char
+;; 2. Where keywords are highlighted. These are matched by regexes outside strings
+;; https://medium.com/@model_train/creating-universal-syntax-highlighters-with-iro-549501698fd2
+;; https://github.com/atom/language-clojure/blob/master/grammars/clojure.cson
+;; (re-find #"(?<!\\)(\")" "something \"a string\" else")
+;; (re-find #"(?<=(\s|\(|\[|\{)):[\w\#\.\-\_\:\+\=\>\<\/\!\?\*]+(?=(\s|\)|\]|\}|\,))" "abc :def hij :ppp ")
+
+;; Not use regex, but functions, which might be regex! str/index-of or count str/split
+
+;(defn apply-syntax-hl
+;  [buf hl]
+;  ;; TODO Now only highlighting row 1 as experiment - In progress
+;  (loop [b buf col 1 keyw :plain]
+;    (if (> col (col-count b 1))
+;      b
+;      (let [c (get-char b 1 col)
+;            keywn (cond (and (= keyw :plain) (= c "\"")) :string
+;                        (and (= keyw :plain) (= c ";")) :comment 
+;                        (and (= keyw :string) (= c "\"")) :
+;  buf))
 
 (comment
 

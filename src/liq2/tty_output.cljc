@@ -50,7 +50,7 @@
   (tty-print esc "?25l") ; Hide cursor
   (when (= cache-id @last-buffer)
     (tty-print "█")) ; To make it look like the cursor is still there while drawing.
-  (loop [trow top tcol left row (tow :row) col (tow :col) cursor-row nil cursor-col nil bgcolor nil]
+  (loop [trow top tcol left row (tow :row) col (tow :col) cursor-row nil cursor-col nil color nil bgcolor nil]
     (if (< trow (+ rows top))
       (do
       ;; Check if row has changed...
@@ -62,7 +62,12 @@
                     (if (and (= col 1) (> row (buffer/line-count buf))) (str esc "36m~" esc "0m") \space))
               new-cursor-row (if cursor-match trow cursor-row)
               new-cursor-col (if cursor-match tcol cursor-col)
+              new-color (cond (= (buffer/get-style buf row col) :string) "38;5;131"
+                              (= (buffer/get-style buf row col) :keyword) "38;5;117"
+                              (= (buffer/get-style buf row col) :comment) "38;5;105"
+                              true "0;40")
               new-bgcolor (if (buffer/selected? buf row col) "48;5;17" "49")]
+            (when (not= color new-color) (tty-print esc new-color "m"))
             (when (not= bgcolor new-bgcolor) (tty-print esc new-bgcolor "m"))
             (if (= tcol left)
               (tty-print esc trow ";" tcol "H" esc "s" c)
@@ -70,9 +75,9 @@
           ;  (swap! cache assoc [trow tcol] c))
           (if (> tcol cols)
             (if (> (buffer/col-count buf row) col) 
-              (recur (inc trow) left row (inc col) new-cursor-row new-cursor-col new-bgcolor) 
-              (recur (inc trow) left (inc row) 1 new-cursor-row new-cursor-col new-bgcolor))
-            (recur trow (inc tcol) row (inc col) new-cursor-row new-cursor-col new-bgcolor))))
+              (recur (inc trow) left row (inc col) new-cursor-row new-cursor-col new-color new-bgcolor) 
+              (recur (inc trow) left (inc row) 1 new-cursor-row new-cursor-col new-color new-bgcolor))
+            (recur trow (inc tcol) row (inc col) new-cursor-row new-cursor-col new-color new-bgcolor))))
       (do
         (tty-print esc cursor-row ";" cursor-col "H" esc "s" (or (buffer/get-char buf) \space))
         (tty-print esc "?25h" esc cursor-row ";" cursor-col "H" esc "s")

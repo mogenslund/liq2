@@ -2,6 +2,7 @@
   (:require [clojure.string :as str]
             #?(:cljs [lumo.io :as io :refer [slurp spit]])
             [liq2.util :as util]
+            [liq2.highlighter :as highlighter]
             [liq2.buffer :as buffer]))
 
 (def state (atom {::buffers {}
@@ -119,6 +120,16 @@
 (comment
   (new-buffer)
   )
+
+(defn highlight-buffer
+  ([idname]
+   (apply-to-buffer idname
+     (fn [buf]
+       (let [hl ((get-mode (buffer/get-major-mode buf)) :syntax)]
+         (if hl
+           (highlighter/highlight buf hl)
+           buf)))))
+  ([] (highlight-buffer (get-current-buffer-id))))
 
 (def tmp-keymap (atom nil))
 

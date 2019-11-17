@@ -22,6 +22,12 @@
     (editor/apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string (str res))))
     (editor/paint-buffer (get-buffer "*output*"))))
 
+(defn tmp-print-buffer
+  []
+  (let [res (pr-str (editor/get-current-buffer))]
+    (editor/apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string (str res))))
+    (editor/paint-buffer (get-buffer "*output*"))))
+
 
 (def sample-code "(ns user.user (:require [liq2.editor :as editor] [liq2.buffer :as buffer])) (liq2.editor/apply-to-buffer liq2.buffer/end-of-line) :something")
 
@@ -43,7 +49,7 @@
             "G" #(apply-to-buffer buffer/end-of-buffer)
             "A" #(apply-to-buffer buffer/insert-at-line-end)
             "c" {"p" {"p" tmp-eval-sexp-at-point
-                      "t" tmp-get-text}}
+                      "t" tmp-print-buffer}}
             "/" (fn [] (switch-to-buffer "*minibuffer*")
                        (apply-to-buffer #(-> % buffer/clear (buffer/insert-char \/))))
             ":" (fn [] (switch-to-buffer "*minibuffer*")

@@ -26,6 +26,7 @@
           (= content ":buffers") (((editor/get-mode :buffer-chooser-mode) :init)) 
           (= content ":w") (write-file) 
           (= content ":t") (open-file "/home/sosdamgx/proj/liquid/src/dk/salza/liq/slider.clj")
+          (= content ":t1") (editor/highlight-buffer)
           (re-matches #":e .*" content) (open-file (subs content 3)))))
 
 (def mode
