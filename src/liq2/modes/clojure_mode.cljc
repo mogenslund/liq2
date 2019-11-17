@@ -6,11 +6,11 @@
             [liq2.util :as util]))
 
 (def match-keys
-  {:match-keyword-begin #"(?<=(\s|\(|\[|\{)):[\w\#\.\-\_\:\+\=\>\<\/\!\?\*]+(?=(\s|\)|\]|\}|\,))"
-   :match-keyword-end #"."
+  {:match-keyword-begin #"(?<=(\s|\(|\[|\{)|^):[\w\#\.\-\_\:\+\=\>\<\/\!\?\*]+(?=(\s|\)|\]|\}|\,|$))"
+   :match-keyword-end #".|$"
    :match-string-begin #"(?<!\\\\)(\")"
    :match-string-escape #"(\\\")"
-   :match-string-end #"(\")"
+   :match-string-end "\""
    :match-comment-begin #"(?<!\\\\);"
    :match-comment-end #"$"})
 
@@ -25,7 +25,10 @@
       :string
        {:style :string
         :matchers {(match-keys :match-string-escape) :string
-                   (match-keys :match-string-end) :plain}}
+                   (match-keys :match-string-end) :string-end}}
+      :string-end
+       {:style :string
+        :matchers {#".|$|^" :plain}}
       :comment
        {:style :comment
         :matchers {(match-keys :match-comment-end) :plain}}

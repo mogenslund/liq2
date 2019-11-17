@@ -65,10 +65,11 @@
               new-color (cond (= (buffer/get-style buf row col) :string) "38;5;131"
                               (= (buffer/get-style buf row col) :keyword) "38;5;117"
                               (= (buffer/get-style buf row col) :comment) "38;5;105"
-                              true "0;40")
+                              true "0")
               new-bgcolor (if (buffer/selected? buf row col) "48;5;17" "49")]
-            (when (not= color new-color) (tty-print esc new-color "m"))
-            (when (not= bgcolor new-bgcolor) (tty-print esc new-bgcolor "m"))
+            (when (or (not= color new-color) (not= bgcolor new-bgcolor))
+              (tty-print esc new-color "m")
+              (tty-print esc new-bgcolor "m"))
             (if (= tcol left)
               (tty-print esc trow ";" tcol "H" esc "s" c)
               (tty-print c))
