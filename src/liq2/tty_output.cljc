@@ -26,7 +26,7 @@
   [buf rows cols tow1]
   (cond (< (buffer/get-row buf) (tow1 :row)) (assoc tow1 :row (buffer/get-row buf))
         (> (calculate-wrapped-row-dist buf cols (tow1 :row) (+ (buffer/get-row buf) 1)) rows)
-          (recalculate-tow buf rows cols (update tow1 :row inc)) ; Moving tow one line at the time (Not optimized!!!)
+          (recalculate-tow buf rows cols (update tow1 :row inc)) ; TODO Moving tow one line at the time (Not optimized!!!)
         true tow1))
 
 (comment

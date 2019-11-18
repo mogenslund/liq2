@@ -145,6 +145,15 @@
   (type (get-line (buffer "abcde") 10))
   (get-line (buffer "abcde") 1 10))
 
+(defn get-word
+  ([buf row col]
+   (loop [l (str/split (get-line buf row) #" ") idx 1]
+     (let [w (first l)]
+       (if (or (> (+ (count w) idx) col) (empty? l))
+       w
+       (recur (rest l) (+ idx (count w) 1))))))
+  ([buf] (get-word buf (get-row buf) (get-col buf))))
+
 (defn get-text
   ([buf]
    (str/join "\n" (map (fn [line] (str/join "" (map ::char line))) (buf ::lines))))
@@ -352,12 +361,13 @@
        (recur (set-style b row col style) (inc col))))))
 
 (defn get-style
-  [buf row col]
-  (-> buf
-      ::lines
-      (get (dec row))
-      (get (dec col))
-      ::style))
+  ([buf row col]
+   (-> buf
+       ::lines
+       (get (dec row))
+       (get (dec col))
+       ::style))
+  ([buf] (get-style buf (get-row buf) (get-col buf))))
 
 (defn insert-char
   ([buf row col char]

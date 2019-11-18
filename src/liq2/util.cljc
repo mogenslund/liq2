@@ -40,6 +40,16 @@
             (catch Exception e (str e)))
      :cljs (do (set! cljs.js/*eval-fn* cljs.js/js-eval) (eval-str (empty-state) text str))))
 
+(defn get-folder
+  [filepath]
+  (str (.getParent (io/file filepath))))
+
+(defn resolve-path
+  [part alternative-parent]
+  (cond (.isAbsolute (io/file part)) part
+        (re-find #"^~" part) (str (.getCanonicalPath (io/file (str/replace part #"^~" (System/getProperty "user.home")))))
+        true (str (.getCanonicalPath (io/file alternative-parent part)))))
+
 ;(defn clipboard-content
 ;  []
 ;  (if (java.awt.GraphicsEnvironment/isHeadless)

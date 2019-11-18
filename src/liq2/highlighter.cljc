@@ -12,9 +12,9 @@
             (string? m) (first-match s m) 
             (vector? m) (first-match s (first m))))))
 
-(defn highlight
-  [buf hl]
-  (loop [b buf row 1 col 1 context :plain]
+(defn highlight-row
+  [buf hl row initial-context]
+  (loop [b buf col 1 context initial-context]
     (let [line (buffer/get-line b row col)
           hit (first (sort-by :pos
                        (filter :pos
@@ -22,14 +22,44 @@
                            (assoc (first-match line reg) :context con)))))
           col1 (if (and hit (hit :pos)) (+ (hit :pos) col -1) (+ (buffer/col-count b row) 1))
           next-context (if (and hit (hit :pos)) (hit :context) context)
-          match (or (and hit (hit :match)) "")]
-      (cond (> row (buffer/line-count b)) b 
-            (>= col (buffer/col-count b row)) (recur (buffer/set-style b row col (-> hl context :style)) (inc row) 1 next-context)
-            true (recur (-> b (buffer/set-style row col col1 (-> hl context :style))
-                              (buffer/set-style row col1 (+ col1 (dec (count match))) (-> hl next-context :style)))
-                        row
+          match (or (and hit (hit :match)) "")
+          colcount (buffer/col-count b row)]
+      (cond (>= col colcount) (buffer/set-style b row (max (min col colcount) 1) (-> hl context :style))
+             true (recur (-> b (buffer/set-style row col (min col1 colcount) (-> hl context :style))
+                               (buffer/set-style row col1 (min (+ col1 (dec (count match))) colcount) (-> hl next-context :style)))
                         (+ col1 (count match))
                         next-context)))))
+
+
+(defn highlight
+  ([buf hl]
+   (loop [b buf row 1 col 1 context :plain]
+     (let [line (buffer/get-line b row col)
+           hit (first (sort-by :pos
+                        (filter :pos
+                          (for [[reg con] (-> hl context :matchers)]
+                            (assoc (first-match line reg) :context con)))))
+           col1 (if (and hit (hit :pos)) (+ (hit :pos) col -1) (+ (buffer/col-count b row) 1))
+           next-context (if (and hit (hit :pos)) (hit :context) context)
+           match (or (and hit (hit :match)) "")
+           colcount (buffer/col-count b row)]
+       (cond (> row (buffer/line-count b)) b 
+             (>= col colcount) (recur (buffer/set-style b row (max (min col colcount) 1) (-> hl context :style)) (inc row) 1 next-context)
+             true (recur (-> b (buffer/set-style row col (min col1 colcount) (-> hl context :style))
+                               (buffer/set-style row col1 (min (+ col1 (dec (count match))) colcount) (-> hl next-context :style)))
+                         row
+                         (+ col1 (count match))
+                         next-context)))))
+  ([buf hl row]
+   (if (= row 1)
+     (highlight-row buf hl 1 :plain)
+     (let [b1 (-> buf buffer/previous-line buffer/end-of-line)
+           style (buffer/get-style b1)
+           c (buffer/get-char b1)]
+       (if (and (= style :string) (not= c \"))
+         (highlight-row buf hl row :string)
+         (highlight-row buf hl row :plain))))))
+         
 
       
 (comment
@@ -79,7 +109,8 @@
 
   (first-match #"$" "abc")
   (pr-str (re-find #"$" "abc"))
-  (highlight (buffer/buffer "a :bbb ccc") hl1)
+  (highlight (buffer/buffer "\"a\"") hl1)
+  (highlight (buffer/buffer "a :bbb ccc") hl1 2)
   (first-match "a :bbb" #"(?<=(\s|\(|\[|\{)):[\w\#\.\-\_\:\+\=\>\<\/\!\?\*]+(?=(\s|\)|\]|\}|\,|$))")
 
   (let [buf (highlight (buffer/buffer "aa \"\"\na") hl1)]

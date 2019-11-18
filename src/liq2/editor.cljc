@@ -95,21 +95,6 @@
     (when idx
       (switch-to-buffer (get-buffer-id-by-idx idx)))))
 
-(defn new-buffer
-  [text {:keys [name] :as options}]
-  (let [id (util/counter-next)
-        o (if (options :rows)
-            options
-            (let [b (get-current-buffer)]
-              (assoc options :top (buffer/get-top b)
-                             :left (buffer/get-left b)
-                             :rows (buffer/get-rows b)
-                             :cols (buffer/get-cols b)))) 
-        buf (assoc (buffer/buffer text o) ::id id ::idx id)]
-    (swap! state update ::buffers assoc id buf) 
-    (switch-to-buffer id)
-    (paint-buffer)))
-
 (defn apply-to-buffer
   ([idname fun]
    (if (number? idname)
@@ -131,6 +116,32 @@
            buf)))))
   ([] (highlight-buffer (get-current-buffer-id))))
 
+(defn highlight-buffer-row
+  ([idname]
+   (apply-to-buffer idname
+     (fn [buf]
+       (let [hl ((get-mode (buffer/get-major-mode buf)) :syntax)]
+         (if hl
+           (highlighter/highlight buf hl (buffer/get-row buf))
+           buf)))))
+  ([] (highlight-buffer-row (get-current-buffer-id))))
+
+(defn new-buffer
+  [text {:keys [name] :as options}]
+  (let [id (util/counter-next)
+        o (if (options :rows)
+            options
+            (let [b (get-current-buffer)]
+              (assoc options :top (buffer/get-top b)
+                             :left (buffer/get-left b)
+                             :rows (buffer/get-rows b)
+                             :cols (buffer/get-cols b)))) 
+        buf (assoc (buffer/buffer text o) ::id id ::idx id)]
+    (swap! state update ::buffers assoc id buf) 
+    (highlight-buffer id)
+    (switch-to-buffer id)
+    (paint-buffer)))
+
 (def tmp-keymap (atom nil))
 
 (defn exit-program
@@ -151,7 +162,9 @@
     (cond (fn? action) (action)
           (map? action) (reset! tmp-keymap action)
           ;action (swap! state update-in [::buffers (get-current-buffer-id)] (action :function))
-          (= mode :insert) (swap! state update-in [::buffers (get-current-buffer-id)] #(buffer/insert-char % (first c)))))
-  (paint-buffer))
+          (= mode :insert) (swap! state update-in [::buffers (get-current-buffer-id)] #(buffer/insert-char % (first c))))
+    (cond (= c "esc") (highlight-buffer) ; TODO Maybe not highlight from scratch each time
+          (= mode :insert) (highlight-buffer-row))
+    (paint-buffer)))
 
 

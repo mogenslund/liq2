@@ -13,7 +13,7 @@
    :match-string-end "\""
    :match-comment-begin #"(?<!\\\\);|^#"
    :match-comment-end #"$"
-   :match-special-begin #"(?<=\()def(n|n-|test|record|protocol|macro)? "
+   :match-special-begin #"(?<=\()(ns |def(n|n-|test|record|protocol|macro)? )"
    :match-definition-begin #"[\w\#\.\-\_\:\+\=\>\<\/\!\?\*]+"
    :match-definition-end #"."})
 

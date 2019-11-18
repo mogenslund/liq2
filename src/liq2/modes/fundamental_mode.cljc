@@ -4,6 +4,11 @@
             [liq2.buffer :as buffer]
             [liq2.util :as util]))
 
+(defn set-output
+  [s]
+  (editor/apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string s)))
+  (editor/paint-buffer (get-buffer "*output*")))
+
 (defn tmp-eval
   []
   (let [res (util/eval-safe (buffer/get-selected-text (editor/get-current-buffer)))]
@@ -28,13 +33,23 @@
     (editor/apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string (str res))))
     (editor/paint-buffer (get-buffer "*output*"))))
 
+(defn open-file-at-point
+  []
+  (let [buf (editor/get-current-buffer)
+        part (buffer/get-word buf)
+        buffer-file (buffer/get-filename buf)
+        alternative-parent (if buffer-file (util/get-folder buffer-file) ".")
+        filepath (util/resolve-path part alternative-parent)]
+    (editor/new-buffer (or (util/read-file filepath) "") {:name filepath :filename filepath})))
+
 
 (def sample-code "(ns user.user (:require [liq2.editor :as editor] [liq2.buffer :as buffer])) (liq2.editor/apply-to-buffer liq2.buffer/end-of-line) :something")
 
 (def mode
   {:insert {"esc" (fn [] (apply-to-buffer #(-> % (buffer/set-mode :normal) buffer/backward-char)))
             "backspace" (fn [] (apply-to-buffer #(if (> (buffer/get-col %) 1) (-> % buffer/backward-char buffer/delete-char) %)))}
-   :normal {"t" (fn [] (apply-to-buffer #(buffer/insert-string % "Just\nTesting")))
+   :normal {"C- " #(((editor/get-mode :buffer-chooser-mode) :init))
+            "t" (fn [] (apply-to-buffer #(buffer/insert-string % "Just\nTesting")))
             "f2" editor/oldest-buffer
             "i" #(apply-to-buffer buffer/set-insert-mode)
             "h" #(apply-to-buffer buffer/backward-char)
@@ -45,7 +60,8 @@
             "$" #(apply-to-buffer buffer/end-of-line)
             "x" #(apply-to-buffer buffer/delete-char)
             "v" #(apply-to-buffer buffer/set-visual-mode)
-            "g" {"g" #(editor/apply-to-buffer buffer/beginning-of-buffer)}
+            "g" {"g" #(editor/apply-to-buffer buffer/beginning-of-buffer)
+                 "f" open-file-at-point}
             "G" #(apply-to-buffer buffer/end-of-buffer)
             "A" #(apply-to-buffer buffer/insert-at-line-end)
             "c" {"p" {"p" tmp-eval-sexp-at-point

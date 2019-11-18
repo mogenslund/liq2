@@ -4,6 +4,12 @@
             [liq2.editor :as editor :refer [apply-to-buffer switch-to-buffer get-buffer]]
             [liq2.buffer :as buffer]))
 
+(defn set-output
+  [s]
+  (editor/apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string s)))
+  (editor/paint-buffer (get-buffer "*output*")))
+
+
 (defn open-file
   [path]
   (editor/new-buffer (or (util/read-file path) "") {:name path :filename path}))
@@ -27,6 +33,7 @@
           (= content ":w") (write-file) 
           (= content ":t") (open-file "/home/sosdamgx/proj/liquid/src/dk/salza/liq/slider.clj")
           (= content ":t1") (editor/highlight-buffer)
+          (= content ":t2") (set-output (buffer/get-word (editor/get-current-buffer)))
           (re-matches #":e .*" content) (open-file (subs content 3)))))
 
 (def mode
