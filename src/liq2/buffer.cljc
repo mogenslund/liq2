@@ -33,12 +33,18 @@
              (into [] (subvec v n)))))
 
 (defn remove-from-vector
-  [v n]
-  (if (<= 1 n (count v))
-    (into [] (concat
-               (into [] (subvec v 0 (dec n)))
-               (into [] (subvec v n))))
-    v))
+  ([v n]
+   (if (<= 1 n (count v))
+     (into [] (concat
+                (into [] (subvec v 0 (dec n)))
+                (into [] (subvec v n))))
+     v))
+  ([v m n]
+    (if (<= 1 m n (count v))
+     (into [] (concat
+                (into [] (subvec v 0 (dec m)))
+                (into [] (subvec v n))))
+     v)))
 
 
 ;; Information
@@ -90,6 +96,10 @@
 (defn get-point
   [buf]
   (buf ::cursor))
+
+(defn update-mem-col
+  [buf]
+  (assoc buf ::mem-col ((get-point) ::col)))
 
 (defn set-selection
   ([buf p] (assoc buf ::selection p))
@@ -276,6 +286,21 @@
 
 ;; Modifications
 ;; =============
+
+(defn delete-line
+  ([buf row]
+   (if (<= (line-count buf) 1)
+     (assoc buf ::lines [[]]
+             ::cursor (point 1 1)
+             ::mem-col 1)
+     (-> buf
+         previous-line
+         (update ::lines #(remove-from-vector % row))
+         next-line)))
+  ([buf] (delete-line buf (get-row buf))))
+
+(comment
+  (-> (buffer "aaa\nbbb\nccc") next-line delete-line))
 
 (defn append-line-at-end
   "Append empty lines at end"

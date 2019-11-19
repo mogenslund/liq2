@@ -42,6 +42,29 @@
         filepath (util/resolve-path part alternative-parent)]
     (editor/new-buffer (or (util/read-file filepath) "") {:name filepath :filename filepath})))
 
+(defn copy-selection-to-clipboard
+  [buf]
+  (let [p (buffer/get-selection buf)
+        text (buffer/get-selected-text buf)]
+    (if p
+      (do
+        (util/set-clipboard-content text)
+        (-> buf
+            buffer/set-normal-mode
+            (buffer/set-point p)
+            buffer/update-mem-col))
+      buf)))
+
+(defn paste-clipboard
+  []
+  (apply-to-buffer #(buffer/insert-string % (util/clipboard-content))))
+
+(defn delete-line
+  [buf]
+  (let [text (buffer/get-line buf)]
+    (util/set-clipboard-content text)
+    (buffer/delete-line buf)))
+
 
 (def sample-code "(ns user.user (:require [liq2.editor :as editor] [liq2.buffer :as buffer])) (liq2.editor/apply-to-buffer liq2.buffer/end-of-line) :something")
 
@@ -60,9 +83,11 @@
             "$" #(apply-to-buffer buffer/end-of-line)
             "x" #(apply-to-buffer buffer/delete-char)
             "v" #(apply-to-buffer buffer/set-visual-mode)
+            "p" paste-clipboard
             "g" {"g" #(editor/apply-to-buffer buffer/beginning-of-buffer)
                  "f" open-file-at-point}
             "G" #(apply-to-buffer buffer/end-of-buffer)
+            "d" {"d" #(apply-to-buffer delete-line)}
             "A" #(apply-to-buffer buffer/insert-at-line-end)
             "c" {"p" {"p" tmp-eval-sexp-at-point
                       "t" tmp-print-buffer}}
@@ -72,6 +97,6 @@
                        (apply-to-buffer #(-> % buffer/clear (buffer/insert-char \:))))
             "o" #(apply-to-buffer buffer/append-line)}
     :visual {"esc" #(apply-to-buffer buffer/set-normal-mode)
-            "c" {"p" {"p" tmp-eval}}
-             ;"y" editor/yank
+             "c" {"p" {"p" tmp-eval}}
+             "y" #(apply-to-buffer copy-selection-to-clipboard)
              }})

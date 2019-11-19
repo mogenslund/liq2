@@ -112,21 +112,22 @@
   (ls-files "~")
   (ls-folders "/tmp")
   (ls-folders "~")
-  (get-parent-folder "~")
-  )
+  (get-parent-folder "~"))
 
-;(defn clipboard-content
-;  []
-;  (if (java.awt.GraphicsEnvironment/isHeadless)
-;    @localclipboard
-;    (let [clipboard (.getSystemClipboard (java.awt.Toolkit/getDefaultToolkit))]
-;      (try
-;        (.getTransferData (.getContents clipboard nil) (java.awt.datatransfer.DataFlavor/stringFlavor))
-;        (catch Exception e "")))))
+(def localclipboard (atom ""))
 
-;(defn set-clipboard-content
-;  [text]
-;  (reset! localclipboard text)
-;  (when (not (java.awt.GraphicsEnvironment/isHeadless))
-;    (let [clipboard (.getSystemClipboard (java.awt.Toolkit/getDefaultToolkit))]
-;      (.setContents clipboard (java.awt.datatransfer.StringSelection. text) nil))))
+(defn clipboard-content
+  []
+  (if (java.awt.GraphicsEnvironment/isHeadless)
+    @localclipboard
+    (let [clipboard (.getSystemClipboard (java.awt.Toolkit/getDefaultToolkit))]
+      (try
+        (.getTransferData (.getContents clipboard nil) (java.awt.datatransfer.DataFlavor/stringFlavor))
+        (catch Exception e "")))))
+
+(defn set-clipboard-content
+  [text]
+  (reset! localclipboard text)
+  (when (not (java.awt.GraphicsEnvironment/isHeadless))
+    (let [clipboard (.getSystemClipboard (java.awt.Toolkit/getDefaultToolkit))]
+      (.setContents clipboard (java.awt.datatransfer.StringSelection. text) nil))))
