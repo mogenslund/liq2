@@ -135,7 +135,8 @@
    (let [r (get (buf ::lines) (dec row))]
      (if (> col (count r))
        ""
-       (str/join (map ::char (subvec r (dec col))))))))
+       (str/join (map ::char (subvec r (dec col)))))))
+  ([buf] (get-line buf (get-row buf))))
 
 (comment
   (str/join (map ::char (get ((buffer "abcde") :liq2.buffer/lines) 1)))

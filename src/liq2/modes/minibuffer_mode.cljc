@@ -34,6 +34,7 @@
           (= content ":t") (open-file "/home/sosdamgx/proj/liquid/src/dk/salza/liq/slider.clj")
           (= content ":t1") (editor/highlight-buffer)
           (= content ":t2") (set-output (buffer/get-word (editor/get-current-buffer)))
+          (= content ":e .") (((editor/get-mode :dired-mode) :init))
           (re-matches #":e .*" content) (open-file (subs content 3)))))
 
 (def mode

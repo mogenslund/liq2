@@ -29,6 +29,12 @@
           (recalculate-tow buf rows cols (update tow1 :row inc)) ; TODO Moving tow one line at the time (Not optimized!!!)
         true tow1))
 
+;(defn recalculate-tow
+;  "Basic version, just to check possible speed"
+;  [buf rows cols tow1]
+;  (assoc tow1 :row (buffer/get-row buf)))
+
+
 (comment
   (calculate-wrapped-row-dist (buffer/buffer "aaaaaaaaaaaaaaaaaaaaaaaaaa\nbbbbbbbbbbbbbb") 10 2 3)
   )

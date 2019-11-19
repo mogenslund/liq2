@@ -23,6 +23,72 @@
   #?(:clj (Thread/sleep ms)
      :cljs (do)))
 
+
+(defn get-folder
+  [filepath]
+  (str (.getParent (io/file filepath))))
+
+(defn resolve-path
+  [part alternative-parent]
+  (cond (.isAbsolute (io/file part)) (.getCanonicalPath (io/file part))
+        (re-find #"^~" part) (str (.getCanonicalPath (io/file (str/replace part #"^~" (System/getProperty "user.home")))))
+        true (str (.getCanonicalPath (io/file alternative-parent part)))))
+
+(defn file
+  ([folder filename]
+    (str (io/file folder filename)))
+  ([filepath]
+    (str (io/file filepath))))
+
+(defn filename
+  [filepath]
+  (str (.getName (io/file filepath))))
+
+(defn parent
+  [filepath]
+  ;; if root return nil
+  )
+
+(defn absolute
+  [filepath]
+  (.getAbsolutePath (io/file filepath)))
+
+(defn canonical
+  [filepath]
+  (.getCanonicalPath (io/file filepath)))
+
+(defn folder?
+  [filepath]
+  (.isDirectory (io/file filepath)))
+
+(defn file?
+  [filepath]
+  (.isFile (io/file filepath)))
+
+(defn exists?
+  [filepath]
+  (.exists (io/file filepath)))
+
+(defn tmp-file
+  [filename]
+  (str (io/file (System/getProperty "java.io.tmpdir") filename)))
+
+(defn get-roots
+  []
+  (map str (java.io.File/listRoots)))
+
+(defn get-children
+  [filepath]
+  (map str (.listFiles (io/file filepath))))
+
+(defn get-folders
+  [filepath]
+  (map str (filter #(.isDirectory %) (.listFiles (io/file filepath)))))
+
+(defn get-files
+  [filepath]
+  (filter file? (map str (.listFiles (io/file filepath)))))
+
 (defn read-file
   [path]
   #?(:clj (when (.exists (io/file path))
@@ -40,15 +106,14 @@
             (catch Exception e (str e)))
      :cljs (do (set! cljs.js/*eval-fn* cljs.js/js-eval) (eval-str (empty-state) text str))))
 
-(defn get-folder
-  [filepath]
-  (str (.getParent (io/file filepath))))
-
-(defn resolve-path
-  [part alternative-parent]
-  (cond (.isAbsolute (io/file part)) part
-        (re-find #"^~" part) (str (.getCanonicalPath (io/file (str/replace part #"^~" (System/getProperty "user.home")))))
-        true (str (.getCanonicalPath (io/file alternative-parent part)))))
+(comment
+  (get-folder "/tmp/tmp.clj")
+  (ls-files "/tmp")
+  (ls-files "~")
+  (ls-folders "/tmp")
+  (ls-folders "~")
+  (get-parent-folder "~")
+  )
 
 ;(defn clipboard-content
 ;  []

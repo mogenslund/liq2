@@ -3,6 +3,7 @@
             [liq2.modes.fundamental-mode :as fundamental-mode]
             [liq2.modes.minibuffer-mode :as minibuffer-mode]
             [liq2.modes.buffer-chooser-mode :as buffer-chooser-mode]
+            [liq2.modes.dired-mode :as dired-mode]
             [liq2.modes.clojure-mode :as clojure-mode]
             [liq2.buffer :as buffer]
             [liq2.editor :as editor]
@@ -19,6 +20,7 @@
     (editor/add-mode :fundamental-mode fundamental-mode/mode)
     (editor/add-mode :minibuffer-mode minibuffer-mode/mode)
     (editor/add-mode :buffer-chooser-mode buffer-chooser-mode/mode)
+    (editor/add-mode :dired-mode dired-mode/mode)
     (editor/add-mode :clojure-mode clojure-mode/mode)
     (editor/set-output-handler output/output-handler)
     (editor/set-exit-handler input/exit-handler)
