@@ -5,48 +5,48 @@
             [liq2.buffer :as buffer]
             [liq2.util :as util]))
 
-(def match-keys
-  {:match-keyword-begin #"(?<=(\s|\(|\[|\{)|^):[\w\#\.\-\_\:\+\=\>\<\/\!\?\*]+(?=(\s|\)|\]|\}|\,|$))"
-   :match-keyword-end #".|$"
-   :match-string-begin #"(?<!\\\\)(\")"
-   :match-string-escape #"(\\\")"
-   :match-string-end "\""
-   :match-comment-begin #"(?<!\\\\);|^#"
-   :match-comment-end #"$"
-   :match-special-begin #"(?<=\()(ns |def(n|n-|test|record|protocol|macro)? )"
-   :match-definition-begin #"[\w\#\.\-\_\:\+\=\>\<\/\!\?\*]+"
-   :match-definition-end #"."})
+(def match
+  {:keyword-begin #"(?<=(\s|\(|\[|\{)|^):[\w\#\.\-\_\:\+\=\>\<\/\!\?\*]+(?=(\s|\)|\]|\}|\,|$))"
+   :keyword-end #".|$"
+   :string-begin #"(?<!\\\\)(\")"
+   :string-escape #"(\\\")"
+   :string-end "\""
+   :comment-begin #"(?<!\\\\);|^#"
+   :comment-end #"$"
+   :special-begin #"(?<=\()(ns |def(n|n-|test|record|protocol|macro)? )"
+   :definition-begin #"[\w\#\.\-\_\:\+\=\>\<\/\!\?\*]+"
+   :definition-end #"."})
 
 (def mode
   (assoc fundamental-mode/mode
     :syntax
      {:plain ; Context
        {:style :plain1 ; style
-        :matchers {(match-keys :match-string-begin) :string
-                   (match-keys :match-keyword-begin) :keyword
-                   (match-keys :match-comment-begin) :comment
-                   (match-keys :match-special-begin) :special}}
+        :matchers {(match :string-begin) :string
+                   (match :keyword-begin) :keyword
+                   (match :comment-begin) :comment
+                   (match :special-begin) :special}}
       :string
        {:style :string
-        :matchers {(match-keys :match-string-escape) :string
-                   (match-keys :match-string-end) :string-end}}
+        :matchers {(match :string-escape) :string
+                   (match :string-end) :string-end}}
       :string-end
        {:style :string
         :matchers {#".|$|^" :plain}}
 
       :comment
        {:style :comment
-        :matchers {(match-keys :match-comment-end) :plain}}
+        :matchers {(match :comment-end) :plain}}
 
       :keyword
        {:style :keyword
-        :matchers {(match-keys :match-keyword-end) :plain}}
+        :matchers {(match :keyword-end) :plain}}
       
       :special
        {:style :special
-        :matchers {(match-keys :match-definition-begin) :definition}}
+        :matchers {(match :definition-begin) :definition}}
 
       :definition
        {:style :definition
-        :matchers {(match-keys :match-definition-end) :plain}}}))
+        :matchers {(match :definition-end) :plain}}}))
 

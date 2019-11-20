@@ -25,7 +25,8 @@
     (if id
       (switch-to-buffer id)
       (editor/new-buffer "" {:major-mode :dired-mode :name "*dired*"}))
-    (apply-to-buffer #(load-content % folder))))
+    (apply-to-buffer #(load-content % folder))
+    (editor/highlight-buffer)))
 
 (defn open-file
   [path]
@@ -39,7 +40,9 @@
         path (str parent "/" f)]
     (when (> (buffer/get-row buf) 1)
       (if (util/folder? path)
-        (apply-to-buffer #(load-content % path))
+        (do 
+          (apply-to-buffer #(load-content % path))
+          (editor/highlight-buffer))
         (open-file path)))))
 
 (def mode
@@ -57,4 +60,16 @@
             ":" (fn [] (switch-to-buffer "*minibuffer*")
                        (apply-to-buffer #(-> % buffer/clear (buffer/insert-char \:))))}
     :visual {"esc" #(apply-to-buffer buffer/set-normal-mode)}
-    :init run})
+    :init run
+    :syntax
+     {:plain ; Context
+       {:style :plain ; style
+        :matchers {#"^/.*$" :root-file
+                   #"[^/]+/$" :folder}}
+      :root-file
+       {:style :definition
+        :matchers {#".|$" :plain}}
+
+      :folder
+       {:style :keyword
+        :matchers {#".|$" :plain}}}})

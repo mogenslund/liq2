@@ -99,7 +99,7 @@
 
 (defn update-mem-col
   [buf]
-  (assoc buf ::mem-col ((get-point) ::col)))
+  (assoc buf ::mem-col ((get-point buf) ::col)))
 
 (defn set-selection
   ([buf p] (assoc buf ::selection p))
@@ -287,20 +287,6 @@
 ;; Modifications
 ;; =============
 
-(defn delete-line
-  ([buf row]
-   (if (<= (line-count buf) 1)
-     (assoc buf ::lines [[]]
-             ::cursor (point 1 1)
-             ::mem-col 1)
-     (-> buf
-         previous-line
-         (update ::lines #(remove-from-vector % row))
-         next-line)))
-  ([buf] (delete-line buf (get-row buf))))
-
-(comment
-  (-> (buffer "aaa\nbbb\nccc") next-line delete-line))
 
 (defn append-line-at-end
   "Append empty lines at end"
@@ -429,6 +415,44 @@
    (-> buf
        (delete-char (get-row buf) (get-col buf)))))
 
+(defn delete-line
+  ([buf row]
+   (if (<= (line-count buf) 1)
+     (assoc buf ::lines [[]]
+             ::cursor (point 1 1)
+             ::mem-col 1)
+     (let [b1 (update buf ::lines #(remove-from-vector % row))
+           newrow (min (line-count b1) row)
+           newcol (min (col-count b1 newrow) (get-col buf))]
+        (set-point b1 newrow newcol))))
+  ([buf] (delete-line buf (get-row buf))))
+
+(comment
+  (-> (buffer "aaa\nbbb\nccc") next-line delete-line))
+
+(defn delete
+  ([buf p1 p2]
+    (let [p (if (= (point-compare p1 p2) -1) p1 p2)  ; first 
+          q (if (= (point-compare p1 p2) -1) p2 p1)  ; second
+          t1 (if (> (p ::col) 1)
+               (subvec (-> buf ::lines (get (dec (p ::row)))) 0 (dec (p ::col)))
+               [])  
+          t2 (if (< (q ::col) (col-count buf (q ::row)))
+               (subvec (-> buf ::lines (get (dec (q ::row)))) (q ::col) (col-count buf (q ::row)))
+               [])]  
+      (if (= (p ::row) (q ::row))
+        (-> buf
+            (update-in [::lines (dec (p ::row))] #(remove-from-vector % (p ::col) (q ::col)))
+            set-normal-mode
+            (set-point p))
+        (-> (nth (iterate #(delete-line % (p ::row)) buf) (- (inc (q ::row)) (p ::row)))
+            (update ::lines #(insert-in-vector % (dec (p ::row)) (into [] (concat t1 t2))))
+            set-normal-mode
+            (set-point p)))))
+  ([buf]
+   (if-let [p (get-selection buf)]
+     (delete buf (get-point buf) p)
+     buf)))
 
 (comment
   (let [buf (buffer "abcd\nxyz")]

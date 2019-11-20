@@ -48,7 +48,7 @@
         text (buffer/get-selected-text buf)]
     (if p
       (do
-        (util/set-clipboard-content text)
+        (util/set-clipboard-content text false)
         (-> buf
             buffer/set-normal-mode
             (buffer/set-point p)
@@ -57,13 +57,31 @@
 
 (defn paste-clipboard
   []
-  (apply-to-buffer #(buffer/insert-string % (util/clipboard-content))))
+  (if (util/clipboard-line?)
+    (apply-to-buffer
+      #(-> %
+           buffer/append-line
+           (buffer/insert-string (util/clipboard-content))
+           buffer/beginning-of-line
+           buffer/set-normal-mode))
+    (apply-to-buffer #(buffer/insert-string % (util/clipboard-content)))))
 
 (defn delete-line
   [buf]
   (let [text (buffer/get-line buf)]
-    (util/set-clipboard-content text)
+    (util/set-clipboard-content text true)
     (buffer/delete-line buf)))
+
+(defn copy-line
+  []
+  (let [text (buffer/get-line (editor/get-current-buffer))]
+    (util/set-clipboard-content text true)))
+
+(defn delete
+  [buf]
+  (let [text (buffer/get-selected-text buf)]
+    (util/set-clipboard-content text false)
+    (buffer/delete buf)))
 
 
 (def sample-code "(ns user.user (:require [liq2.editor :as editor] [liq2.buffer :as buffer])) (liq2.editor/apply-to-buffer liq2.buffer/end-of-line) :something")
@@ -83,6 +101,7 @@
             "$" #(apply-to-buffer buffer/end-of-line)
             "x" #(apply-to-buffer buffer/delete-char)
             "v" #(apply-to-buffer buffer/set-visual-mode)
+            "y" {"y" copy-line}
             "p" paste-clipboard
             "g" {"g" #(editor/apply-to-buffer buffer/beginning-of-buffer)
                  "f" open-file-at-point}
@@ -99,4 +118,5 @@
     :visual {"esc" #(apply-to-buffer buffer/set-normal-mode)
              "c" {"p" {"p" tmp-eval}}
              "y" #(apply-to-buffer copy-selection-to-clipboard)
+             "d" #(apply-to-buffer delete)
              }})

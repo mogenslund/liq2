@@ -115,6 +115,7 @@
   (get-parent-folder "~"))
 
 (def localclipboard (atom ""))
+(def line? (atom false))
 
 (defn clipboard-content
   []
@@ -125,9 +126,15 @@
         (.getTransferData (.getContents clipboard nil) (java.awt.datatransfer.DataFlavor/stringFlavor))
         (catch Exception e "")))))
 
+(defn clipboard-line?
+  []
+  @line?)
+
 (defn set-clipboard-content
-  [text]
-  (reset! localclipboard text)
-  (when (not (java.awt.GraphicsEnvironment/isHeadless))
-    (let [clipboard (.getSystemClipboard (java.awt.Toolkit/getDefaultToolkit))]
-      (.setContents clipboard (java.awt.datatransfer.StringSelection. text) nil))))
+  ([text line]
+   (reset! localclipboard text)
+   (reset! line? line)
+   (when (not (java.awt.GraphicsEnvironment/isHeadless))
+     (let [clipboard (.getSystemClipboard (java.awt.Toolkit/getDefaultToolkit))]
+       (.setContents clipboard (java.awt.datatransfer.StringSelection. text) nil))))
+  ([text] (set-clipboard-content false)))
