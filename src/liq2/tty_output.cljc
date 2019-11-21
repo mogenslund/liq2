@@ -54,7 +54,7 @@
         ccol (buffer/get-col buf)]
   (swap! tow-cache assoc cache-id tow)
   (tty-print esc "?25l") ; Hide cursor
-  (when (= cache-id @last-buffer)
+  (when (and (= cache-id @last-buffer) (not= (buffer/get-name buf) "*status-line*"))
     (tty-print "█")) ; To make it look like the cursor is still there while drawing.
   (loop [trow top tcol left row (tow :row) col (tow :col) cursor-row nil cursor-col nil color nil bgcolor nil]
     (if (< trow (+ rows top))
@@ -63,7 +63,7 @@
         (let [cursor-match (or (and (= row crow) (= col ccol))
                                (and (= row crow) (not cursor-col) (> col ccol))
                                (and (not cursor-row) (> row crow)))
-              c (or (when cursor-match "█") 
+              c (or (when (and cursor-match (not= (buffer/get-name buf) "*status-line*")) "█") 
                     (buffer/get-char buf row col)
                     (if (and (= col 1) (> row (buffer/line-count buf))) (str esc "36m~" esc "0m") \space))
               new-cursor-row (if cursor-match trow cursor-row)

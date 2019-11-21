@@ -4,6 +4,7 @@
             [liq2.modes.minibuffer-mode :as minibuffer-mode]
             [liq2.modes.buffer-chooser-mode :as buffer-chooser-mode]
             [liq2.modes.dired-mode :as dired-mode]
+            [liq2.modes.typeahead-mode :as typeahead-mode]
             [liq2.modes.clojure-mode :as clojure-mode]
             [liq2.buffer :as buffer]
             [liq2.editor :as editor]
@@ -20,12 +21,15 @@
     (editor/add-mode :fundamental-mode fundamental-mode/mode)
     (editor/add-mode :minibuffer-mode minibuffer-mode/mode)
     (editor/add-mode :buffer-chooser-mode buffer-chooser-mode/mode)
+    (editor/add-mode :typeahead-mode typeahead-mode/mode)
     (editor/add-mode :dired-mode dired-mode/mode)
     (editor/add-mode :clojure-mode clojure-mode/mode)
     (editor/set-output-handler output/output-handler)
     (editor/set-exit-handler input/exit-handler)
     (input/input-handler editor/handle-input)
     ;(editor/paint-buffer)
+    (editor/new-buffer "" {:name "*status-line*" :top rows :left 1 :rows 1 :cols cols
+                        :major-mode :fundamental-mode :mode :insert})
     (editor/new-buffer ""
                        {:name "*minibuffer*" :top rows :left 1 :rows 1 :cols cols
                         :major-mode :minibuffer-mode :mode :insert})

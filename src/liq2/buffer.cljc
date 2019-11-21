@@ -587,6 +587,10 @@
   (-> (buffer "abcd\nxyz") append-line get-text)
 
   (get-text (buffer "abcd\nxyz"))
+  (end-of-line (buffer ""))
+  (beginning-of-buffer (buffer ""))
+  (insert-char (buffer "") \a)
+  (insert-char (buffer "") "a")
 )
 
 

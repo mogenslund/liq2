@@ -65,13 +65,6 @@
   []
   (get-buffer (get-current-buffer-id)))
 
-(defn paint-buffer
-  ([buf]
-   (when (@state ::output-handler)
-     ((@state ::output-handler) buf)))
-  ([]
-   (paint-buffer (get-current-buffer))))
-
 (defn switch-to-buffer
   [idname]
   (if (number? idname)
@@ -84,7 +77,14 @@
   "n = 1 means previous"
   ([n]
    (let [idx (first (drop n (reverse (sort (map ::idx (vals (@state ::buffers)))))))]
-     ;(javax.swing.JOptionPane/showMessageDialog nil (str "IDX " idx " " (pr-str (map ::idx (regular-buffers)))))
+     (when idx
+       (switch-to-buffer (get-buffer-id-by-idx idx)))))
+  ([] (previous-buffer 1)))
+
+(defn previous-regular-buffer
+  "n = 1 means previous"
+  ([n]
+   (let [idx (first (drop n (reverse (sort (map ::idx (regular-buffers))))))]
      (when idx
        (switch-to-buffer (get-buffer-id-by-idx idx)))))
   ([] (previous-buffer 1)))
@@ -105,6 +105,25 @@
 (comment
   (new-buffer)
   )
+
+(defn paint-buffer
+  ([buf]
+   (when (@state ::output-handler)
+     (apply-to-buffer "*status-line*"
+       #(-> %
+            buffer/clear
+            (buffer/insert-string
+              (str (buffer/get-filename buf) "  "
+                   ;(when (buffer/dirty? buf) " [+] ")
+                   (cond (= (buffer/get-mode buf) :insert) "-- INSERT --   "
+                         (= (buffer/get-mode buf) :visual) "-- VISUAL --   "
+                         true "               ")
+                   (buffer/get-row buf) "," (buffer/get-col buf)))
+            buffer/beginning-of-buffer))
+     ((@state ::output-handler) (get-buffer "*status-line*"))
+     ((@state ::output-handler) buf)))
+  ([]
+   (paint-buffer (get-current-buffer))))
 
 (defn highlight-buffer
   ([idname]
