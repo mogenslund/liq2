@@ -15,7 +15,7 @@
           "\n"
           (str/join "\n" (sort (map #(str (util/filename %)) (util/get-files folder))))))
       buffer/beginning-of-buffer
-      buffer/next-line))
+      buffer/down))
 
 (defn run
   []
@@ -46,17 +46,20 @@
         (open-file path)))))
 
 (def mode
-  {:insert {"esc" (fn [] (apply-to-buffer #(-> % (buffer/set-mode :normal) buffer/backward-char)))}
+  {:insert {"esc" (fn [] (apply-to-buffer #(-> % (buffer/set-mode :normal) buffer/left)))}
    :normal {"q" editor/previous-buffer
             "\n" choose
-            "h" #(apply-to-buffer buffer/backward-char)
-            "j" #(apply-to-buffer buffer/next-line)
-            "k" #(apply-to-buffer buffer/previous-line)
-            "l" #(apply-to-buffer buffer/forward-char)
+            "h" #(apply-to-buffer buffer/left)
+            "j" #(apply-to-buffer buffer/down)
+            "k" #(apply-to-buffer buffer/up)
+            "l" #(apply-to-buffer buffer/right)
+            "n" #(apply-to-buffer buffer/search)
             "0" #(apply-to-buffer buffer/beginning-of-line)
             "$" #(apply-to-buffer buffer/end-of-line)
             "g" {"g" #(editor/apply-to-buffer buffer/beginning-of-buffer)}
             "G" #(apply-to-buffer buffer/end-of-buffer)
+            "/" (fn [] (switch-to-buffer "*minibuffer*")
+                       (apply-to-buffer #(-> % buffer/clear (buffer/insert-char \/))))
             ":" (fn [] (switch-to-buffer "*minibuffer*")
                        (apply-to-buffer #(-> % buffer/clear (buffer/insert-char \:))))}
     :visual {"esc" #(apply-to-buffer buffer/set-normal-mode)}

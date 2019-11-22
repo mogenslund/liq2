@@ -56,7 +56,7 @@
 
 (defn handle-input
   [c]
-  (if-let [f ({"esc" (fn [] (apply-to-buffer #(-> % buffer/set-normal-mode buffer/backward-char)))
+  (if-let [f ({"esc" (fn [] (apply-to-buffer #(-> % buffer/set-normal-mode buffer/left)))
                "backspace" (fn [] (swap! state update ::search #(subs % 0 (max (dec (count %)) 0)))
                                   (apply-to-buffer update-view))}
               c)]
@@ -70,10 +70,10 @@
    :normal {"q" editor/previous-buffer
             "\n" execute
             "i" #(apply-to-buffer buffer/set-insert-mode)
-            "h" #(apply-to-buffer buffer/backward-char)
-            "j" #(apply-to-buffer buffer/next-line)
-            "k" #(apply-to-buffer buffer/previous-line)
-            "l" #(apply-to-buffer buffer/forward-char)
+            "h" #(apply-to-buffer buffer/left)
+            "j" #(apply-to-buffer buffer/down)
+            "k" #(apply-to-buffer buffer/up)
+            "l" #(apply-to-buffer buffer/right)
             "0" #(apply-to-buffer buffer/beginning-of-line)
             "$" #(apply-to-buffer buffer/end-of-line)
             "g" {"g" #(editor/apply-to-buffer buffer/beginning-of-buffer)}

@@ -21,6 +21,7 @@
     ::mem-col 1                ; Remember column when moving up and down
     ::mode (or mode :normal)
     ::encoding :utf-8          ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
+    ::search-word ""
     ::major-mode (or major-mode :clojure-mode)
     ::minor-modes []})           
   ([text] (buffer text {})))
@@ -226,7 +227,7 @@
 ;; Movements
 ;; =========
 
-(defn forward-char
+(defn right
   ([buf n]
    (let [linevec (-> buf ::lines (get (dec (get-row buf))))
          maxcol (+ (count linevec) (if (= (get-mode buf) :insert) 1 0))
@@ -235,15 +236,15 @@
          (set-point (point (get-row buf) newcol))
          (assoc ::mem-col newcol)))) 
   ([buf]
-   (forward-char buf 1)))
+   (right buf 1)))
 
-(defn backward-char
+(defn left
   ([buf n]
-   (forward-char buf (- n)))
+   (right buf (- n)))
   ([buf]
-   (backward-char buf 1)))
+   (left buf 1)))
 
-(defn next-line
+(defn down
   ([buf n]
    (let [newrow (max 1 (min (count (buf ::lines)) (+ (get-row buf) n)))
          linevec (-> buf ::lines (get (dec newrow)))
@@ -251,13 +252,13 @@
          newcol (max 1 (min maxcol (buf ::mem-col)))]
      (set-point buf (point newrow newcol)))) 
   ([buf]
-   (next-line buf 1)))
+   (down buf 1)))
 
-(defn previous-line
+(defn up
   ([buf n]
-   (next-line buf (- n)))
+   (down buf (- n)))
   ([buf]
-   (previous-line buf 1)))
+   (up buf 1)))
 
 (defn end-of-line
   [buf]
@@ -333,7 +334,7 @@
 
   (let [buf (buffer "abcd\n\nxyz")]
     (-> buf
-        next-line
+        down
         get-char))))
 
 
@@ -428,7 +429,7 @@
   ([buf] (delete-line buf (get-row buf))))
 
 (comment
-  (-> (buffer "aaa\nbbb\nccc") next-line delete-line))
+  (-> (buffer "aaa\nbbb\nccc") down delete-line))
 
 (defn delete
   ([buf p1 p2]
@@ -460,10 +461,10 @@
         ;(insert-char 2 4 \k)
         (insert-char \1)
         (insert-char \2)
-        backward-char
+        left
         (insert-char \newline)
         (insert-char \l)
-        forward-char
+        right
         (insert-char \m)
         get-text)))
 
@@ -472,7 +473,7 @@
   (-> buf
       end-of-line
       (set-mode :insert)
-      forward-char))
+      right))
 
 (defn set-attribute
   [buf row col attr value]
@@ -522,6 +523,23 @@
             p
             (recur (next-point buf p) nstack)))))))
 
+(defn search
+  ""
+  ([buf w]
+   (let [b (assoc buf ::search-word w)
+         regex (re-pattern w)
+         l (get-line b)
+         s (subs l (min (get-col b) (count l)))
+         res (str/split s regex 2)]
+     (if (>= (count res) 2)
+       (right b (inc (count (first res))))
+       (loop [row (inc (get-row b))]
+         (let [s (get-line b row)]
+           (cond (re-find regex s) (set-point b row (inc (count (first (str/split s regex 2)))))
+                 (>= row (line-count b)) b
+                 true (recur (inc row))))))))
+  ([buf] (search buf (buf ::search-word))))
+
 (defn sexp-at-point
   ([buf p]
    (let [p0 (paren-match-before buf (if (= (get-char buf p) \)) (previous-point buf p) p) \()
@@ -557,6 +575,8 @@
 
   (let [buf (buffer "ab[[cd]\nx[asdf]yz]")]
     (paren-match-before buf (point 2 8) \[))
+
+  (pr-str (get-line (buffer "") 2))
   
   (let [buf (buffer "ab[[cd]\nx[asdf]yz]")]
     (paren-match-before buf (point 1 3) \]))
@@ -576,13 +596,13 @@
 (comment
   (let [buf (buffer "abcd\nxyz")]
     (-> buf
-        forward-char
+        right
         get-text)))
 
 
 (comment
-  (-> (buffer "abcd\nxyz") (forward-char 3) next-line)
-  (= (-> (buffer "abcd\nxyz") (forward-char 3) next-line get-char) \z)
+  (-> (buffer "abcd\nxyz") (right 3) down)
+  (= (-> (buffer "abcd\nxyz") (right 3) down get-char) \z)
   (-> (buffer "abcd\nxyz") (insert-char 4 5 \k) get-text)
   (-> (buffer "abcd\nxyz") append-line get-text)
 

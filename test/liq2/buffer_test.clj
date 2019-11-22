@@ -2,21 +2,21 @@
   (:require [clojure.test :refer :all]
             [liq2.buffer :refer :all]))
 
-(deftest forward-char-test
+(deftest right-test
   (testing "Forward char"
     (let [buf (buffer "abc\n\ndef")]
       (is (= (get-point buf) (point 1 1)))
       (is (= (-> buf
-                 forward-char
+                 right
                  get-point)
              (point 1 2)))
       (is (= (-> buf
-                 (forward-char 10)
+                 (right 10)
                  get-point)
              (point 1 3)))
       (is (= (-> buf
-                 next-line
-                 forward-char
+                 down
+                 right
                  get-point)
              (point 2 1))))))
 

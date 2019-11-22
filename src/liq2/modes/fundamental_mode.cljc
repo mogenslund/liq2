@@ -87,20 +87,21 @@
 (def sample-code "(ns user.user (:require [liq2.editor :as editor] [liq2.buffer :as buffer])) (liq2.editor/apply-to-buffer liq2.buffer/end-of-line) :something")
 
 (def mode
-  {:insert {"esc" (fn [] (apply-to-buffer #(-> % (buffer/set-mode :normal) buffer/backward-char)))
-            "backspace" (fn [] (apply-to-buffer #(if (> (buffer/get-col %) 1) (-> % buffer/backward-char buffer/delete-char) %)))}
+  {:insert {"esc" (fn [] (apply-to-buffer #(-> % (buffer/set-mode :normal) buffer/left)))
+            "backspace" (fn [] (apply-to-buffer #(if (> (buffer/get-col %) 1) (-> % buffer/left buffer/delete-char) %)))}
    :normal {"C- " #(((editor/get-mode :buffer-chooser-mode) :init))
             "t" (fn [] (apply-to-buffer #(buffer/insert-string % "Just\nTesting")))
             "f2" editor/oldest-buffer
             "i" #(apply-to-buffer buffer/set-insert-mode)
-            "h" #(apply-to-buffer buffer/backward-char)
-            "j" #(apply-to-buffer buffer/next-line)
-            "k" #(apply-to-buffer buffer/previous-line)
-            "l" #(apply-to-buffer buffer/forward-char)
+            "h" #(apply-to-buffer buffer/left)
+            "j" #(apply-to-buffer buffer/down)
+            "k" #(apply-to-buffer buffer/up)
+            "l" #(apply-to-buffer buffer/right)
             "0" #(apply-to-buffer buffer/beginning-of-line)
             "$" #(apply-to-buffer buffer/end-of-line)
             "x" #(apply-to-buffer buffer/delete-char)
             "v" #(apply-to-buffer buffer/set-visual-mode)
+            "n" #(apply-to-buffer buffer/search)
             "y" {"y" copy-line}
             "p" paste-clipboard
             "g" {"g" #(editor/apply-to-buffer buffer/beginning-of-buffer)

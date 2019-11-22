@@ -53,7 +53,7 @@
   ([buf hl row]
    (if (= row 1)
      (highlight-row buf hl 1 :plain)
-     (let [b1 (-> buf buffer/previous-line buffer/end-of-line)
+     (let [b1 (-> buf buffer/up buffer/end-of-line)
            style (buffer/get-style b1)
            c (buffer/get-char b1)]
        (if (and (= style :string) (not= c \"))

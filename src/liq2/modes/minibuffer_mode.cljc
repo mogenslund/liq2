@@ -26,7 +26,8 @@
     (apply-to-buffer buffer/clear)
     (editor/paint-buffer)
     (editor/previous-buffer)
-    (cond (= content ":q") (editor/exit-program)
+    (cond (<= (count content) 1) (do)
+          (= content ":q") (editor/exit-program)
           (= content ":bnext") (editor/oldest-buffer)
           (= content ":new") (editor/new-buffer "" {})
           (= content ":buffers") (((editor/get-mode :buffer-chooser-mode) :init)) 
@@ -36,11 +37,12 @@
           (= content ":t2") (set-output (buffer/get-word (editor/get-current-buffer)))
           (= content ":t3") (((editor/get-mode :typeahead-mode) :init) ["aaa" "bbb" "aabb" "ccc"] str buffer/insert-string) 
           (= content ":e .") (((editor/get-mode :dired-mode) :init))
-          (re-matches #":e .*" content) (open-file (subs content 3)))))
+          (re-matches #":e .*" content) (open-file (subs content 3))
+          (= (subs content 0 1) "/") (apply-to-buffer #(buffer/search % (subs content 1))))))
 
 (def mode
   {:insert {"esc" editor/previous-buffer
-            "backspace" (fn [] (apply-to-buffer #(if (> (buffer/get-col %) 1) (-> % buffer/backward-char buffer/delete-char) %)))
+            "backspace" (fn [] (apply-to-buffer #(if (> (buffer/get-col %) 1) (-> % buffer/left buffer/delete-char) %)))
             "\n" execute}
    :normal {"esc" (fn [] (apply-to-buffer #(buffer/set-mode % :insert)))
-            "l" #(apply-to-buffer buffer/forward-char)}})
+            "l" #(apply-to-buffer buffer/right)}})
