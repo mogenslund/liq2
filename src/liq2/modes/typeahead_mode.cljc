@@ -68,6 +68,7 @@
 (def mode
   {:insert handle-input
    :normal {"q" editor/previous-buffer
+            "esc" editor/previous-buffer
             "\n" execute
             "i" #(apply-to-buffer buffer/set-insert-mode)
             "h" #(apply-to-buffer buffer/left)

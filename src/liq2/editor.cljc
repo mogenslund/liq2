@@ -26,6 +26,10 @@
   [keyw]
   (or ((@state ::modes) keyw) {}))
 
+(defn add-key-bindings
+  [major-mode mode keybindings]
+  (swap! state update-in [::modes major-mode mode] #(merge-with merge % keybindings))) 
+
 (defn get-buffer-id-by-idx
   [idx]
   ((first (filter #(= (% ::idx) idx) (vals (@state ::buffers)))) ::id))
@@ -160,6 +164,11 @@
     (highlight-buffer id)
     (switch-to-buffer id)
     (paint-buffer)))
+
+(defn open-file
+  [path]
+  (let [p (util/resolve-home path)]
+    (new-buffer (or (util/read-file p) "") {:name p :filename p})))
 
 (def tmp-keymap (atom nil))
 

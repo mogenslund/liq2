@@ -9,11 +9,6 @@
   (editor/apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string s)))
   (editor/paint-buffer (get-buffer "*output*")))
 
-
-(defn open-file
-  [path]
-  (editor/new-buffer (or (util/read-file path) "") {:name path :filename path}))
-
 (defn write-file
   []
   (let [buf (editor/get-current-buffer)]
@@ -32,12 +27,12 @@
           (= content ":new") (editor/new-buffer "" {})
           (= content ":buffers") (((editor/get-mode :buffer-chooser-mode) :init)) 
           (= content ":w") (write-file) 
-          (= content ":t") (open-file "/home/sosdamgx/proj/liquid/src/dk/salza/liq/slider.clj")
+          (= content ":t") (editor/open-file "/home/sosdamgx/proj/liquid/src/dk/salza/liq/slider.clj")
           (= content ":t1") (editor/highlight-buffer)
           (= content ":t2") (set-output (buffer/get-word (editor/get-current-buffer)))
           (= content ":t3") (((editor/get-mode :typeahead-mode) :init) ["aaa" "bbb" "aabb" "ccc"] str buffer/insert-string) 
           (= content ":e .") (((editor/get-mode :dired-mode) :init))
-          (re-matches #":e .*" content) (open-file (subs content 3))
+          (re-matches #":e .*" content) (editor/open-file (subs content 3))
           (= (subs content 0 1) "/") (apply-to-buffer #(buffer/search % (subs content 1))))))
 
 (def mode

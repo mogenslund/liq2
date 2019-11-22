@@ -28,6 +28,10 @@
   [filepath]
   (str (.getParent (io/file filepath))))
 
+(defn resolve-home
+  [path]
+  (str/replace path #"^~" (System/getProperty "user.home")))
+
 (defn resolve-path
   [part alternative-parent]
   (cond (.isAbsolute (io/file part)) (.getCanonicalPath (io/file part))
