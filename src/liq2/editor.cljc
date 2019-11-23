@@ -124,8 +124,8 @@
                          true "               ")
                    (buffer/get-row buf) "," (buffer/get-col buf)))
             buffer/beginning-of-buffer))
-     ((@state ::output-handler) (get-buffer "*status-line*"))
-     ((@state ::output-handler) buf)))
+     ;((@state ::output-handler) (get-buffer "*status-line*"))
+       ((@state ::output-handler) (assoc buf :status-line (get-buffer "*status-line*")))))
   ([]
    (paint-buffer (get-current-buffer))))
 
@@ -168,7 +168,9 @@
 (defn open-file
   [path]
   (let [p (util/resolve-home path)]
-    (new-buffer (or (util/read-file p) "") {:name p :filename p})))
+    (if (get-buffer-id-by-name p)
+      (switch-to-buffer p)
+      (new-buffer (or (util/read-file p) "") {:name p :filename p}))))
 
 (def tmp-keymap (atom nil))
 
