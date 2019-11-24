@@ -50,34 +50,12 @@
   (tty-print esc "5000;5000H" esc "s")
   (tty-print esc "K"))
 
-
-
 (defn set-line-mode
   []
   ;(tty-print esc "0;37m" esc "2J")
   (cmd "/bin/sh" "-c" "stty -echo cooked </dev/tty")
   (cmd "/bin/sh" "-c" "stty -echo sane </dev/tty")
   (tty-print esc "0;0H" esc "s"))
-
-(defn rows
-  []
-  (loop [shellinfo (with-out-str (cmd "/bin/sh" "-c" "stty size </dev/tty")) n 0]
-    (if (or (re-find #"^\d+" shellinfo) (> n 10)) 
-      (Integer/parseInt (re-find #"^\d+" shellinfo))
-      (do
-        (tty-println n)
-        (Thread/sleep 100)
-        (recur (with-out-str (cmd "/bin/sh" "-c" "stty size </dev/tty")) (inc n))))))
-
-(defn cols
-  []
-  (loop [shellinfo (with-out-str (cmd "/bin/sh" "-c" "stty size </dev/tty")) n 0]
-    (if (or (re-find #"\d+$" shellinfo) (> n 10)) 
-      (dec (Integer/parseInt (re-find #"\d+$" shellinfo)))
-      (do
-        (tty-println n)
-        (Thread/sleep 100)
-        (recur (with-out-str (cmd "/bin/sh" "-c" "stty size </dev/tty")) (inc n))))))
 
 (defn exit-handler
   []

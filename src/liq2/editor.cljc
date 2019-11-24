@@ -8,7 +8,16 @@
 (def state (atom {::buffers {}
                   ::modes {}
                   ::exit-handler nil
+                  ::dimensions nil
                   ::output-handler nil}))
+
+(defn get-dimensions
+  []
+  (if-let [d (@state ::dimensions)]
+    d
+    (let [d ((-> @state ::output-handler :dimensions))]
+      (swap! state assoc ::dimensions d)
+      d)))
 
 (defn set-output-handler
   [output-handler]
@@ -125,7 +134,7 @@
                    (buffer/get-row buf) "," (buffer/get-col buf)))
             buffer/beginning-of-buffer))
      ;((@state ::output-handler) (get-buffer "*status-line*"))
-       ((@state ::output-handler) (assoc buf :status-line (get-buffer "*status-line*")))))
+       ((-> @state ::output-handler :printer) (assoc buf :status-line (get-buffer "*status-line*")))))
   ([]
    (paint-buffer (get-current-buffer))))
 

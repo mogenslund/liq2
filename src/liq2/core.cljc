@@ -16,17 +16,16 @@
 (defn -main
   []
   (input/init)
-  (let [rows (input/rows)
-        cols (input/cols)]
-    (editor/add-mode :fundamental-mode fundamental-mode/mode)
-    (editor/add-mode :minibuffer-mode minibuffer-mode/mode)
-    (editor/add-mode :buffer-chooser-mode buffer-chooser-mode/mode)
-    (editor/add-mode :typeahead-mode typeahead-mode/mode)
-    (editor/add-mode :dired-mode dired-mode/mode)
-    (editor/add-mode :clojure-mode clojure-mode/mode)
-    (editor/set-output-handler output/output-handler)
-    (editor/set-exit-handler input/exit-handler)
-    (input/input-handler editor/handle-input)
+  (editor/add-mode :fundamental-mode fundamental-mode/mode)
+  (editor/add-mode :minibuffer-mode minibuffer-mode/mode)
+  (editor/add-mode :buffer-chooser-mode buffer-chooser-mode/mode)
+  (editor/add-mode :typeahead-mode typeahead-mode/mode)
+  (editor/add-mode :dired-mode dired-mode/mode)
+  (editor/add-mode :clojure-mode clojure-mode/mode)
+  (editor/set-output-handler output/output-handler)
+  (editor/set-exit-handler input/exit-handler)
+  (input/input-handler editor/handle-input)
+  (let [{:keys [:rows :cols]} (editor/get-dimensions)]
     ;(editor/paint-buffer)
     (editor/new-buffer "" {:name "*status-line*" :top rows :left 1 :rows 1 :cols cols
                         :major-mode :fundamental-mode :mode :insert})
