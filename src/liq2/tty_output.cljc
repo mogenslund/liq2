@@ -130,6 +130,9 @@
                               (= (buffer/get-style buf row col) :keyword) "38;5;117"
                               (= (buffer/get-style buf row col) :comment) "38;5;105"
                               (= (buffer/get-style buf row col) :special) "38;5;11"
+                              (= (buffer/get-style buf row col) :green)   "38;5;40"
+                              (= (buffer/get-style buf row col) :yellow) "38;5;11"
+                              (= (buffer/get-style buf row col) :red) "38;5;196"
                               (= (buffer/get-style buf row col) :definition) "38;5;40"
                               true "0")
               new-bgcolor (if (buffer/selected? buf row col) "48;5;17" "49")]

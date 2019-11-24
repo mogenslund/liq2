@@ -358,11 +358,12 @@
             (insert-in-vector row l2))))))
 
 (defn set-char
-  [buf row col char]
-  (-> buf
-      (append-line-at-end (- row (line-count buf)))
-      (append-spaces-to-row row (- col (col-count buf row)))
-      (assoc-in [::lines (dec row) (dec col)] {::char char})))
+  ([buf row col char]
+   (-> buf
+       (append-line-at-end (- row (line-count buf)))
+       (append-spaces-to-row row (- col (col-count buf row)))
+       (assoc-in [::lines (dec row) (dec col)] {::char char})))
+  ([buf char] (set-char buf (get-row buf) (get-col buf))))
 
 (defn set-style
   ([buf row col style]
@@ -612,6 +613,3 @@
   (insert-char (buffer "") \a)
   (insert-char (buffer "") "a")
 )
-
-
-

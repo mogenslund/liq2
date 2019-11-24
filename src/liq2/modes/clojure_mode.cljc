@@ -11,9 +11,10 @@
    :string-begin #"(?<!\\\\)(\")"
    :string-escape #"(\\\")"
    :string-end "\""
-   :comment-begin #"(?<!\\\\);|^#"
+   :comment-begin #"(?<!\\\\);.*$|^#.*$"
    :comment-end #"$"
    :special-begin #"(?<=\()(ns |def(n|n-|test|record|protocol|macro)? )"
+   :green-begin #"✔"
    :definition-begin #"[\w\#\.\-\_\:\+\=\>\<\/\!\?\*]+"
    :definition-end #"."})
 
@@ -46,7 +47,10 @@
        {:style :special
         :matchers {(match :definition-begin) :definition}}
 
+      :green
+       {:style :green
+        :matchers {(match :green-begin) :plain}}
+
       :definition
        {:style :definition
         :matchers {(match :definition-end) :plain}}}))
-

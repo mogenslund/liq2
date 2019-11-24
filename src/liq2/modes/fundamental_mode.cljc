@@ -42,6 +42,16 @@
         filepath (util/resolve-path part alternative-parent)]
     (editor/new-buffer (or (util/read-file filepath) "") {:name filepath :filename filepath})))
 
+(defn evaluate-file-raw
+  "Evaluate a given file raw, without using
+  with-out-str or other injected functionality.
+  If no filepath is supplied the path connected
+  to the current buffer will be used."
+  ([filepath]
+    (try (load-file filepath)
+      (catch Exception e (editor/apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string (str e)))))))
+  ([] (when-let [filepath (buffer/get-filename (editor/get-current-buffer))] (evaluate-file-raw filepath))))
+
 (defn copy-selection-to-clipboard
   [buf]
   (let [p (buffer/get-selection buf)
@@ -110,7 +120,8 @@
             "d" {"d" #(apply-to-buffer delete-line)}
             "A" #(apply-to-buffer buffer/insert-at-line-end)
             "c" {"p" {"p" tmp-eval-sexp-at-point
-                      "t" tmp-print-buffer}}
+                      "t" tmp-print-buffer
+                      "f" evaluate-file-raw}}
             "/" (fn [] (switch-to-buffer "*minibuffer*")
                        (apply-to-buffer #(-> % buffer/clear (buffer/insert-char \/))))
             ":" (fn [] (switch-to-buffer "*minibuffer*")
