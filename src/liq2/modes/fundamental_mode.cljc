@@ -4,22 +4,26 @@
             [liq2.buffer :as buffer]
             [liq2.util :as util]))
 
-(defn set-output
-  [s]
-  (editor/apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string s)))
-  (editor/paint-buffer (get-buffer "*output*")))
-
 (defn tmp-eval
   []
   (let [res (util/eval-safe (buffer/get-selected-text (editor/get-current-buffer)))]
     (editor/apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string (str res))))
     (editor/paint-buffer (get-buffer "*output*"))))
 
-(defn tmp-eval-sexp-at-point
-  []
-  (let [res (util/eval-safe (buffer/sexp-at-point (editor/get-current-buffer)))]
-    (editor/apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string (str res))))
-    (editor/paint-buffer (get-buffer "*output*"))))
+(defn get-namespace
+  [buf]
+  (let [content (buffer/get-line buf 1)]
+    (re-find #"(?<=\(ns )[-a-z0-9\\.]+" content))) ;)
+
+(defn eval-sexp-at-point
+  [buf]
+  (let [namespace (or (get-namespace buf) "user")]
+    (util/eval-safe
+      (str
+        "(do (ns " namespace ") (in-ns '"
+        namespace
+        ") "
+        (buffer/sexp-at-point buf) ")"))))
 
 (defn tmp-get-text
   []
@@ -48,8 +52,8 @@
   If no filepath is supplied the path connected
   to the current buffer will be used."
   ([filepath]
-    (try (load-file filepath)
-      (catch Exception e (editor/apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string (str e)))))))
+    (try (editor/message (load-file filepath))
+      (catch Exception e (editor/message (util/pretty-exception e)))))
   ([] (when-let [filepath (buffer/get-filename (editor/get-current-buffer))] (evaluate-file-raw filepath))))
 
 (defn copy-selection-to-clipboard
@@ -112,6 +116,7 @@
             "x" #(apply-to-buffer buffer/delete-char)
             "v" #(apply-to-buffer buffer/set-visual-mode)
             "n" #(apply-to-buffer buffer/search)
+            "u" #(apply-to-buffer buffer/undo)
             "y" {"y" copy-line}
             "p" paste-clipboard
             "g" {"g" #(editor/apply-to-buffer buffer/beginning-of-buffer)
@@ -119,7 +124,7 @@
             "G" #(apply-to-buffer buffer/end-of-buffer)
             "d" {"d" #(apply-to-buffer delete-line)}
             "A" #(apply-to-buffer buffer/insert-at-line-end)
-            "c" {"p" {"p" tmp-eval-sexp-at-point
+            "c" {"p" {"p" #(editor/message (eval-sexp-at-point (editor/get-current-buffer)))
                       "t" tmp-print-buffer
                       "f" evaluate-file-raw}}
             "/" (fn [] (switch-to-buffer "*minibuffer*")

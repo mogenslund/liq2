@@ -11,6 +11,8 @@
    {::name (or name "")
     ::filename filename
     ::lines (mapv (fn [l] (mapv #(hash-map ::char %) l)) (str/split-lines text))
+    ::lines-undo ()  ;; Conj lines into this when doing changes
+    ::lines-stack () ;; To use in connection with undo
     ::line-ending "\n" 
     ::cursor (point 1 1)
     ::selection nil
@@ -22,6 +24,7 @@
     ::mode (or mode :normal)
     ::encoding :utf-8          ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
     ::search-word ""
+    ::dirty false
     ::major-mode (or major-mode :clojure-mode)
     ::minor-modes []})           
   ([text] (buffer text {})))
@@ -47,6 +50,21 @@
                 (into [] (subvec v n))))
      v)))
 
+(defn set-undo-point
+  "Return new lines with the current lines to the undo stack."
+  [buf]
+  (let [newstack (conj (buf ::lines-stack) (buf ::lines))]
+    (assoc buf ::lines-stack newstack
+               ::lines-undo newstack)))
+
+(defn undo
+  "Returns the first buffer in the undo stack."
+  [buf]
+  (if (empty? (buf ::lines-undo))
+    buf
+    (assoc buf ::lines (-> buf ::lines-undo first)
+               ::lines-stack (conj (buf ::lines-stack) (-> buf ::lines-undo first))
+               ::lines-undo (rest (buf ::lines-undo)))))
 
 ;; Information
 ;; ===========
@@ -132,6 +150,17 @@
   (-> buf
       (set-mode :insert)
       remove-selection))
+
+(defn set-dirty
+  [buf val]
+  (set-undo-point
+    (if (get-filename buf)
+      (assoc buf ::dirty val)
+      buf)))
+
+(defn dirty?
+  [buf]
+  (buf ::dirty))
 
 (defn point-compare
   [p1 p2]
@@ -294,13 +323,13 @@
   ([buf n]
    (loop [buf0 buf n0 n]
      (if (<= n0 0)
-       buf0
+       (set-dirty buf0 true)
        (recur (update buf0 ::lines conj []) (dec n0)))))
   ([buf] (append-line-at-end buf 1)))
 
 (defn append-spaces-to-row
   [buf row n]
-  (update-in buf [::lines (dec row)] #(into [] (concat % (repeat n {::char \space}))))) 
+  (update-in (set-dirty buf true) [::lines (dec row)] #(into [] (concat % (repeat n {::char \space}))))) 
 
 (comment
   (let [buf (buffer "abcd\nxyz")
@@ -348,7 +377,7 @@
 ;(into [] (subvec v 0 n))
 (defn insert-line-break
   [buf row col]
-  (update buf ::lines
+  (update (set-dirty buf true) ::lines
     (fn [lines]
       (let [l (lines (dec row))
             l1 (into [] (subvec l 0 (dec col)))
@@ -360,6 +389,7 @@
 (defn set-char
   ([buf row col char]
    (-> buf
+       (set-dirty true)
        (append-line-at-end (- row (line-count buf)))
        (append-spaces-to-row row (- col (col-count buf row)))
        (assoc-in [::lines (dec row) (dec col)] {::char char})))
@@ -387,7 +417,7 @@
   ([buf row col char]
    (if (= char \newline)
      (insert-line-break buf row col)
-     (update-in buf [::lines (dec row)] #(insert-in-vector % (dec col) {::char char}))))
+     (update-in (set-dirty buf true) [::lines (dec row)] #(insert-in-vector % (dec col) {::char char}))))
   ([buf char]
    (-> buf
        (insert-char (get-row buf) (get-col buf) char)
@@ -404,6 +434,7 @@
 (defn append-line
   ([buf row]
    (-> buf
+       (set-dirty true)
        (update ::lines #(insert-in-vector % row []))
        (set-point (point (inc (get-row buf)) 1))
        (set-mode :insert)))
@@ -412,7 +443,7 @@
 
 (defn delete-char
   ([buf row col]
-   (update-in buf [::lines (dec row)] #(remove-from-vector % col)))
+   (update-in (set-dirty buf true) [::lines (dec row)] #(remove-from-vector % col)))
   ([buf]
    (-> buf
        (delete-char (get-row buf) (get-col buf)))))

@@ -4,16 +4,12 @@
             [liq2.editor :as editor :refer [apply-to-buffer switch-to-buffer get-buffer]]
             [liq2.buffer :as buffer]))
 
-(defn set-output
-  [s]
-  (editor/apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string s)))
-  (editor/paint-buffer (get-buffer "*output*")))
-
 (defn write-file
   []
   (let [buf (editor/get-current-buffer)]
     (when-let [f (buffer/get-filename buf)]
-      (util/write-file f (buffer/get-text buf)))))
+      (util/write-file f (buffer/get-text buf)))
+    (apply-to-buffer #(buffer/set-dirty % false))))
 
 (defn execute
   []
@@ -23,13 +19,14 @@
     (editor/previous-buffer)
     (cond (<= (count content) 1) (do)
           (= content ":q") (editor/exit-program)
+          (= content ":q!") (editor/force-exit-program)
           (= content ":bnext") (editor/oldest-buffer)
           (= content ":new") (editor/new-buffer "" {})
           (= content ":buffers") (((editor/get-mode :buffer-chooser-mode) :init)) 
           (= content ":w") (write-file) 
           (= content ":t") (editor/open-file "/home/sosdamgx/proj/liquid/src/dk/salza/liq/slider.clj")
           (= content ":t1") (editor/highlight-buffer)
-          (= content ":t2") (set-output (buffer/get-word (editor/get-current-buffer)))
+          (= content ":t2") (editor/message (buffer/get-word (editor/get-current-buffer)))
           (= content ":t3") (((editor/get-mode :typeahead-mode) :init) ["aaa" "bbb" "aabb" "ccc"] str buffer/insert-string) 
           (= content ":e .") (((editor/get-mode :dired-mode) :init))
           (re-matches #":e .*" content) (editor/open-file (subs content 3))

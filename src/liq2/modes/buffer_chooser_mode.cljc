@@ -9,7 +9,7 @@
   (-> buf
       buffer/clear
       (buffer/insert-string (str/join "\n"
-                              (map #(str (buffer/get-name %) " - " (buffer/get-filename %)) (rest (editor/all-buffers)))))
+                              (map #(str (buffer/get-name %)) (rest (editor/all-buffers)))))
       buffer/beginning-of-buffer))
 
 (defn run
@@ -35,6 +35,8 @@
             "$" #(apply-to-buffer buffer/end-of-line)
             "g" {"g" #(editor/apply-to-buffer buffer/beginning-of-buffer)}
             "G" #(apply-to-buffer buffer/end-of-buffer)
+            "/" (fn [] (switch-to-buffer "*minibuffer*")
+                       (apply-to-buffer #(-> % buffer/clear (buffer/insert-char \/))))
             ":" (fn [] (switch-to-buffer "*minibuffer*")
                        (apply-to-buffer #(-> % buffer/clear (buffer/insert-char \:))))}
     :visual {"esc" #(apply-to-buffer buffer/set-normal-mode)}

@@ -49,10 +49,8 @@
   []
   (let [st @state
         index (- (buffer/get-row (editor/get-current-buffer)) 2)
-        res (first (drop index (st ::filtered)))
-        ] 
-    (editor/previous-regular-buffer)
-    (apply-to-buffer #((st ::callback) % res))))
+        res (first (drop index (st ::filtered)))] 
+    ((st ::callback) res)))
 
 (defn handle-input
   [c]

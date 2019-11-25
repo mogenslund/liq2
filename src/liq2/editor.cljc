@@ -127,7 +127,7 @@
             buffer/clear
             (buffer/insert-string
               (str (buffer/get-filename buf) "  "
-                   ;(when (buffer/dirty? buf) " [+] ")
+                   (if (buffer/dirty? buf) " [+] " "     ")
                    (cond (= (buffer/get-mode buf) :insert) "-- INSERT --   "
                          (= (buffer/get-mode buf) :visual) "-- VISUAL --   "
                          true "               ")
@@ -163,7 +163,7 @@
   (let [id (util/counter-next)
         o (if (options :rows)
             options
-            (let [b (get-current-buffer)]
+            (let [b (get-current-buffer)] ;; TODO If there is no current-buffer, there will be a problem!
               (assoc options :top (buffer/get-top b)
                              :left (buffer/get-left b)
                              :rows (buffer/get-rows b)
@@ -181,11 +181,32 @@
       (switch-to-buffer p)
       (new-buffer (or (util/read-file p) "") {:name p :filename p}))))
 
-(def tmp-keymap (atom nil))
+(defn message
+  [s & {:keys [:append]}]
+  (if append
+    (apply-to-buffer "*output*" #(-> % (buffer/insert-string (str "\n" s))))
+    (apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string (str s)))))
+  (paint-buffer (get-buffer "*output*")))
+
+(defn dirty-buffers
+  []
+  (filter buffer/dirty? (all-buffers)))
+
+(defn force-exit-program
+  []
+  ((@state ::exit-handler)))
 
 (defn exit-program
   []
-  ((@state ::exit-handler)))
+  (let [bufs (dirty-buffers)]
+    (if (empty? bufs)
+      (force-exit-program)
+      (do
+        (message (str
+          "There are unsaved files. Use :q! to force quit:\n"
+          (str/join "\n" (map buffer/get-filename bufs))))))))
+
+(def tmp-keymap (atom nil))
 
 (defn handle-input
   [c]
@@ -205,5 +226,3 @@
     (cond (= c "esc") (highlight-buffer) ; TODO Maybe not highlight from scratch each time
           (= mode :insert) (highlight-buffer-row))
     (paint-buffer)))
-
-
