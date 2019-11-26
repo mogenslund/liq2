@@ -403,7 +403,9 @@
 
 (defn set-style
   ([buf row col style]
-   (assoc-in buf [::lines (dec row) (dec col) ::style] style))
+   (if (get-char buf row col)
+     (assoc-in buf [::lines (dec row) (dec col) ::style] style)
+     buf))
   ([buf row col1 col2 style]
    (loop [b buf col col1]
      (if (> col col2)
@@ -518,10 +520,9 @@
 
 (defn set-attribute
   [buf row col attr value]
-  (-> buf
-      (append-line-at-end (- row (line-count buf)))
-      (append-spaces-to-row row (- col (col-count buf row)))
-      (assoc-in [::lines (dec row) (dec col)] {attr value})))
+  (if (get-char buf row col)
+    (assoc-in buf [::lines (dec row) (dec col)] {attr value})
+    buf))
 
 (defn clear
   [buf]
@@ -708,6 +709,11 @@
 
 
 (comment
+  (-> (buffer "") set-insert-mode (get-line 1) pr-str)
+  (-> (buffer "") set-insert-mode (insert-char \a) set-normal-mode (get-line 1) pr-str)
+  (-> (buffer "") set-insert-mode (insert-char \a) set-normal-mode get-point)
+  (-> (buffer "") set-insert-mode (insert-char \a) set-normal-mode left right get-point)
+  (-> (buffer "") set-insert-mode (insert-char \a) set-normal-mode left get-point)
   (-> (buffer "abcd\nxyz") (right 3) down)
   (= (-> (buffer "abcd\nxyz") (right 3) down get-char) \z)
   (-> (buffer "abcd\nxyz") (insert-char 4 5 \k) get-text)

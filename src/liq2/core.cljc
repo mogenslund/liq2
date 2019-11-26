@@ -36,5 +36,3 @@
     (editor/new-buffer "-----------------------------" {:name "*delimeter*" :top (- rows 6) :left 1 :rows 1 :cols cols})
     (editor/new-buffer "" {:top 1 :left 1 :rows (- rows 7) :cols cols :major-mode :clojure-mode})
     (editor/paint-buffer)))
-
-

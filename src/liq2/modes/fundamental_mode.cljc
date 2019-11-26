@@ -96,7 +96,12 @@
            (buffer/insert-string (util/clipboard-content))
            buffer/beginning-of-line
            buffer/set-normal-mode))
-    (apply-to-buffer #(buffer/insert-string % (util/clipboard-content)))))
+    (apply-to-buffer
+      #(-> %
+           buffer/set-insert-mode
+           buffer/right
+           (buffer/insert-string (util/clipboard-content))
+           buffer/set-normal-mode))))
 
 (defn delete-line
   [buf]
@@ -118,7 +123,7 @@
 (def sample-code "(ns user.user (:require [liq2.editor :as editor] [liq2.buffer :as buffer])) (liq2.editor/apply-to-buffer liq2.buffer/end-of-line) :something")
 
 (def mode
-  {:insert {"esc" (fn [] (apply-to-buffer #(-> % (buffer/set-mode :normal) buffer/left)))
+  {:insert {"esc" (fn [] (apply-to-buffer #(buffer/left (buffer/set-normal-mode %))))
             "backspace" (fn [] (apply-to-buffer #(if (> (buffer/get-col %) 1) (-> % buffer/left buffer/delete-char) %)))}
    :normal {"esc" #(reset! repeat-counter "0") 
             "C- " #(((editor/get-mode :buffer-chooser-mode) :init))
