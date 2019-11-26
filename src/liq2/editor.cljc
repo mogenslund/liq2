@@ -11,6 +11,9 @@
                   ::dimensions nil
                   ::output-handler nil}))
 
+(def ^:private macro-seq (atom ())) ; Macrofunctionality might belong to input handler.
+(def ^:private macro-record (atom false))
+
 (defn get-dimensions
   []
   (if-let [d (@state ::dimensions)]
@@ -211,9 +214,15 @@
 (defn handle-input
   [c]
   ;(spit "/tmp/liq2.log" (str "INPUT: " c "\n"))
+  (when (and @macro-record (not= c "Q"))
+    (swap! macro-seq conj c))
   (let [mode (buffer/get-mode (get-current-buffer))
         major-mode (buffer/get-major-mode (get-current-buffer))
-        tmp-k (and @tmp-keymap (@tmp-keymap c))
+        tmp-k-selfinsert (and @tmp-keymap (@tmp-keymap :selfinsert)) 
+        tmp-k (and @tmp-keymap
+                   (or (@tmp-keymap c)
+                       (and tmp-k-selfinsert
+                            (fn [] (apply-to-buffer #(tmp-k-selfinsert % c))))))
         _ (reset! tmp-keymap nil)
         action (or
                  tmp-k
@@ -222,7 +231,22 @@
     (cond (fn? action) (action)
           (map? action) (reset! tmp-keymap action)
           ;action (swap! state update-in [::buffers (get-current-buffer-id)] (action :function))
-          (= mode :insert) (swap! state update-in [::buffers (get-current-buffer-id)] #(buffer/insert-char % (first c))))
+          (= mode :insert) (apply-to-buffer #(buffer/insert-char % (first c))))
     (cond (= c "esc") (highlight-buffer) ; TODO Maybe not highlight from scratch each time
           (= mode :insert) (highlight-buffer-row))
     (paint-buffer)))
+
+(defn record-macro
+  []
+  (if (not @macro-record)
+    (do
+      ;(prompt-append "Recording macro")
+      (reset! macro-seq ()))
+    ;(prompt-append "Recording finished")
+    )
+  (swap! macro-record not))
+
+(defn run-macro
+  []
+  (when (not @macro-record)
+    (doall (map handle-input (reverse @macro-seq)))))

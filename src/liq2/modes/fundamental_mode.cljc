@@ -115,7 +115,6 @@
     (util/set-clipboard-content text false)
     (buffer/delete buf)))
 
-
 (def sample-code "(ns user.user (:require [liq2.editor :as editor] [liq2.buffer :as buffer])) (liq2.editor/apply-to-buffer liq2.buffer/end-of-line) :something")
 
 (def mode
@@ -125,6 +124,7 @@
             "C- " #(((editor/get-mode :buffer-chooser-mode) :init))
             "t" (fn [] (apply-to-buffer #(buffer/insert-string % "Just\nTesting")))
             "f2" editor/oldest-buffer
+            "0" #(if (= @repeat-counter "0") (non-repeat-fun buffer/beginning-of-line) (swap! repeat-counter str "0"))
             "1" #(swap! repeat-counter str "1")
             "2" #(swap! repeat-counter str "2")
             "3" #(swap! repeat-counter str "3")
@@ -139,7 +139,9 @@
             "j" #(repeat-fun buffer/down)
             "k" #(repeat-fun buffer/up)
             "l" #(repeat-fun buffer/right)
-            "0" #(non-repeat-fun buffer/beginning-of-line)
+            "w" #(repeat-fun buffer/word-forward)
+            "b" #(repeat-fun buffer/beginning-of-word)
+            "e" #(repeat-fun buffer/end-of-word)
             "$" #(non-repeat-fun buffer/end-of-line)
             "x" #(repeat-fun buffer/delete-char)
             "v" #(non-repeat-fun buffer/set-visual-mode)
@@ -150,17 +152,29 @@
             "g" {"g" #(non-repeat-fun buffer/beginning-of-buffer)
                  "f" open-file-at-point}
             "G" #(non-repeat-fun buffer/end-of-buffer)
-            "d" {"d" #(repeat-fun delete-line)}
+            "d" {"d" #(non-repeat-fun delete-line)}
             "A" #(non-repeat-fun buffer/insert-at-line-end)
+            "r" {:selfinsert (fn [buf c] (reset-repeat-counter) (buffer/set-char buf (first c)))}
             "c" {"p" {"p" #(editor/message (eval-sexp-at-point (editor/get-current-buffer)))
                       "t" tmp-print-buffer
-                      "f" evaluate-file-raw}}
+                      "f" evaluate-file-raw}
+                 "i" {"w" #(non-repeat-fun
+                            (fn [buf]
+                              (-> buf
+                                  buffer/right
+                                  buffer/beginning-of-word
+                                  buffer/set-visual-mode
+                                  buffer/end-of-word
+                                  buffer/delete
+                                  buffer/set-insert-mode)))}}
             "/" (fn [] (reset-repeat-counter)
                        (switch-to-buffer "*minibuffer*")
                        (non-repeat-fun #(-> % buffer/clear (buffer/insert-char \/))))
             ":" (fn [] (reset-repeat-counter)
                        (switch-to-buffer "*minibuffer*")
                        (non-repeat-fun #(-> % buffer/clear (buffer/insert-char \:))))
+            "Q" editor/record-macro
+            "q" editor/run-macro
             "o" #(non-repeat-fun buffer/append-line)}
     :visual {"esc" #(non-repeat-fun buffer/set-normal-mode)
              "c" {"p" {"p" tmp-eval}}

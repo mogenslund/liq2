@@ -220,14 +220,20 @@
 )
 
 (defn previous-point
-  [buf p]
-  (cond (> (p ::col) 1) (point (p ::row) (dec (p ::col)))
-        (> (p ::row) 1) (point (dec (p ::row)) (col-count buf (dec (p ::row)))))) 
+  ([buf p]
+   (cond (> (p ::col) 1) (point (p ::row) (dec (p ::col)))
+         (> (p ::row) 1) (point (dec (p ::row)) (col-count buf (dec (p ::row)))))) 
+  ([buf] (if (= (get-point buf) (point 1 1))
+           buf
+           (set-point buf (previous-point buf (get-point buf))))))
 
 (defn next-point
-  [buf p]
-  (cond (< (p ::col) (col-count buf (p ::row))) (point (p ::row) (inc (p ::col)))
-        (< (p ::row) (line-count buf)) (point (inc (p ::row)) (min 1 (col-count buf (inc (p ::row))))))) 
+  ([buf p]
+   (cond (< (p ::col) (col-count buf (p ::row))) (point (p ::row) (inc (p ::col)))
+         (< (p ::row) (line-count buf)) (point (inc (p ::row)) (min 1 (col-count buf (inc (p ::row))))))) 
+  ([buf] (if-let [p (next-point buf (get-point buf))]
+           (set-point buf p)
+           buf)))
 
 (comment
   (let [buf (buffer "aaa\n\nbbb\nccc")]
@@ -393,7 +399,7 @@
        (append-line-at-end (- row (line-count buf)))
        (append-spaces-to-row row (- col (col-count buf row)))
        (assoc-in [::lines (dec row) (dec col)] {::char char})))
-  ([buf char] (set-char buf (get-row buf) (get-col buf))))
+  ([buf char] (set-char buf (get-row buf) (get-col buf) char)))
 
 (defn set-style
   ([buf row col style]
@@ -442,11 +448,14 @@
    (append-line buf (get-row buf))))
 
 (defn delete-char
-  ([buf row col]
-   (update-in (set-dirty buf true) [::lines (dec row)] #(remove-from-vector % col)))
+  ([buf row col n]
+   (update-in (set-dirty buf true) [::lines (dec row)] #(remove-from-vector % col (+ col n -1))))
+  ([buf n]
+   (-> buf
+       (delete-char (get-row buf) (get-col buf) n)))
   ([buf]
    (-> buf
-       (delete-char (get-row buf) (get-col buf)))))
+       (delete-char (get-row buf) (get-col buf) 1))))
 
 (defn delete-line
   ([buf row]
@@ -520,10 +529,19 @@
              ::cursor (point 1 1)
              ::mem-col 1))
 
-(defn end-of-word
-  [buf]
-  buf
-  )
+(defn match-before
+  [buf p0 re]
+  (loop [p (previous-point buf p0)]
+    (when p
+      (if (re-find re (str (get-char buf p)))
+        p
+        (recur (previous-point buf p))))))
+
+(comment
+  (previous-point (buffer "aaa bbb ccc") (point 1 8))
+  (previous-point (buffer "aaa bbb ccc") (point 1 1))
+  (match-before (buffer "aaa bbb ccc") (point 1 8) #"a"))
+
 
 (defn paren-match-before
   "(abc (def) hi|jk)"
@@ -579,6 +597,57 @@
      (when p1 (get-text buf p0 p1))))
   ([buf] (sexp-at-point buf (get-point buf))))
 
+(defn word-beginnings
+  "TODO Not used"
+  [text]
+  (reduce
+    #(conj %1 (+ (last %1) %2))
+    [0]
+    (map count (drop-last (str/split text #"(?<=\W)\b")))))
+
+(defn beginning-of-word
+  ([buf]
+   (loop [b (or (previous-point buf) buf)]
+     (let [p (get-point b)
+           c (str (get-char b))
+           is-word (re-matches #"\w" c)]
+       (cond (= p (point 1 1)) b 
+             (and is-word (= (p ::col) 1)) b
+             (= (p ::col) 1) (recur (previous-point b))
+             (and is-word (re-matches #"\W" (str (get-char (left b))))) b
+             true (recur (left b))))))
+  ([buf n] (nth (iterate beginning-of-word buf) n)))
+
+
+(defn end-of-word
+  ([buf]
+   (loop [b (or (next-point buf) buf)]
+     (let [p (get-point b)
+           rows (line-count b)
+           cols (col-count b (p ::row))
+           c (str (get-char b))
+           is-word (re-matches #"\w" c)]
+       (cond (= p (point rows cols)) b 
+             (and is-word (= (p ::col) cols)) b
+             (= (p ::col) cols) (recur (next-point b))
+             (and is-word (re-matches #"\W" (str (get-char (right b))))) b
+             true (recur (right b))))))
+  ([buf n] (nth (iterate end-of-word buf) n)))
+
+(defn word-forward
+  ([buf]
+   (loop [b (or (next-point buf) buf)]
+     (let [p (get-point b)
+           rows (line-count b)
+           cols (col-count b (p ::row))
+           c (str (get-char b))
+           is-word (re-matches #"\w" c)]
+       (cond (= p (point rows cols)) b 
+             (and is-word (= (p ::col) 1)) b
+             (and is-word (re-matches #"\W" (str (get-char (left b))))) b
+             true (recur (next-point b))))))
+  ([buf n] (nth (iterate word-forward buf) n)))
+
 ;; Emacs has two stages:
 ;; 1. Where comments and strings are highlighted
 ;;    Define comment start and comment end
@@ -607,6 +676,12 @@
 
   (let [buf (buffer "ab[[cd]\nx[asdf]yz]")]
     (paren-match-before buf (point 2 8) \[))
+
+  (let [buf (buffer "aaa bbb ccc")]
+    (beginning-of-word (set-point buf (point 1 8))))
+
+  (let [buf (buffer "aaa bbb ccc")]
+    (match-before buf (point 1 8) #"a"))
 
   (pr-str (get-line (buffer "") 2))
   
