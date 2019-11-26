@@ -4,6 +4,21 @@
             [liq2.buffer :as buffer]
             [liq2.util :as util]))
 
+(def repeat-counter (atom "0"))
+
+(defn reset-repeat-counter [] (reset! repeat-counter "0"))
+
+(defn repeat-fun
+  [fun]
+  (let [r (max (min (Integer/parseInt @repeat-counter) 99) 1)]
+    (reset-repeat-counter)
+    (editor/apply-to-buffer #(fun % r))))
+
+(defn non-repeat-fun
+  [fun]
+  (reset-repeat-counter)
+  (editor/apply-to-buffer fun))
+
 (defn tmp-eval
   []
   (let [res (util/eval-safe (buffer/get-selected-text (editor/get-current-buffer)))]
@@ -17,6 +32,7 @@
 
 (defn eval-sexp-at-point
   [buf]
+  (reset-repeat-counter) 
   (let [namespace (or (get-namespace buf) "user")]
     (util/eval-safe
       (str
@@ -39,6 +55,7 @@
 
 (defn open-file-at-point
   []
+  (reset-repeat-counter) 
   (let [buf (editor/get-current-buffer)
         part (buffer/get-word buf)
         buffer-file (buffer/get-filename buf)
@@ -71,6 +88,7 @@
 
 (defn paste-clipboard
   []
+  (reset-repeat-counter)
   (if (util/clipboard-line?)
     (apply-to-buffer
       #(-> %
@@ -103,36 +121,48 @@
 (def mode
   {:insert {"esc" (fn [] (apply-to-buffer #(-> % (buffer/set-mode :normal) buffer/left)))
             "backspace" (fn [] (apply-to-buffer #(if (> (buffer/get-col %) 1) (-> % buffer/left buffer/delete-char) %)))}
-   :normal {"C- " #(((editor/get-mode :buffer-chooser-mode) :init))
+   :normal {"esc" #(reset! repeat-counter "0") 
+            "C- " #(((editor/get-mode :buffer-chooser-mode) :init))
             "t" (fn [] (apply-to-buffer #(buffer/insert-string % "Just\nTesting")))
             "f2" editor/oldest-buffer
-            "i" #(apply-to-buffer buffer/set-insert-mode)
-            "h" #(apply-to-buffer buffer/left)
-            "j" #(apply-to-buffer buffer/down)
-            "k" #(apply-to-buffer buffer/up)
-            "l" #(apply-to-buffer buffer/right)
-            "0" #(apply-to-buffer buffer/beginning-of-line)
-            "$" #(apply-to-buffer buffer/end-of-line)
-            "x" #(apply-to-buffer buffer/delete-char)
-            "v" #(apply-to-buffer buffer/set-visual-mode)
-            "n" #(apply-to-buffer buffer/search)
-            "u" #(apply-to-buffer buffer/undo)
+            "1" #(swap! repeat-counter str "1")
+            "2" #(swap! repeat-counter str "2")
+            "3" #(swap! repeat-counter str "3")
+            "4" #(swap! repeat-counter str "4")
+            "5" #(swap! repeat-counter str "5")
+            "6" #(swap! repeat-counter str "6")
+            "7" #(swap! repeat-counter str "7")
+            "8" #(swap! repeat-counter str "8")
+            "9" #(swap! repeat-counter str "9")
+            "i" #(non-repeat-fun buffer/set-insert-mode)
+            "h" #(repeat-fun buffer/left)
+            "j" #(repeat-fun buffer/down)
+            "k" #(repeat-fun buffer/up)
+            "l" #(repeat-fun buffer/right)
+            "0" #(non-repeat-fun buffer/beginning-of-line)
+            "$" #(non-repeat-fun buffer/end-of-line)
+            "x" #(repeat-fun buffer/delete-char)
+            "v" #(non-repeat-fun buffer/set-visual-mode)
+            "n" #(non-repeat-fun buffer/search)
+            "u" #(non-repeat-fun buffer/undo)
             "y" {"y" copy-line}
             "p" paste-clipboard
-            "g" {"g" #(editor/apply-to-buffer buffer/beginning-of-buffer)
+            "g" {"g" #(non-repeat-fun buffer/beginning-of-buffer)
                  "f" open-file-at-point}
-            "G" #(apply-to-buffer buffer/end-of-buffer)
-            "d" {"d" #(apply-to-buffer delete-line)}
-            "A" #(apply-to-buffer buffer/insert-at-line-end)
+            "G" #(non-repeat-fun buffer/end-of-buffer)
+            "d" {"d" #(repeat-fun delete-line)}
+            "A" #(non-repeat-fun buffer/insert-at-line-end)
             "c" {"p" {"p" #(editor/message (eval-sexp-at-point (editor/get-current-buffer)))
                       "t" tmp-print-buffer
                       "f" evaluate-file-raw}}
-            "/" (fn [] (switch-to-buffer "*minibuffer*")
-                       (apply-to-buffer #(-> % buffer/clear (buffer/insert-char \/))))
-            ":" (fn [] (switch-to-buffer "*minibuffer*")
-                       (apply-to-buffer #(-> % buffer/clear (buffer/insert-char \:))))
-            "o" #(apply-to-buffer buffer/append-line)}
-    :visual {"esc" #(apply-to-buffer buffer/set-normal-mode)
+            "/" (fn [] (reset-repeat-counter)
+                       (switch-to-buffer "*minibuffer*")
+                       (non-repeat-fun #(-> % buffer/clear (buffer/insert-char \/))))
+            ":" (fn [] (reset-repeat-counter)
+                       (switch-to-buffer "*minibuffer*")
+                       (non-repeat-fun #(-> % buffer/clear (buffer/insert-char \:))))
+            "o" #(non-repeat-fun buffer/append-line)}
+    :visual {"esc" #(non-repeat-fun buffer/set-normal-mode)
              "c" {"p" {"p" tmp-eval}}
              "y" #(apply-to-buffer copy-selection-to-clipboard)
              "d" #(apply-to-buffer delete)
