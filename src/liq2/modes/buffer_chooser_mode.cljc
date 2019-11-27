@@ -9,7 +9,8 @@
   (-> buf
       buffer/clear
       (buffer/insert-string (str/join "\n"
-                              (map #(str (buffer/get-name %)) (rest (editor/all-buffers)))))
+                              (map #(str (buffer/get-name %) (if (buffer/dirty? %) " [+]" "    "))
+                                   (rest (editor/all-buffers)))))
       buffer/beginning-of-buffer))
 
 (defn run

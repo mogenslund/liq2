@@ -250,10 +250,9 @@
   []
   (if (not @macro-record)
     (do
-      ;(prompt-append "Recording macro")
+      (message "Recording macro")
       (reset! macro-seq ()))
-    ;(prompt-append "Recording finished")
-    )
+    (message "Recording finished"))
   (swap! macro-record not))
 
 (defn run-macro
