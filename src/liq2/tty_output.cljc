@@ -81,8 +81,10 @@
   cases with very long lines and positioning logic."
   [buf rows cols tow1]
   (cond (< (buffer/get-row buf) (tow1 :row)) (assoc tow1 :row (buffer/get-row buf))
+        (> (- (buffer/get-row buf) (tow1 :row)) rows)
+          (recalculate-tow buf rows cols (assoc tow1 :row (- (buffer/get-row buf) rows)))
         (> (calculate-wrapped-row-dist buf cols (tow1 :row) (+ (buffer/get-row buf) 1)) rows)
-          (recalculate-tow buf rows cols (update tow1 :row inc)) ; TODO Moving tow one line at the time (Not optimized!!!)
+          (recalculate-tow buf rows cols (update tow1 :row inc))
         true tow1))
 
 ;(defn recalculate-tow

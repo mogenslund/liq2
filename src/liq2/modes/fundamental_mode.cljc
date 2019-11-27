@@ -61,7 +61,7 @@
         buffer-file (buffer/get-filename buf)
         alternative-parent (if buffer-file (util/get-folder buffer-file) ".")
         filepath (util/resolve-path part alternative-parent)]
-    (editor/new-buffer (or (util/read-file filepath) "") {:name filepath :filename filepath})))
+    (editor/open-file filepath)))
 
 (defn evaluate-file-raw
   "Evaluate a given file raw, without using
@@ -124,7 +124,7 @@
 
 (def mode
   {:insert {"esc" (fn [] (apply-to-buffer #(buffer/left (buffer/set-normal-mode %))))
-            "backspace" (fn [] (apply-to-buffer #(if (> (buffer/get-col %) 1) (-> % buffer/left buffer/delete-char) %)))}
+            "backspace" #(non-repeat-fun buffer/delete-backward)}
    :normal {"esc" #(reset! repeat-counter "0") 
             "C- " #(((editor/get-mode :buffer-chooser-mode) :init))
             "t" (fn [] (apply-to-buffer #(buffer/insert-string % "Just\nTesting")))
@@ -139,6 +139,7 @@
             "7" #(swap! repeat-counter str "7")
             "8" #(swap! repeat-counter str "8")
             "9" #(swap! repeat-counter str "9")
+            "%" #(non-repeat-fun buffer/move-matching-paren)
             "i" #(non-repeat-fun buffer/set-insert-mode)
             "h" #(repeat-fun buffer/left)
             "j" #(repeat-fun buffer/down)

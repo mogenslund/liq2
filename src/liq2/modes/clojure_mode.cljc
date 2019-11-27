@@ -11,7 +11,7 @@
    :string-begin #"(?<!\\\\)(\")"
    :string-escape #"(\\\")"
    :string-end "\""
-   :comment-begin #"(?<!\\\\);.*$|^# .*$"
+   :comment-begin #"(?<!\\\\);.*$|^#+ .*$"
    :comment-end #"$"
    :special-begin #"(?<=\()(ns |def(n|n-|test|record|protocol|macro)? )"
    :green-begin "✔"

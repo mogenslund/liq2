@@ -1,10 +1,23 @@
 (ns liq2.buffer
   (:require [clojure.string :as str]))
 
+;; TODO Use points and regions whereever it makes sense
+;; and depricate functions taking row and col as input when
+;; actually a point is appropriate.
+
+;; TODO Use regions and actions on regions, like:
+;; end-of-word use word-region, change change-word
+;; ord delete-word.
+;; In addition: change-outer-word, etc.
+
 (defn point
   [row col]
   {::row row
    ::col col})
+
+(defn region
+  [p1 p2]
+  [p1 p2])
 
 (defn buffer
   ([text {:keys [name filename top left rows cols major-mode mode] :as options}]
@@ -220,6 +233,10 @@
 )
 
 (defn previous-point
+  "If only a buffer is supplied the point will be set
+  on the buffer, otherwise:
+  The previous point will be returned or nil, if the
+  input is the first point"  
   ([buf p]
    (cond (> (p ::col) 1) (point (p ::row) (dec (p ::col)))
          (> (p ::row) 1) (point (dec (p ::row)) (col-count buf (dec (p ::row)))))) 
@@ -235,6 +252,9 @@
            (set-point buf p)
            buf)))
 
+(comment (next-point (buffer "aaa\n\nbbb\nccc") (point 5 1)))
+(comment (previous-point (buffer "aaa\n\nbbb\nccc") (point 2 1)))
+(comment (previous-point (buffer "aaa\n\nbbb\nccc") (point 1 1)))
 (comment
   (let [buf (buffer "aaa\n\nbbb\nccc")]
     (loop [p (point 4 3)]
@@ -242,6 +262,16 @@
         (println (previous-point buf p))
         (recur (previous-point buf p))))))
 
+(defn end-point
+  [buf]
+  (point (line-count buf) (col-count buf (line-count buf))))
+
+(comment
+  (end-point (buffer "aaaa bbbb\nccc")))
+
+(defn start-point
+  [buf]
+  (point 1 1))
 
 (defn get-selected-text
   [buf]
@@ -359,9 +389,8 @@
 
 (comment
   
-  (let [buf (buffer "abcd\nxyz")]
-    (-> buf
-        get-char))
+  (get-char (buffer "abcd\nxyz"))
+  (get-char (buffer "abcd\nxyz") (point 1 ))
 
   (let [buf (buffer "abcd\nxyz")]
     (-> buf
@@ -406,6 +435,7 @@
    (if (get-char buf row col)
      (assoc-in buf [::lines (dec row) (dec col) ::style] style)
      buf))
+  ([buf p style] (set-style buf (p ::row) (p ::col) style))
   ([buf row col1 col2 style]
    (loop [b buf col col1]
      (if (> col col2)
@@ -471,8 +501,8 @@
         (set-point b1 newrow newcol))))
   ([buf] (delete-line buf (get-row buf))))
 
-(comment
-  (-> (buffer "aaa\nbbb\nccc") down delete-line))
+(comment (-> (buffer "aaa\nbbb\nccc") down delete-line))
+
 
 (defn delete
   ([buf p1 p2]
@@ -497,6 +527,17 @@
    (if-let [p (get-selection buf)]
      (delete buf (get-point buf) p)
      buf)))
+
+(defn delete-backward
+  [buf]
+  (cond (> (get-col buf) 1) (-> buf left delete-char)
+        (= (get-row buf) 1) buf
+        true (let [v (-> buf ::lines (get (dec (get-row buf))))]
+               (-> buf
+                   previous-point
+                   (delete-line (get-row buf))
+                   (update-in [::lines (- (get-row buf) 2)] #(into [] (concat % v)))
+                   right))))
 
 (comment
   (let [buf (buffer "abcd\nxyz")]
@@ -574,6 +615,56 @@
             p
             (recur (next-point buf p) nstack)))))))
 
+(defn line-region
+  [buf p]
+  (when (<= (p ::row) (line-count buf))
+    (region (point (p ::row) 1) (point (p ::row) (col-count buf (p ::row))))))
+
+(comment (line-region (buffer "abc\ndefhi") (point 2 2)))
+  
+
+(defn paren-region
+  "Forward until first paren on given row.
+  Depending on type and direction move to corresponding
+  paren.
+  Returns nil if there is no hit."
+  [buf p]
+  (let [pbegin (start-point buf)
+        pend (end-point buf)
+        ncol (fn [p0] (point (p0 ::row) (inc (p0 ::col))))
+        pmatch {\( \) \) \( \{ \} \} \{ \[ \] \] \[}
+        p1 (loop [p0 p]
+             (cond (nil? (get-char buf p0)) nil 
+                   (pmatch (get-char buf p0)) p0
+                   true (recur (ncol p0))))]
+    (when p1
+      (let [par1 (get-char buf p1)
+            par2 (pmatch par1)
+            direction (if (#{\( \[ \{} par1) next-point previous-point)]
+        (loop [p0 (direction buf p1) n 1]
+          (when p0
+            (let [c (get-char buf p0)
+                  nnext (cond (= c par1) (inc n)
+                              (= c par2) (dec n)
+                              true n)]
+              (cond (= nnext 0) (region p1 p0)
+                    (= p0 start-point) nil
+                    (= p0 end-point) nil
+                    true (recur (direction buf p0) nnext)))))))))
+
+(comment (paren-region (buffer "ab (cde\naaa bbb (ccc))") (point 2 5)))
+(comment (paren-region (buffer "ab (cde\naaa bbb (ccc))") (point 2 5)))
+(comment (pr-str (paren-region (buffer "ab cde\naaa bbb ccc") (point 2 3))))
+
+(defn move-matching-paren
+  [buf]
+  (let [r (paren-region buf (get-point buf))]
+    (if r
+      (update-mem-col (set-point buf (second r)))
+      buf)))
+
+
+
 (defn search
   ""
   ([buf w]
@@ -590,6 +681,10 @@
                  (>= row (line-count b)) b
                  true (recur (inc row))))))))
   ([buf] (search buf (buf ::search-word))))
+
+(comment (search (buffer "aaaa bbbb") "b"))
+
+ 
 
 (defn sexp-at-point
   ([buf p]

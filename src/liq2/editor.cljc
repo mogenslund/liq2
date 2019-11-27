@@ -122,6 +122,16 @@
   (new-buffer)
   )
 
+(defn highlight-paren
+  [buf]
+  (if ({\( \) \) \( \{ \} \} \{ \[ \] \] \[} (buffer/get-char buf))
+    (let [r (buffer/paren-region buf (buffer/get-point buf))
+          p (second r)]
+      (if p
+        (buffer/set-style buf p :red) 
+        buf))
+    buf))
+
 (defn paint-buffer
   ([buf]
    (when (@state ::output-handler)
@@ -137,7 +147,7 @@
                    (buffer/get-row buf) "," (buffer/get-col buf)))
             buffer/beginning-of-buffer))
      ;((@state ::output-handler) (get-buffer "*status-line*"))
-       ((-> @state ::output-handler :printer) (assoc buf :status-line (get-buffer "*status-line*")))))
+       ((-> @state ::output-handler :printer) (assoc (highlight-paren buf) :status-line (get-buffer "*status-line*")))))
   ([]
    (paint-buffer (get-current-buffer))))
 
