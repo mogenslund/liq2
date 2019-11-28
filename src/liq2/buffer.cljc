@@ -79,6 +79,12 @@
                ::lines-stack (conj (buf ::lines-stack) (-> buf ::lines-undo first))
                ::lines-undo (rest (buf ::lines-undo)))))
 
+(defn debug-clear-undo
+  [buf]
+  (assoc buf
+    ::lines-undo (list)
+    ::lines-stack (list)))
+
 ;; Information
 ;; ===========
 
@@ -223,7 +229,8 @@
                 (= (inc n) (p ::row)) (str/join "" (map ::char (subvec (lines n) (dec (p ::col)))))
                 (= (inc n) (q ::row)) (str/join "" (map ::char (subvec (lines n) 0 (min (q ::col) (count (lines n))))))
                 (>= n (q ::row)) nil
-                true (str/join "" (map ::char (lines n))))))))))
+                true (str/join "" (map ::char (lines n)))))))))
+  ([buf r] (get-text buf (first r) (second r))))
 
 (comment
   (get-text (buffer "abcdefg\n1234567\nABCDEF" {}) (point 1 1) (point 2 3))
@@ -528,6 +535,21 @@
      (delete buf (get-point buf) p)
      buf)))
 
+(defn delete-region
+  [buf r]
+  (if r
+    (delete buf (first r) (second r))
+    buf))
+
+(defn shrink-region
+  [buf r]
+  (when r
+    (let [p1 (first r)
+          p2 (second r)]
+      (if (= (point-compare p1 p2) -1)
+        (region (next-point buf p1) (previous-point buf p2))
+        (region (previous-point buf p1) (next-point buf p2))))))
+
 (defn delete-backward
   [buf]
   (cond (> (get-col buf) 1) (-> buf left delete-char)
@@ -615,6 +637,30 @@
             p
             (recur (next-point buf p) nstack)))))))
 
+(defn paren-region
+  ([buf p]
+   (let [p0 (paren-match-before buf (if (= (get-char buf p) \)) (previous-point buf p) p) \()
+         p1 (when p0 (paren-match-after buf (next-point buf p0) \)))]
+     (when p1 (region p0 p1))))
+  ([buf] (paren-region buf (get-point buf))))
+
+(defn bracket-region
+  ([buf p]
+   (let [p0 (paren-match-before buf (if (= (get-char buf p) \]) (previous-point buf p) p) \[)
+         p1 (when p0 (paren-match-after buf (next-point buf p0) \]))]
+     (when p1 (region p0 p1))))
+  ([buf] (bracket-region buf (get-point buf))))
+
+(defn brace-region
+  ([buf p]
+   (let [p0 (paren-match-before buf (if (= (get-char buf p) \}) (previous-point buf p) p) \{)
+         p1 (when p0 (paren-match-after buf (next-point buf p0) \}))]
+     (when p1 (region p0 p1))))
+  ([buf] (brace-region buf (get-point buf))))
+
+(comment (paren-region (buffer "(asdf)")))
+(comment (bracket-region (buffer "[asdf]")))
+
 (defn line-region
   [buf p]
   (when (<= (p ::row) (line-count buf))
@@ -623,7 +669,7 @@
 (comment (line-region (buffer "abc\ndefhi") (point 2 2)))
   
 
-(defn paren-region
+(defn paren-matching-region
   "Forward until first paren on given row.
   Depending on type and direction move to corresponding
   paren.
@@ -658,7 +704,7 @@
 
 (defn move-matching-paren
   [buf]
-  (let [r (paren-region buf (get-point buf))]
+  (let [r (paren-matching-region buf (get-point buf))]
     (if r
       (update-mem-col (set-point buf (second r)))
       buf)))

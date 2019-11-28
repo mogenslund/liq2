@@ -125,7 +125,7 @@
 (defn highlight-paren
   [buf]
   (if ({\( \) \) \( \{ \} \} \{ \[ \] \] \[} (buffer/get-char buf))
-    (let [r (buffer/paren-region buf (buffer/get-point buf))
+    (let [r (buffer/paren-matching-region buf (buffer/get-point buf))
           p (second r)]
       (if p
         (buffer/set-style buf p :red) 

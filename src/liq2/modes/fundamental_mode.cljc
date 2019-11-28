@@ -1,7 +1,7 @@
 (ns liq2.modes.fundamental-mode
   (:require [clojure.string :as str]
             [liq2.editor :as editor :refer [apply-to-buffer switch-to-buffer get-buffer]]
-            [liq2.buffer :as buffer]
+            [liq2.buffer :as buffer :refer [delete-region shrink-region set-insert-mode]]
             [liq2.util :as util]))
 
 (def repeat-counter (atom "0"))
@@ -101,6 +101,25 @@
            buffer/set-insert-mode
            buffer/right
            (buffer/insert-string (util/clipboard-content))
+           buffer/left
+           buffer/set-normal-mode))))
+
+(defn paste-clipboard-here
+  []
+  (reset-repeat-counter)
+  (if (util/clipboard-line?)
+    (apply-to-buffer
+      #(-> %
+           buffer/beginning-of-line
+           (buffer/insert-string (str (util/clipboard-content) "\n"))
+           buffer/up
+           buffer/beginning-of-line
+           buffer/set-normal-mode))
+    (apply-to-buffer
+      #(-> %
+           buffer/set-insert-mode
+           (buffer/insert-string (util/clipboard-content))
+           buffer/left
            buffer/set-normal-mode))))
 
 (defn delete-line
@@ -120,6 +139,22 @@
     (util/set-clipboard-content text false)
     (buffer/delete buf)))
 
+(defn cut-region
+  [buf r]
+  (if r
+    (let [text (buffer/get-text buf r)]
+      (util/set-clipboard-content text false)
+      (buffer/delete-region buf r))
+    buf))
+
+(defn yank-region
+  [buf r]
+  (if r
+    (let [text (buffer/get-text buf r)]
+      (util/set-clipboard-content text false)
+      (buffer/set-point buf (first r)))
+    buf))
+
 (def sample-code "(ns user.user (:require [liq2.editor :as editor] [liq2.buffer :as buffer])) (liq2.editor/apply-to-buffer liq2.buffer/end-of-line) :something")
 
 (def mode
@@ -129,6 +164,7 @@
             "C- " #(((editor/get-mode :buffer-chooser-mode) :init))
             "t" (fn [] (apply-to-buffer #(buffer/insert-string % "Just\nTesting")))
             "f2" editor/oldest-buffer
+            "f3" #(non-repeat-fun buffer/debug-clear-undo)
             "0" #(if (= @repeat-counter "0") (non-repeat-fun buffer/beginning-of-line) (swap! repeat-counter str "0"))
             "1" #(swap! repeat-counter str "1")
             "2" #(swap! repeat-counter str "2")
@@ -141,6 +177,7 @@
             "9" #(swap! repeat-counter str "9")
             "%" #(non-repeat-fun buffer/move-matching-paren)
             "i" #(non-repeat-fun buffer/set-insert-mode)
+            "a" (fn [] (non-repeat-fun #(-> % buffer/set-insert-mode buffer/right)))
             "h" #(repeat-fun buffer/left)
             "j" #(repeat-fun buffer/down)
             "k" #(repeat-fun buffer/up)
@@ -153,12 +190,25 @@
             "v" #(non-repeat-fun buffer/set-visual-mode)
             "n" #(non-repeat-fun buffer/search)
             "u" #(non-repeat-fun buffer/undo)
-            "y" {"y" copy-line}
+            "y" {"y" copy-line
+                 "i" {"(" (fn [] (non-repeat-fun #(yank-region % (shrink-region % (buffer/paren-region %)))))
+                      "[" (fn [] (non-repeat-fun #(yank-region % (shrink-region % (buffer/bracket-region %)))))
+                      "{" (fn [] (non-repeat-fun #(yank-region % (shrink-region % (buffer/brace-region %)))))}
+                 "a" {"(" (fn [] (non-repeat-fun #(yank-region % (buffer/paren-region %))))
+                      "[" (fn [] (non-repeat-fun #(yank-region % (buffer/bracket-region %))))
+                      "{" (fn [] (non-repeat-fun #(yank-region % (buffer/brace-region %))))}}
             "p" paste-clipboard
+            "P" paste-clipboard-here
             "g" {"g" #(non-repeat-fun buffer/beginning-of-buffer)
                  "f" open-file-at-point}
             "G" #(non-repeat-fun buffer/end-of-buffer)
-            "d" {"d" #(non-repeat-fun delete-line)}
+            "d" {"d" #(non-repeat-fun delete-line)
+                 "i" {"(" (fn [] (non-repeat-fun #(cut-region % (shrink-region % (buffer/paren-region %)))))
+                      "[" (fn [] (non-repeat-fun #(cut-region % (shrink-region % (buffer/bracket-region %)))))
+                      "{" (fn [] (non-repeat-fun #(cut-region % (shrink-region % (buffer/brace-region %)))))}
+                 "a" {"(" (fn [] (non-repeat-fun #(cut-region % (buffer/paren-region %))))
+                      "[" (fn [] (non-repeat-fun #(cut-region % (buffer/bracket-region %))))
+                      "{" (fn [] (non-repeat-fun #(cut-region % (buffer/brace-region %))))}}
             "A" #(non-repeat-fun buffer/insert-at-line-end)
             "r" {:selfinsert (fn [buf c] (reset-repeat-counter) (buffer/set-char buf (first c)))}
             "c" {"p" {"p" #(editor/message (eval-sexp-at-point (editor/get-current-buffer)))
@@ -172,7 +222,10 @@
                                   buffer/set-visual-mode
                                   buffer/end-of-word
                                   buffer/delete
-                                  buffer/set-insert-mode)))}}
+                                  buffer/set-insert-mode)))
+                      "(" (fn [] (non-repeat-fun #(set-insert-mode (delete-region % (shrink-region % (buffer/paren-region %))))))
+                      "[" (fn [] (non-repeat-fun #(set-insert-mode (delete-region % (shrink-region % (buffer/bracket-region %))))))
+                      "{" (fn [] (non-repeat-fun #(set-insert-mode (delete-region % (shrink-region % (buffer/brace-region %))))))}}
             "/" (fn [] (reset-repeat-counter)
                        (switch-to-buffer "*minibuffer*")
                        (non-repeat-fun #(-> % buffer/clear (buffer/insert-char \/))))
