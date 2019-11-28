@@ -210,6 +210,7 @@
                       "[" (fn [] (non-repeat-fun #(cut-region % (buffer/bracket-region %))))
                       "{" (fn [] (non-repeat-fun #(cut-region % (buffer/brace-region %))))}}
             "A" #(non-repeat-fun buffer/insert-at-line-end)
+            "D" #(non-repeat-fun buffer/delete-to-line-end)
             "r" {:selfinsert (fn [buf c] (reset-repeat-counter) (buffer/set-char buf (first c)))}
             "c" {"p" {"p" #(editor/message (eval-sexp-at-point (editor/get-current-buffer)))
                       "t" tmp-print-buffer

@@ -556,10 +556,9 @@
         (= (get-row buf) 1) buf
         true (let [v (-> buf ::lines (get (dec (get-row buf))))]
                (-> buf
-                   previous-point
                    (delete-line (get-row buf))
                    (update-in [::lines (- (get-row buf) 2)] #(into [] (concat % v)))
-                   right))))
+                   (set-point (point (dec (get-row buf)) (inc (col-count buf (dec (get-row buf))))))))))
 
 (comment
   (let [buf (buffer "abcd\nxyz")]
@@ -573,6 +572,10 @@
         right
         (insert-char \m)
         get-text)))
+
+(defn delete-to-line-end
+  [buf]
+  (left (delete-region buf (region (get-point buf) (point (get-row buf) (col-count buf (get-row buf)))))))
 
 (defn insert-at-line-end
   [buf]
