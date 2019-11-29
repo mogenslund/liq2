@@ -1,6 +1,7 @@
 (ns liq2.modes.minibuffer-mode
   (:require [clojure.string :as str]
             [liq2.util :as util]
+            [liq2.tools.shell :as s]
             [liq2.editor :as editor :refer [apply-to-buffer switch-to-buffer get-buffer]]
             [liq2.buffer :as buffer]))
 
@@ -10,6 +11,27 @@
     (when-let [f (buffer/get-filename buf)]
       (util/write-file f (buffer/get-text buf)))
     (apply-to-buffer #(buffer/set-dirty % false))))
+
+(defn split-args
+  "Not needed"
+  [text]
+  (filter #(not= % "")
+    (loop [s text arg "" res [] isstr false]
+      (let [c (first s)]
+        (cond (nil? c) (conj res arg)
+              (and isstr (= c \")) (recur (rest s) "" (conj res arg) false)  
+              (= c \") (recur (rest s) "" (conj res arg) true) 
+              (and (not isstr) (= c \space)) (recur (rest s) "" (conj res arg) false)
+              true (recur (rest s) (str arg c) res isstr))))))
+
+(defn external-command
+  [text]
+  (let [f (or (buffer/get-filename (editor/get-current-buffer)) ".")
+        folder (util/absolute (util/get-folder f))]
+    (editor/message (str "Running command: " text))
+    (future
+      (doseq [output (s/cmdseq folder "/bin/sh" "-c" text)]
+        (editor/message output :append true)))))
 
 (defn execute
   []
@@ -33,6 +55,7 @@
           (= content ":t4") (editor/message (pr-str (buffer/get-line (editor/get-current-buffer) 1)))
           (= content ":t5") (editor/message (pr-str (:liq2.buffer/lines (editor/get-current-buffer))))
           (= content ":e .") (((editor/get-mode :dired-mode) :init))
+          (re-matches #":! .*" content) (external-command (subs content 3))
           (re-matches #":e .*" content) (editor/open-file (subs content 3))
           (= (subs content 0 1) "/") (apply-to-buffer #(buffer/search % (subs content 1))))))
 

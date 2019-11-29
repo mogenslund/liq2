@@ -155,7 +155,8 @@
   (if append
     (apply-to-buffer "*output*" #(-> % (buffer/insert-string (str "\n" s))))
     (apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string (str s)))))
-  (paint-buffer (get-buffer "*output*")))
+  (paint-buffer (get-buffer "*output*"))
+  (paint-buffer))
 
 (defn force-kill-buffer
   ([idname]
