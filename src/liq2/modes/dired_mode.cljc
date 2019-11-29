@@ -45,6 +45,15 @@
           (editor/highlight-buffer))
         (open-file path)))))
 
+(defn new-file
+  []
+  (let [buf (editor/get-current-buffer)
+        parent (buffer/get-line buf 1)
+        f (if (= (buffer/get-row buf) 1) "" (buffer/get-line buf))
+        path (str parent "/" f)]
+    (switch-to-buffer "*minibuffer*")
+    (apply-to-buffer #(-> % buffer/clear (buffer/insert-string (str ":e " path))))))
+
 (def mode
   {:insert {"esc" (fn [] (apply-to-buffer #(-> % (buffer/set-mode :normal) buffer/left)))}
    :normal {"q" editor/previous-buffer
@@ -58,6 +67,7 @@
             "$" #(apply-to-buffer buffer/end-of-line)
             "g" {"g" #(editor/apply-to-buffer buffer/beginning-of-buffer)}
             "G" #(apply-to-buffer buffer/end-of-buffer)
+            "%" new-file
             "/" (fn [] (switch-to-buffer "*minibuffer*")
                        (apply-to-buffer #(-> % buffer/clear (buffer/insert-char \/))))
             ":" (fn [] (switch-to-buffer "*minibuffer*")

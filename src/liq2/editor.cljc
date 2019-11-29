@@ -148,8 +148,29 @@
             buffer/beginning-of-buffer))
      ;((@state ::output-handler) (get-buffer "*status-line*"))
        ((-> @state ::output-handler :printer) (assoc (highlight-paren buf) :status-line (get-buffer "*status-line*")))))
-  ([]
-   (paint-buffer (get-current-buffer))))
+  ([] (paint-buffer (get-current-buffer))))
+
+(defn message
+  [s & {:keys [:append]}]
+  (if append
+    (apply-to-buffer "*output*" #(-> % (buffer/insert-string (str "\n" s))))
+    (apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string (str s)))))
+  (paint-buffer (get-buffer "*output*")))
+
+(defn force-kill-buffer
+  ([idname]
+   (when (> (count (regular-buffers)) 1)
+     (let [id (if (number? idname) idname (get-buffer-id-by-name idname))]
+       (swap! state update ::buffers dissoc id))
+       (previous-regular-buffer)))
+  ([] (force-kill-buffer (get-current-buffer-id))))
+
+(defn kill-buffer
+  ([idname]
+   (if (not (buffer/dirty? (get-buffer idname)))
+     (force-kill-buffer idname)
+     (message "There are unsaved changes. Use bd! to force kill.")))
+  ([] (kill-buffer (get-current-buffer-id))))
 
 (defn highlight-buffer
   ([idname]
@@ -193,13 +214,6 @@
     (if (get-buffer-id-by-name p)
       (switch-to-buffer p)
       (new-buffer (or (util/read-file p) "") {:name p :filename p}))))
-
-(defn message
-  [s & {:keys [:append]}]
-  (if append
-    (apply-to-buffer "*output*" #(-> % (buffer/insert-string (str "\n" s))))
-    (apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string (str s)))))
-  (paint-buffer (get-buffer "*output*")))
 
 (defn dirty-buffers
   []

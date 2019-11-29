@@ -25,6 +25,8 @@
           (= content ":buffers") (((editor/get-mode :buffer-chooser-mode) :init)) 
           (= content ":w") (write-file) 
           (= content ":t") (editor/open-file "/home/sosdamgx/proj/liquid/src/dk/salza/liq/slider.clj")
+          (= content ":bd") (editor/kill-buffer)
+          (= content ":bd!") (editor/force-kill-buffer)
           (= content ":t1") (editor/highlight-buffer)
           (= content ":t2") (editor/message (buffer/get-word (editor/get-current-buffer)))
           (= content ":t3") (((editor/get-mode :typeahead-mode) :init) ["aaa" "bbb" "aabb" "ccc"] str buffer/insert-string) 

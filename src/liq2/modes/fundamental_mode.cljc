@@ -155,6 +155,11 @@
       (buffer/set-point buf (first r)))
     buf))
 
+(defn yank-filename
+  []
+  (when-let [f (buffer/get-filename (editor/get-current-buffer))]
+    (util/set-clipboard-content f false)))
+
 (def sample-code "(ns user.user (:require [liq2.editor :as editor] [liq2.buffer :as buffer])) (liq2.editor/apply-to-buffer liq2.buffer/end-of-line) :something")
 
 (def mode
@@ -191,6 +196,7 @@
             "n" #(non-repeat-fun buffer/search)
             "u" #(non-repeat-fun buffer/undo)
             "y" {"y" copy-line
+                 "%" yank-filename
                  "i" {"(" (fn [] (non-repeat-fun #(yank-region % (shrink-region % (buffer/paren-region %)))))
                       "[" (fn [] (non-repeat-fun #(yank-region % (shrink-region % (buffer/bracket-region %)))))
                       "{" (fn [] (non-repeat-fun #(yank-region % (shrink-region % (buffer/brace-region %)))))}
