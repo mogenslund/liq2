@@ -28,7 +28,7 @@
   [text]
   (let [f (or (buffer/get-filename (editor/get-current-buffer)) ".")
         folder (util/absolute (util/get-folder f))]
-    (editor/message (str "Running command: " text))
+    (editor/message (str "Running command: " text) :view true)
     (future
       (doseq [output (s/cmdseq folder "/bin/sh" "-c" text)]
         (editor/message output :append true)))))

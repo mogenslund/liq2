@@ -139,7 +139,7 @@
        #(-> %
             buffer/clear
             (buffer/insert-string
-              (str (buffer/get-filename buf) "  "
+              (str (or (buffer/get-filename buf) (buffer/get-name buf)) "  "
                    (if (buffer/dirty? buf) " [+] " "     ")
                    (cond (= (buffer/get-mode buf) :insert) "-- INSERT --   "
                          (= (buffer/get-mode buf) :visual) "-- VISUAL --   "
@@ -151,12 +151,14 @@
   ([] (paint-buffer (get-current-buffer))))
 
 (defn message
-  [s & {:keys [:append]}]
+  [s & {:keys [:append :view]}]
   (if append
-    (apply-to-buffer "*output*" #(-> % (buffer/insert-string (str "\n" s))))
+    (apply-to-buffer "*output*" #(-> % (buffer/insert-string (str s "\n"))))
     (apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string (str s)))))
-  (paint-buffer (get-buffer "*output*"))
-  (paint-buffer))
+  ;(paint-buffer (get-buffer "*output*"))
+  (if view
+    (switch-to-buffer "*output*")
+    (paint-buffer)))
 
 (defn force-kill-buffer
   ([idname]

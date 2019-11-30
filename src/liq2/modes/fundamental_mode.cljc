@@ -30,7 +30,7 @@
   (let [content (buffer/get-line buf 1)]
     (re-find #"(?<=\(ns )[-a-z0-9\\.]+" content))) ;)
 
-(defn eval-sexp-at-point
+(defn eval-sexp-at-point-old
   [buf]
   (reset-repeat-counter) 
   (let [namespace (or (get-namespace buf) "user")]
@@ -40,6 +40,26 @@
         namespace
         ") "
         (buffer/sexp-at-point buf) ")"))))
+
+(defn eval-sexp-at-point
+  [buf]
+  (reset-repeat-counter) 
+  (binding [*print-length* 200]
+    (let [sexp (buffer/sexp-at-point buf)
+          pr-str-str (fn [x] (if (string? x) x (pr-str x)))
+          namespace (or (get-namespace buf) "user")]
+      (editor/message "" :view true)
+      (future
+        (with-redefs [println (fn [& args] (editor/message (str/join " " args) :append true))]
+          (try
+            (println (pr-str-str
+              (load-string
+                (str
+                  "(do (ns " namespace ") (in-ns '"
+                  namespace
+                  ") " sexp ")"))))
+            (catch Exception e (println (util/pretty-exception e)))))))))
+
 
 (defn tmp-get-text
   []
@@ -218,7 +238,7 @@
             "A" #(non-repeat-fun buffer/insert-at-line-end)
             "D" #(non-repeat-fun buffer/delete-to-line-end)
             "r" {:selfinsert (fn [buf c] (reset-repeat-counter) (buffer/set-char buf (first c)))}
-            "c" {"p" {"p" #(editor/message (eval-sexp-at-point (editor/get-current-buffer)))
+            "c" {"p" {"p" #(eval-sexp-at-point (editor/get-current-buffer))
                       "t" tmp-print-buffer
                       "f" evaluate-file-raw}
                  "i" {"w" #(non-repeat-fun
