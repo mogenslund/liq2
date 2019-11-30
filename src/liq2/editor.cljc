@@ -97,13 +97,21 @@
        (switch-to-buffer (get-buffer-id-by-idx idx)))))
   ([] (previous-buffer 1)))
 
+(defn previous-regular-buffer-id
+  "n = 1 means previous"
+  ([n]
+   (let [idx (first (drop n (reverse (sort (map ::idx (vals (@state ::buffers)))))))]
+     (when idx
+       (get-buffer-id-by-idx idx))))
+  ([] (previous-regular-buffer-id 1)))
+
 (defn previous-regular-buffer
   "n = 1 means previous"
   ([n]
    (let [idx (first (drop n (reverse (sort (map ::idx (regular-buffers))))))]
      (when idx
        (switch-to-buffer (get-buffer-id-by-idx idx)))))
-  ([] (previous-buffer 1)))
+  ([] (previous-regular-buffer 1)))
 
 (defn oldest-buffer
   []
