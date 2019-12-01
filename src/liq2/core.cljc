@@ -6,6 +6,7 @@
             [liq2.modes.dired-mode :as dired-mode]
             [liq2.modes.typeahead-mode :as typeahead-mode]
             [liq2.modes.clojure-mode :as clojure-mode]
+            [liq2.modes.info-dialog-mode :as info-dialog-mode]
             [liq2.buffer :as buffer]
             [liq2.editor :as editor]
             [liq2.tty-input :as input]
@@ -22,6 +23,7 @@
   (editor/add-mode :typeahead-mode typeahead-mode/mode)
   (editor/add-mode :dired-mode dired-mode/mode)
   (editor/add-mode :clojure-mode clojure-mode/mode)
+  (editor/add-mode :info-dialog-mode info-dialog-mode/mode)
   (editor/set-output-handler output/output-handler)
   (editor/set-exit-handler input/exit-handler)
   (input/input-handler editor/handle-input)

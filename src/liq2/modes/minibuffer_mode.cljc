@@ -54,6 +54,7 @@
           (= content ":t3") (((editor/get-mode :typeahead-mode) :init) ["aaa" "bbb" "aabb" "ccc"] str buffer/insert-string) 
           (= content ":t4") (editor/message (pr-str (buffer/get-line (editor/get-current-buffer) 1)))
           (= content ":t5") (editor/message (pr-str (:liq2.buffer/lines (editor/get-current-buffer))))
+          (= content ":t6") (((editor/get-mode :info-dialog-mode) :init) "This is the info dialog")
           (= content ":e .") (((editor/get-mode :dired-mode) :init))
           (re-matches #":! .*" content) (external-command (subs content 3))
           (re-matches #":e .*" content) (editor/open-file (subs content 3))

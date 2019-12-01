@@ -78,7 +78,7 @@
   (reset-repeat-counter) 
   (let [buf (editor/get-current-buffer)
         part (buffer/get-word buf)
-        buffer-file (buffer/get-filename (editor/get-buffer (editor/previous-regular-buffer-id)))
+        buffer-file (or (buffer/get-filename buf) (buffer/get-filename (editor/get-buffer (editor/previous-regular-buffer-id))))
         alternative-parent (if buffer-file (util/get-folder buffer-file) ".")
         filepath (util/resolve-path part alternative-parent)]
     (editor/open-file filepath)))

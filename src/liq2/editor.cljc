@@ -180,7 +180,7 @@
   ([idname]
    (if (not (buffer/dirty? (get-buffer idname)))
      (force-kill-buffer idname)
-     (message "There are unsaved changes. Use bd! to force kill.")))
+     (message "There are unsaved changes. Use bd! to force kill." :view true)))
   ([] (kill-buffer (get-current-buffer-id))))
 
 (defn highlight-buffer
@@ -242,7 +242,7 @@
       (do
         (message (str
           "There are unsaved files. Use :q! to force quit:\n"
-          (str/join "\n" (map buffer/get-filename bufs))))))))
+          (str/join "\n" (map buffer/get-filename bufs))) :view true)))))
 
 (def tmp-keymap (atom nil))
 
