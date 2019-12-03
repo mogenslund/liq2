@@ -22,8 +22,8 @@
 (defn tmp-eval
   []
   (let [res (util/eval-safe (buffer/get-selected-text (editor/get-current-buffer)))]
-    (editor/apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string (str res))))
-    (editor/paint-buffer (get-buffer "*output*"))))
+    (editor/apply-to-buffer "output" #(-> % buffer/clear (buffer/insert-string (str res))))
+    (editor/paint-buffer  "output")))
 
 (defn get-namespace
   [buf]
@@ -45,10 +45,10 @@
   [buf]
   (reset-repeat-counter) 
   (binding [*print-length* 200]
-    (let [sexp (buffer/sexp-at-point buf)
+    (let [sexp (if (= (buffer/get-mode buf) :visuel) (buffer/get-selected-text buf) (buffer/sexp-at-point buf))
           pr-str-str (fn [x] (if (string? x) x (pr-str x)))
           namespace (or (get-namespace buf) "user")]
-      (editor/message "" :view true)
+      (editor/message "" :view true); ( :view true :timer 1500)
       (future
         (with-redefs [println (fn [& args] (editor/message (str/join " " args) :append true))]
           (try
@@ -64,14 +64,14 @@
 (defn tmp-get-text
   []
   (let [res (buffer/get-selected-text (editor/get-current-buffer))]
-    (editor/apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string (str res))))
-    (editor/paint-buffer (get-buffer "*output*"))))
+    (editor/apply-to-buffer "output" #(-> % buffer/clear (buffer/insert-string (str res))))
+    (editor/paint-buffer "output")))
 
 (defn tmp-print-buffer
   []
   (let [res (pr-str (editor/get-current-buffer))]
-    (editor/apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string (str res))))
-    (editor/paint-buffer (get-buffer "*output*"))))
+    (editor/apply-to-buffer "output" #(-> % buffer/clear (buffer/insert-string (str res))))
+    (editor/paint-buffer "output")))
 
 (defn open-file-at-point
   []
@@ -182,11 +182,25 @@
 
 (def sample-code "(ns user.user (:require [liq2.editor :as editor] [liq2.buffer :as buffer])) (liq2.editor/apply-to-buffer liq2.buffer/end-of-line) :something")
 
+(defn typeahead-defs
+  [buf]
+  (let [headlines (filter #(re-find #"^\(def|^#" (second %))
+                          (map #(vector % (buffer/get-line buf %))
+                               (range 1 (inc (buffer/line-count buf)))))]
+    (((editor/get-mode :typeahead-mode) :init) headlines 
+                                               second
+                                               (fn [res]
+                                                 (editor/previous-buffer)
+                                                 (apply-to-buffer #(-> %
+                                                                       (buffer/set-point (buffer/point (first res) 1))
+                                                                       (buffer/set-tow (buffer/point (first res) 1))))))))
+
 (def mode
   {:insert {"esc" (fn [] (apply-to-buffer #(buffer/left (buffer/set-normal-mode %))))
             "backspace" #(non-repeat-fun buffer/delete-backward)}
    :normal {"esc" #(reset! repeat-counter "0") 
             "C- " #(((editor/get-mode :buffer-chooser-mode) :init))
+            "C-b" #(editor/previous-regular-buffer)
             "t" (fn [] (apply-to-buffer #(buffer/insert-string % "Just\nTesting")))
             "f2" editor/oldest-buffer
             "f3" #(non-repeat-fun buffer/debug-clear-undo)
@@ -226,8 +240,11 @@
             "p" paste-clipboard
             "P" paste-clipboard-here
             "g" {"g" #(non-repeat-fun buffer/beginning-of-buffer)
+                 "i" #(typeahead-defs (editor/get-current-buffer))
                  "f" open-file-at-point}
             "G" #(non-repeat-fun buffer/end-of-buffer)
+            "z" {"t" (fn [] (non-repeat-fun #(buffer/set-tow % (buffer/point (buffer/get-row %) 1))))
+                 "\n" (fn [] (non-repeat-fun #(buffer/set-tow % (buffer/point (buffer/get-row %) 1))))}
             "d" {"d" #(non-repeat-fun delete-line)
                  "i" {"(" (fn [] (non-repeat-fun #(cut-region % (shrink-region % (buffer/paren-region %)))))
                       "[" (fn [] (non-repeat-fun #(cut-region % (shrink-region % (buffer/bracket-region %)))))
@@ -269,7 +286,7 @@
             "q" editor/run-macro
             "o" #(non-repeat-fun buffer/append-line)}
     :visual {"esc" #(non-repeat-fun buffer/set-normal-mode)
-             "c" {"p" {"p" tmp-eval}}
+             "c" {"p" {"p" #(eval-sexp-at-point (editor/get-current-buffer))}}
              "y" #(apply-to-buffer copy-selection-to-clipboard)
              "d" #(apply-to-buffer delete)
              }})

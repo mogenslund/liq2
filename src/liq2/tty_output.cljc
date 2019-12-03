@@ -72,20 +72,20 @@
   [buf]
   [(buffer/get-rows buf) (buffer/get-cols buf) (buffer/get-name buf) (buffer/get-filename buf)])
 
-(defn calculate-wrapped-row-dist
-  [buf cols row1 row2]
-  (reduce #(+ 1 %1 (quot (dec (buffer/col-count buf %2)) cols)) 0 (range row1 row2))) 
+;(defn calculate-wrapped-row-dist
+;  [buf cols row1 row2]
+;  (reduce #(+ 1 %1 (quot (dec (buffer/col-count buf %2)) cols)) 0 (range row1 row2))) 
 
-(defn recalculate-tow
-  "This is a first draft, which does not handle edge
-  cases with very long lines and positioning logic."
-  [buf rows cols tow1]
-  (cond (< (buffer/get-row buf) (tow1 :row)) (assoc tow1 :row (buffer/get-row buf))
-        (> (- (buffer/get-row buf) (tow1 :row)) rows)
-          (recalculate-tow buf rows cols (assoc tow1 :row (- (buffer/get-row buf) rows)))
-        (> (calculate-wrapped-row-dist buf cols (tow1 :row) (+ (buffer/get-row buf) 1)) rows)
-          (recalculate-tow buf rows cols (update tow1 :row inc))
-        true tow1))
+;(defn recalculate-tow
+;  "This is a first draft, which does not handle edge
+;  cases with very long lines and positioning logic."
+;  [buf rows cols tow1]
+;  (cond (< (buffer/get-row buf) (tow1 :row)) (assoc tow1 :row (buffer/get-row buf))
+;        (> (- (buffer/get-row buf) (tow1 :row)) rows)
+;          (recalculate-tow buf rows cols (assoc tow1 :row (- (buffer/get-row buf) rows)))
+;        (> (calculate-wrapped-row-dist buf cols (tow1 :row) (+ (buffer/get-row buf) 1)) rows)
+;          (recalculate-tow buf rows cols (update tow1 :row inc))
+;        true tow1))
 
 ;(defn recalculate-tow
 ;  "Basic version, just to check possible speed"
@@ -93,9 +93,9 @@
 ;  (assoc tow1 :row (buffer/get-row buf)))
 
 
-(comment
-  (calculate-wrapped-row-dist (buffer/buffer "aaaaaaaaaaaaaaaaaaaaaaaaaa\nbbbbbbbbbbbbbb") 10 2 3)
-  )
+;(comment
+;  (calculate-wrapped-row-dist (buffer/buffer "aaaaaaaaaaaaaaaaaaaaaaaaaa\nbbbbbbbbbbbbbb") 10 2 3)
+;  )
 
 
 ; Two pointers trow tcol in terminal row col in buffer
@@ -107,16 +107,16 @@
         top (buffer/get-top buf)
         rows (buffer/get-rows buf)
         cols (buffer/get-cols buf)
-        tow (recalculate-tow buf rows cols (or (@tow-cache cache-id) {:row 1 :col 1}))
+        tow (buffer/get-tow buf) ; (recalculate-tow buf rows cols (or (@tow-cache cache-id) {:row 1 :col 1}))
         crow (buffer/get-row buf)
         ccol (buffer/get-col buf)]
-  (swap! tow-cache assoc cache-id tow)
+  ;(swap! tow-cache assoc cache-id tow)
   (when (= cache-id @last-buffer)
     (tty-print "█")) ; To make it look like the cursor is still there while drawing.
   (tty-print esc "?25l") ; Hide cursor
   (when-let [statusline (buf :status-line)]
     (print-buffer statusline))
-  (loop [trow top tcol left row (tow :row) col (tow :col) cursor-row nil cursor-col nil color nil bgcolor nil]
+  (loop [trow top tcol left row (buffer/get-point-row tow) col (buffer/get-point-col tow) cursor-row nil cursor-col nil color nil bgcolor nil]
     (if (< trow (+ rows top))
       (do
       ;; Check if row has changed...

@@ -34,6 +34,7 @@
     ::rows rows
     ::cols cols
     ::mem-col 1                ; Remember column when moving up and down
+    ::tow (point 1 1)          ; Top of window
     ::mode (or mode :normal)
     ::encoding :utf-8          ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
     ::search-word ""
@@ -41,6 +42,10 @@
     ::major-mode (or major-mode :clojure-mode)
     ::minor-modes []})           
   ([text] (buffer text {})))
+
+(defn set-dimensions
+  [buf top left rows cols]
+  (assoc buf ::top top ::left left ::rows rows ::cols cols))
 
 (defn insert-in-vector
   [v n elem]
@@ -111,6 +116,9 @@
         (set-mode :insert)
         get-mode)))
 
+(defn get-point-col [p] (p ::col))
+(defn get-point-row [p] (p ::row))
+
 (defn get-col [buf] (-> buf ::cursor ::col))
 
 (defn get-row [buf] (-> buf ::cursor ::row))
@@ -180,6 +188,14 @@
 (defn dirty?
   [buf]
   (buf ::dirty))
+
+(defn set-tow
+  [buf p]
+  (assoc buf ::tow p))
+
+(defn get-tow
+  [buf]
+  (buf ::tow))
 
 (defn point-compare
   [p1 p2]
@@ -792,6 +808,29 @@
              (and is-word (re-matches #"\W" (str (get-char (left b))))) b
              true (recur (next-point b))))))
   ([buf n] (nth (iterate word-forward buf) n)))
+
+(defn calculate-wrapped-row-dist
+  [buf cols row1 row2]
+  (reduce #(+ 1 %1 (quot (dec (col-count buf %2)) cols)) 0 (range row1 row2))) 
+
+(defn recalculate-tow
+  "This is a first draft, which does not handle edge
+  cases with very long lines and positioning logic."
+  [buf rows cols tow1]
+  (cond (< (get-row buf) (tow1 ::row)) (assoc tow1 ::row (get-row buf))
+        (> (- (get-row buf) (tow1 ::row)) rows)
+          (recalculate-tow buf rows cols (assoc tow1 ::row (- (get-row buf) rows)))
+        (> (calculate-wrapped-row-dist buf cols (tow1 ::row) (+ (get-row buf) 1)) rows)
+          (recalculate-tow buf rows cols (update tow1 ::row inc))
+        true tow1))
+
+(defn update-tow
+  [buf]
+  (set-tow buf (recalculate-tow buf (get-rows buf) (get-cols buf) (get-tow buf)))
+  ;(set-tow buf (point 1 1))
+  )
+
+(comment (update-tow (buffer "ab[[cd]\nx[asdf]yz]")))
 
 ;; Emacs has two stages:
 ;; 1. Where comments and strings are highlighted

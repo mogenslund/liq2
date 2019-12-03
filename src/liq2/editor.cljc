@@ -7,6 +7,7 @@
 
 (def state (atom {::buffers {}
                   ::modes {}
+                  ::settings {:auto-switch-to-output true}
                   ::exit-handler nil
                   ::dimensions nil
                   ::output-handler nil}))
@@ -21,6 +22,14 @@
     (let [d ((-> @state ::output-handler :dimensions))]
       (swap! state assoc ::dimensions d)
       d)))
+
+(defn set-setting
+  [keyw value]
+  (swap! state assoc-in [::settings keyw] value))
+
+(defn get-setting
+  [keyw]
+  ((@state ::settings) keyw))
 
 (defn set-output-handler
   [output-handler]
@@ -140,7 +149,7 @@
         buf))
     buf))
 
-(defn paint-buffer
+(defn paint-buffer-old
   ([buf]
    (when (@state ::output-handler)
      (apply-to-buffer "*status-line*"
@@ -156,17 +165,39 @@
             buffer/beginning-of-buffer))
      ;((@state ::output-handler) (get-buffer "*status-line*"))
        ((-> @state ::output-handler :printer) (assoc (highlight-paren buf) :status-line (get-buffer "*status-line*")))))
-  ([] (paint-buffer (get-current-buffer))))
+  ([] (paint-buffer-old (get-current-buffer))))
+
+(defn paint-buffer
+  ([nameid]
+   (when (@state ::output-handler)
+     (apply-to-buffer nameid buffer/update-tow)
+     (let [buf (get-buffer nameid)]
+       (apply-to-buffer "*status-line*"
+         #(-> %
+              buffer/clear
+              (buffer/insert-string
+                (str (or (buffer/get-filename buf) (buffer/get-name buf)) "  "
+                     (if (buffer/dirty? buf) " [+] " "     ")
+                     (cond (= (buffer/get-mode buf) :insert) "-- INSERT --   "
+                           (= (buffer/get-mode buf) :visual) "-- VISUAL --   "
+                           true "               ")
+                     (buffer/get-row buf) "," (buffer/get-col buf)))
+              buffer/beginning-of-buffer
+              buffer/update-tow))
+       ;((@state ::output-handler) (get-buffer "*status-line*"))
+         ((-> @state ::output-handler :printer) (assoc (highlight-paren buf) :status-line (get-buffer "*status-line*"))))))
+  ([] (paint-buffer (get-current-buffer-id))))
 
 (defn message
-  [s & {:keys [:append :view]}]
+  [s & {:keys [:append :view :timer]}]
   (if append
-    (apply-to-buffer "*output*" #(-> % (buffer/insert-string (str s "\n"))))
-    (apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string (str s)))))
-  ;(paint-buffer (get-buffer "*output*"))
-  (if view
-    (switch-to-buffer "*output*")
-    (paint-buffer)))
+    (apply-to-buffer "output" #(-> % (buffer/insert-string (str s "\n"))))
+    (apply-to-buffer "output" #(-> % buffer/clear (buffer/insert-string (str s)))))
+  (paint-buffer "output")
+  (when (and view (get-setting :auto-switch-to-output))
+    (switch-to-buffer "output")
+    (when timer (future (Thread/sleep timer) (previous-buffer) (paint-buffer))))
+  (paint-buffer))
 
 (defn force-kill-buffer
   ([idname]
@@ -180,7 +211,7 @@
   ([idname]
    (if (not (buffer/dirty? (get-buffer idname)))
      (force-kill-buffer idname)
-     (message "There are unsaved changes. Use bd! to force kill." :view true)))
+     (message "There are unsaved changes. Use bd! to force kill." :view true :timer 1500)))
   ([] (kill-buffer (get-current-buffer-id))))
 
 (defn highlight-buffer
@@ -242,7 +273,7 @@
       (do
         (message (str
           "There are unsaved files. Use :q! to force quit:\n"
-          (str/join "\n" (map buffer/get-filename bufs))) :view true)))))
+          (str/join "\n" (map buffer/get-filename bufs))) :view true :timer 1500)))))
 
 (def tmp-keymap (atom nil))
 
