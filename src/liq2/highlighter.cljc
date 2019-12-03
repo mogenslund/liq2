@@ -24,12 +24,11 @@
           next-context (if (and hit (hit :pos)) (hit :context) context)
           match (or (and hit (hit :match)) "")
           colcount (buffer/col-count b row)]
-      (cond (>= col colcount) (buffer/set-style b row (max (min col colcount) 1) (-> hl context :style))
+      (cond (> col colcount) (buffer/set-style b row (max (min col colcount) 1) (-> hl context :style))
              true (recur (-> b (buffer/set-style row col (min col1 colcount) (-> hl context :style))
                                (buffer/set-style row col1 (min (+ col1 (dec (count match))) colcount) (-> hl next-context :style)))
                         (+ col1 (count match))
                         next-context)))))
-
 
 (defn highlight
   ([buf hl]
@@ -44,7 +43,7 @@
            match (or (and hit (hit :match)) "")
            colcount (buffer/col-count b row)]
        (cond (> row (buffer/line-count b)) b 
-             (>= col colcount) (recur (buffer/set-style b row (max (min col colcount) 1) (-> hl context :style)) (inc row) 1 next-context)
+             (> col colcount) (recur (buffer/set-style b row (max (min col colcount) 1) (-> hl context :style)) (inc row) 1 next-context)
              true (recur (-> b (buffer/set-style row col (min col1 colcount) (-> hl context :style))
                                (buffer/set-style row col1 (min (+ col1 (dec (count match))) colcount) (-> hl next-context :style)))
                          row
