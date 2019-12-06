@@ -109,38 +109,41 @@
 (defn paste-clipboard
   []
   (reset-repeat-counter)
-  (if (util/clipboard-line?)
-    (apply-to-buffer
-      #(-> %
-           buffer/append-line
-           (buffer/insert-string (util/clipboard-content))
-           buffer/beginning-of-line
-           buffer/set-normal-mode))
-    (apply-to-buffer
-      #(-> %
-           buffer/set-insert-mode
-           buffer/right
-           (buffer/insert-string (util/clipboard-content))
-           buffer/left
-           buffer/set-normal-mode))))
+  (let [text (util/clipboard-content)] 
+    (if (util/clipboard-line?)
+      (apply-to-buffer
+        #(-> %
+             buffer/append-line
+             ;buffer/end-of-line
+             (buffer/insert-string text)
+             buffer/beginning-of-line
+             buffer/set-normal-mode))
+      (apply-to-buffer
+        #(-> %
+             buffer/set-insert-mode
+             buffer/right
+             (buffer/insert-string text)
+             (buffer/right (dec (count text)))
+             buffer/set-normal-mode)))))
 
 (defn paste-clipboard-here
   []
   (reset-repeat-counter)
-  (if (util/clipboard-line?)
-    (apply-to-buffer
-      #(-> %
-           buffer/beginning-of-line
-           (buffer/insert-string (str (util/clipboard-content) "\n"))
-           buffer/up
-           buffer/beginning-of-line
-           buffer/set-normal-mode))
-    (apply-to-buffer
-      #(-> %
-           buffer/set-insert-mode
-           (buffer/insert-string (util/clipboard-content))
-           buffer/left
-           buffer/set-normal-mode))))
+  (let [text (util/clipboard-content)] 
+    (if (util/clipboard-line?)
+      (apply-to-buffer
+        #(-> %
+             buffer/beginning-of-line
+             (buffer/insert-string (str text "\n"))
+             buffer/up
+             buffer/beginning-of-line
+             buffer/set-normal-mode))
+      (apply-to-buffer
+        #(-> %
+             buffer/set-insert-mode
+             (buffer/insert-string text)
+             (buffer/right (dec (count text)))
+             buffer/set-normal-mode)))))
 
 (defn delete-line
   [buf]

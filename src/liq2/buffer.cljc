@@ -29,10 +29,10 @@
     ::line-ending "\n" 
     ::cursor (point 1 1)
     ::selection nil
-    ::top top
-    ::left left
-    ::rows rows
-    ::cols cols
+    ::top (or top 1)
+    ::left (or left 1)
+    ::rows (or rows 1)
+    ::cols (or cols 80)
     ::mem-col 1                ; Remember column when moving up and down
     ::tow (point 1 1)          ; Top of window
     ::mode (or mode :normal)
@@ -42,10 +42,6 @@
     ::major-mode (or major-mode :clojure-mode)
     ::minor-modes []})           
   ([text] (buffer text {})))
-
-(defn set-dimensions
-  [buf top left rows cols]
-  (assoc buf ::top top ::left left ::rows rows ::cols cols))
 
 (defn insert-in-vector
   [v n elem]
@@ -92,6 +88,10 @@
 
 ;; Information
 ;; ===========
+
+(defn set-dimensions
+  [buf top left rows cols]
+  (assoc buf ::top top ::left left ::rows rows ::cols cols))
 
 (defn get-name [buf] (buf ::name))
 
@@ -212,6 +212,8 @@
        ""
        (str/join (map ::char (subvec r (dec col)))))))
   ([buf] (get-line buf (get-row buf))))
+
+(comment (pr-str (get-line (buffer "aaa\nbbb\nccc") 2)))
 
 (comment
   (str/join (map ::char (get ((buffer "abcde") :liq2.buffer/lines) 1)))
@@ -453,18 +455,6 @@
        (assoc-in [::lines (dec row) (dec col)] {::char char})))
   ([buf char] (set-char buf (get-row buf) (get-col buf) char)))
 
-(defn set-style
-  ([buf row col style]
-   (if (get-char buf row col)
-     (assoc-in buf [::lines (dec row) (dec col) ::style] style)
-     buf))
-  ([buf p style] (set-style buf (p ::row) (p ::col) style))
-  ([buf row col1 col2 style]
-   (loop [b buf col col1]
-     (if (> col col2)
-       b
-       (recur (set-style b row col style) (inc col))))))
-
 (defn get-style
   ([buf row col]
    (-> buf
@@ -473,6 +463,18 @@
        (get (dec col))
        ::style))
   ([buf] (get-style buf (get-row buf) (get-col buf))))
+
+(defn set-style
+  ([buf row col style]
+   (if (and (get-char buf row col) (not= (get-style buf row col) style))
+     (assoc-in buf [::lines (dec row) (dec col) ::style] style)
+     buf))
+  ([buf p style] (set-style buf (p ::row) (p ::col) style))
+  ([buf row col1 col2 style]
+   (loop [b buf col col1]
+     (if (> col col2)
+       b
+       (recur (set-style b row col style) (inc col))))))
 
 (defn insert-char
   ([buf row col char]
@@ -485,12 +487,6 @@
        (set-point (point (if (= char \newline) (inc (get-row buf)) (get-row buf))
                          (if (= char \newline) 1 (inc (get-col buf))))))))
 
-;; TODO There should be a insert-buffer to insert buffer into buffer
-;;      It should be optimized. Right now (buffer text) is much faster than
-;;      (-> (buffer "") (insert-string text))
-(defn insert-string
-  [buf text]
-  (reduce insert-char buf text))
 
 (defn append-line
   ([buf row]
@@ -524,8 +520,8 @@
         (set-point b1 newrow newcol))))
   ([buf] (delete-line buf (get-row buf))))
 
-(comment (-> (buffer "aaa\nbbb\nccc") down delete-line))
-
+(comment (pr-str (get-text (-> (buffer "aaa\nbbb\nccc") down right delete-line))))
+(comment (pr-str (get-text (-> (buffer "aaa\nbbb\nccc") down down delete-line))))
 
 (defn delete
   ([buf p1 p2]
@@ -537,25 +533,37 @@
           t2 (if (< (q ::col) (col-count buf (q ::row)))
                (subvec (-> buf ::lines (get (dec (q ::row)))) (q ::col) (col-count buf (q ::row)))
                [])]  
-      (if (= (p ::row) (q ::row))
-        (-> buf
-            (update-in [::lines (dec (p ::row))] #(remove-from-vector % (p ::col) (q ::col)))
-            set-normal-mode
-            (set-point p))
-        (-> (nth (iterate #(delete-line % (p ::row)) buf) (- (inc (q ::row)) (p ::row)))
-            (update ::lines #(insert-in-vector % (dec (p ::row)) (into [] (concat t1 t2))))
-            set-normal-mode
-            (set-point p)))))
+      (-> (nth (iterate #(delete-line % (p ::row))
+                        (update buf ::lines
+                                    #(insert-in-vector % (q ::row) (into [] (concat t1 t2)))))
+               (- (q ::row) (p ::row) -1))
+          set-normal-mode
+          (set-point p))))
   ([buf]
    (if-let [p (get-selection buf)]
      (delete buf (get-point buf) p)
      buf)))
+
+
+(comment (pr-str (get-text (delete (buffer "aa\naa\naa") (point 1 2) (point 2 2)))))
+(comment (pr-str (get-text (delete (buffer "aa\nbb\ncc") (point 2 2) (point 3 2)))))
+(comment (pr-str (get-text (delete (buffer "aa\nbbccdd\nee") (point 2 3) (point 2 4)))))
+(comment (pr-str (get-text (delete (buffer "aa\nbb\ncc") (point 1 2) (point 3 2)))))
+(comment (pr-str (get-text (delete (buffer "aa\n\nbb\ncc") (point 1 1) (point 2 1)))))
+(comment (pr-str (get-text (delete (buffer "aa\n\nbb\ncc") (point 2 1) (point 4 2)))))
+(comment (pr-str (get-text (delete (buffer "aaaaS\nK\nTbbbb\nbbbb") (point 1 1) (point 2 0)))))
+
+
+
 
 (defn delete-region
   [buf r]
   (if r
     (delete buf (first r) (second r))
     buf))
+
+(comment (get-text (delete-region (buffer "aaaa") (region (point 1 2) (point 1 4)))))
+(comment (pr-str (get-text (delete-region (buffer "aa\naa\naa") (region (point 1 2) (point 2 1))))))
 
 (defn shrink-region
   [buf r]
@@ -593,6 +601,57 @@
   [buf]
   (left (delete-region buf (region (get-point buf) (point (get-row buf) (col-count buf (get-row buf)))))))
 
+(defn clear
+  [buf]
+  (assoc buf ::lines [[]]
+             ::cursor (point 1 1)
+             ::mem-col 1))
+
+(defn split-buffer
+  ([buf p]
+   (if (= p (start-point buf))
+     [(clear buf) buf]
+     [(delete-region buf (region p (end-point buf)))
+      (delete-region buf (region (start-point buf) (point (get-point-row p) (dec (get-point-col p)))))]))
+  ([buf] (split-buffer buf (get-point buf))))
+
+(comment (map get-text (split-buffer (buffer "aaaaSTbbbb\nbbbb") (point 1 6))))
+(comment (map get-text (split-buffer (buffer "aaaaS\nK\nTbbbb\nbbbb") (point 2 1))))
+(comment (map get-text (split-buffer (buffer "aa") (point 1 1))))
+(comment (map get-text (split-buffer (buffer "aa") (point 2 10))))
+(comment (map get-text (split-buffer (buffer "aa\n\nccc") (point 2 1))))
+
+
+(defn append-buffer
+  [buf buf1]
+  (-> buf
+      (update-in [::lines (dec (line-count buf))] #(into [] (concat % (first (buf1 ::lines)))))
+      (update ::lines #(into [] (concat % (rest (buf1 ::lines)))))
+      (set-dirty true)))
+
+(comment (get-text (append-buffer (buffer "aaa\nbbb") (buffer "ccc\ndddd"))))
+
+(defn insert-buffer
+  ([buf p buf0]
+   (let [[b1 b2] (split-buffer buf p)]
+     (append-buffer
+       b1
+       (append-buffer buf0 b2))))
+  ([buf buf0]
+   (insert-buffer buf (get-point buf) buf0)))
+
+(comment (pr-str (get-text (insert-buffer (buffer "aaa\n\nbbb") (buffer "")))))
+(comment (get-text (insert-buffer (buffer "aaaaabbbbb") (point 1 6) (buffer "cccc"))))
+(comment (get-text (insert-buffer (buffer "aaaaa\n\nbbbbb") (point 2 1) (buffer "cccc"))))
+(comment (get-text (insert-buffer (buffer "aaaaabbbbb") (buffer "cccc"))))
+(comment (get-row (insert-buffer (buffer "aaaaabbbbb") (buffer "cccc"))))
+(comment (pr-str (get-text (insert-buffer (buffer "") (buffer "")))))
+(comment (get-text (insert-buffer (buffer "") (buffer ""))))
+
+(defn insert-string
+  [buf text]
+  (insert-buffer buf (buffer text)))
+
 (defn insert-at-line-end
   [buf]
   (-> buf
@@ -605,12 +664,6 @@
   (if (get-char buf row col)
     (assoc-in buf [::lines (dec row) (dec col)] {attr value})
     buf))
-
-(defn clear
-  [buf]
-  (assoc buf ::lines [[]]
-             ::cursor (point 1 1)
-             ::mem-col 1))
 
 (defn match-before
   [buf p0 re]
@@ -656,6 +709,9 @@
             p
             (recur (next-point buf p) nstack)))))))
 
+;; Regions
+;; =======
+
 (defn paren-region
   ([buf p]
    (let [p0 (paren-match-before buf (if (= (get-char buf p) \)) (previous-point buf p) p) \()
@@ -681,9 +737,10 @@
 (comment (bracket-region (buffer "[asdf]")))
 
 (defn line-region
-  [buf p]
-  (when (<= (p ::row) (line-count buf))
-    (region (point (p ::row) 1) (point (p ::row) (col-count buf (p ::row))))))
+  ([buf p]
+   (when (<= (p ::row) (line-count buf))
+     (region (point (p ::row) 1) (point (p ::row) (col-count buf (p ::row))))))
+  ([buf] (line-region buf (get-point buf)))) 
 
 (comment (line-region (buffer "abc\ndefhi") (point 2 2)))
   

@@ -54,7 +54,10 @@
         f (if (= (buffer/get-row buf) 1) "" (buffer/get-line buf))
         path (str parent "/" f)]
     (switch-to-buffer "*minibuffer*")
-    (apply-to-buffer #(-> % buffer/clear (buffer/insert-string (str ":e " path))))))
+    (apply-to-buffer #(-> %
+                          buffer/clear
+                          (buffer/insert-string (str ":e " path))
+                          buffer/insert-at-line-end))))
 
 (def mode
   {:insert {"esc" (fn [] (apply-to-buffer #(-> % (buffer/set-mode :normal) buffer/left)))}
