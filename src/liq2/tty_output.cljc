@@ -1,6 +1,7 @@
 (ns liq2.tty-output
   (:require [liq2.buffer :as buffer]
-            [clojure.java.io :as io]
+            #?(:clj [clojure.java.io :as io]
+               :cljs [lumo.io :as io])
             [clojure.string :as str]))
 
 (def ^:private cache (atom {}))

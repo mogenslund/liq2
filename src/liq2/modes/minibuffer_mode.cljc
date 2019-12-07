@@ -1,7 +1,7 @@
 (ns liq2.modes.minibuffer-mode
   (:require [clojure.string :as str]
             [liq2.util :as util]
-            [liq2.tools.shell :as s]
+            #?(:clj [liq2.tools.shell :as s])
             [liq2.editor :as editor :refer [apply-to-buffer switch-to-buffer get-buffer]]
             [liq2.buffer :as buffer]))
 
@@ -26,12 +26,13 @@
 
 (defn external-command
   [text]
-  (let [f (or (buffer/get-filename (editor/get-current-buffer)) ".")
-        folder (util/absolute (util/get-folder f))]
-    (editor/message (str "Running command: " text "\n") :view true)
-    (future
-      (doseq [output (s/cmdseq folder "/bin/sh" "-c" text)]
-        (editor/message output :append true)))))
+   #?(:clj (let [f (or (buffer/get-filename (editor/get-current-buffer)) ".")
+                 folder (util/absolute (util/get-folder f))]
+             (editor/message (str "Running command: " text "\n") :view true)
+             (future
+               (doseq [output (s/cmdseq folder "/bin/sh" "-c" text)]
+                 (editor/message output :append true)))))
+   #?(:cljs (do)))
 
 (defn execute
   []
