@@ -21,26 +21,27 @@
 
 (defn buffer
   ([text {:keys [name filename top left rows cols major-mode mode] :as options}]
-   {::name (or name "")
-    ::filename filename
-    ::lines (mapv (fn [l] (mapv #(hash-map ::char %) l)) (str/split text #"\r?\n" -1))
-    ::lines-undo ()  ;; Conj lines into this when doing changes
-    ::lines-stack () ;; To use in connection with undo
-    ::line-ending "\n" 
-    ::cursor (point 1 1)
-    ::selection nil
-    ::top (or top 1)
-    ::left (or left 1)
-    ::rows (or rows 1)
-    ::cols (or cols 80)
-    ::mem-col 1                ; Remember column when moving up and down
-    ::tow (point 1 1)          ; Top of window
-    ::mode (or mode :normal)
-    ::encoding :utf-8          ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
-    ::search-word ""
-    ::dirty false
-    ::major-mode (or major-mode :clojure-mode)
-    ::minor-modes []})           
+   (let [lines (mapv (fn [l] (mapv #(hash-map ::char %) l)) (str/split text #"\r?\n" -1))]
+     {::name (or name "")
+      ::filename filename
+      ::lines lines
+      ::lines-undo ()  ;; Conj lines into this when doing changes
+      ::lines-stack (list lines) ;; To use in connection with undo
+      ::line-ending "\n" 
+      ::cursor (point 1 1)
+      ::selection nil
+      ::top (or top 1)
+      ::left (or left 1)
+      ::rows (or rows 1)
+      ::cols (or cols 80)
+      ::mem-col 1                ; Remember column when moving up and down
+      ::tow (point 1 1)          ; Top of window
+      ::mode (or mode :normal)
+      ::encoding :utf-8          ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
+      ::search-word ""
+      ::dirty false
+      ::major-mode (or major-mode :clojure-mode)
+      ::minor-modes []}))
   ([text] (buffer text {})))
 
 (defn insert-in-vector
