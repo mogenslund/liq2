@@ -23,7 +23,7 @@
   ([text {:keys [name filename top left rows cols major-mode mode] :as options}]
    {::name (or name "")
     ::filename filename
-    ::lines (mapv (fn [l] (mapv #(hash-map ::char %) l)) (str/split-lines text))
+    ::lines (mapv (fn [l] (mapv #(hash-map ::char %) l)) (str/split text #"\r?\n" -1))
     ::lines-undo ()  ;; Conj lines into this when doing changes
     ::lines-stack () ;; To use in connection with undo
     ::line-ending "\n" 
@@ -629,7 +629,10 @@
       (update ::lines #(into [] (concat % (rest (buf1 ::lines)))))
       (set-dirty true)))
 
-(comment (get-text (append-buffer (buffer "aaa\nbbb") (buffer "ccc\ndddd"))))
+(comment (pr-str (get-text (append-buffer (buffer "aaa\nbbb") (buffer "ccc\ndddd")))))
+(comment (pr-str (get-text (append-buffer (buffer "aaa") (buffer "bbb\n\n")))))
+(comment (pr-str (get-text (buffer "bbb\n\n"))))
+(comment (pr-str (get-text (append-buffer (buffer "aaa") (buffer "\nbbb")))))
 
 (defn insert-buffer
   ([buf p buf0]
@@ -647,6 +650,7 @@
 (comment (get-row (insert-buffer (buffer "aaaaabbbbb") (buffer "cccc"))))
 (comment (pr-str (get-text (insert-buffer (buffer "") (buffer "")))))
 (comment (get-text (insert-buffer (buffer "") (buffer ""))))
+(comment (pr-str (get-text (insert-buffer (buffer "aaa") (buffer "bbb\n")))))
 
 (defn insert-string
   [buf text]
