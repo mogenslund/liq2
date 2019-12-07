@@ -234,12 +234,13 @@
             "u" #(non-repeat-fun buffer/undo)
             "y" {"y" copy-line
                  "%" yank-filename
-                 "i" {"(" (fn [] (non-repeat-fun #(yank-region % (shrink-region % (buffer/paren-region %)))))
-                      "[" (fn [] (non-repeat-fun #(yank-region % (shrink-region % (buffer/bracket-region %)))))
-                      "{" (fn [] (non-repeat-fun #(yank-region % (shrink-region % (buffer/brace-region %)))))}
-                 "a" {"(" (fn [] (non-repeat-fun #(yank-region % (buffer/paren-region %))))
-                      "[" (fn [] (non-repeat-fun #(yank-region % (buffer/bracket-region %))))
-                      "{" (fn [] (non-repeat-fun #(yank-region % (buffer/brace-region %))))}}
+                 "i" {"w" (fn [] (non-repeat-fun #(->> % buffer/word-region (yank-region %))))
+                      "(" (fn [] (non-repeat-fun #(->> % buffer/paren-region (shrink-region %) (yank-region %))))
+                      "[" (fn [] (non-repeat-fun #(->> % buffer/bracket-region (shrink-region %) (yank-region %))))
+                      "{" (fn [] (non-repeat-fun #(->> % buffer/brace-region (shrink-region %) (yank-region %))))}
+                 "a" {"(" (fn [] (non-repeat-fun #(->> % buffer/paren-region (yank-region %))))
+                      "[" (fn [] (non-repeat-fun #(->> % buffer/bracket-region (yank-region %))))
+                      "{" (fn [] (non-repeat-fun #(->> % buffer/brace-region (yank-region %))))}}
             "p" paste-clipboard
             "P" paste-clipboard-here
             "g" {"g" #(non-repeat-fun buffer/beginning-of-buffer)
@@ -249,30 +250,23 @@
             "z" {"t" (fn [] (non-repeat-fun #(buffer/set-tow % (buffer/point (buffer/get-row %) 1))))
                  "\n" (fn [] (non-repeat-fun #(buffer/set-tow % (buffer/point (buffer/get-row %) 1))))}
             "d" {"d" #(non-repeat-fun delete-line)
-                 "i" {"(" (fn [] (non-repeat-fun #(cut-region % (shrink-region % (buffer/paren-region %)))))
-                      "[" (fn [] (non-repeat-fun #(cut-region % (shrink-region % (buffer/bracket-region %)))))
-                      "{" (fn [] (non-repeat-fun #(cut-region % (shrink-region % (buffer/brace-region %)))))}
-                 "a" {"(" (fn [] (non-repeat-fun #(cut-region % (buffer/paren-region %))))
-                      "[" (fn [] (non-repeat-fun #(cut-region % (buffer/bracket-region %))))
-                      "{" (fn [] (non-repeat-fun #(cut-region % (buffer/brace-region %))))}}
+                 "i" {"w" (fn [] (non-repeat-fun #(->> % buffer/word-region (cut-region %))))
+                      "(" (fn [] (non-repeat-fun #(->> % buffer/paren-region (shrink-region %) (cut-region %))))
+                      "[" (fn [] (non-repeat-fun #(->> % buffer/bracket-region (shrink-region %) (cut-region %))))
+                      "{" (fn [] (non-repeat-fun #(->> % buffer/brace-region (shrink-region %) (cut-region %))))}
+                 "a" {"(" (fn [] (non-repeat-fun #(->> % buffer/paren-region  (cut-region %))))
+                      "[" (fn [] (non-repeat-fun #(->> % buffer/bracket-region  (cut-region %))))
+                      "{" (fn [] (non-repeat-fun #(->> % buffer/brace-region  (cut-region %))))}}
             "A" #(non-repeat-fun buffer/insert-at-line-end)
             "D" #(non-repeat-fun buffer/delete-to-line-end)
             "r" {:selfinsert (fn [buf c] (reset-repeat-counter) (buffer/set-char buf (first c)))}
             "c" {"p" {"p" #(eval-sexp-at-point (editor/get-current-buffer))
                       "t" tmp-print-buffer
                       "f" evaluate-file-raw}
-                 "i" {"w" #(non-repeat-fun
-                            (fn [buf]
-                              (-> buf
-                                  buffer/right
-                                  buffer/beginning-of-word
-                                  buffer/set-visual-mode
-                                  buffer/end-of-word
-                                  buffer/delete
-                                  buffer/set-insert-mode)))
-                      "(" (fn [] (non-repeat-fun #(set-insert-mode (delete-region % (shrink-region % (buffer/paren-region %))))))
-                      "[" (fn [] (non-repeat-fun #(set-insert-mode (delete-region % (shrink-region % (buffer/bracket-region %))))))
-                      "{" (fn [] (non-repeat-fun #(set-insert-mode (delete-region % (shrink-region % (buffer/brace-region %))))))}}
+                 "i" {"w" (fn [] (non-repeat-fun #(->> % buffer/word-region (delete-region %) set-insert-mode)))
+                      "(" (fn [] (non-repeat-fun #(->> % buffer/paren-region (shrink-region %) (delete-region %) set-insert-mode)))
+                      "[" (fn [] (non-repeat-fun #(->> % buffer/bracket-region (shrink-region %) (delete-region %) set-insert-mode)))
+                      "{" (fn [] (non-repeat-fun #(->> % buffer/brace-region (shrink-region %) (delete-region %) set-insert-mode)))}}
             "/" (fn [] (reset-repeat-counter)
                        (switch-to-buffer "*minibuffer*")
                        (non-repeat-fun #(-> % buffer/clear (buffer/insert-char \/))))

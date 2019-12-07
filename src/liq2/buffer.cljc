@@ -856,6 +856,17 @@
              true (recur (right b))))))
   ([buf n] (nth (iterate end-of-word buf) n)))
 
+(defn word-region
+  ([buf]
+   (let [b1 (-> buf left end-of-word)]
+     (region (-> b1 beginning-of-word get-point)
+             (-> b1 get-point))))
+  ([buf p]
+   (word-region (set-point buf p))))
+
+(comment (word-region (buffer "aaa bbb ccc") (point 1 5)))
+(comment (word-region (buffer "aaa bbb ccc")))
+
 (defn word-forward
   ([buf]
    (loop [b (or (next-point buf) buf)]
