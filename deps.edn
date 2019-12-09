@@ -10,4 +10,10 @@
    :dev
     {:extra-deps {nrepl/nrepl {:mvn/version "0.6.0"}},
      :main-opts ["-m" "nrepl.cmdline" "--port" "12000" "--interactive" "debug=true"],
-     :extra-paths ["test"]}}}
+     :extra-paths ["test"]}
+   :uberjar
+    {:extra-deps {luchiniatwork/cambada {:mvn/version "1.0.0"}}
+     :main-opts ["-m" "cambada.uberjar" "-m" "liq2.core"]}
+   :native-image
+    {:extra-deps {luchiniatwork/cambada {:mvn/version "1.0.0"}}
+     :main-opts ["-m" "cambada.native-image"  "-m" "liq2.core"]}}}

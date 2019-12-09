@@ -71,7 +71,7 @@
 
 (defn buffer-footprint
   [buf]
-  [(buffer/get-rows buf) (buffer/get-cols buf) (buffer/get-name buf) (buffer/get-filename buf)])
+  [(buffer/get-window buf) (buffer/get-name buf) (buffer/get-filename buf)])
 
 ;(defn calculate-wrapped-row-dist
 ;  [buf cols row1 row2]
@@ -104,10 +104,11 @@
 (defn print-buffer
   [buf]
   (let [cache-id (buffer-footprint buf)
-        left (buffer/get-left buf)
-        top (buffer/get-top buf)
-        rows (buffer/get-rows buf)
-        cols (buffer/get-cols buf)
+        w (buffer/get-window buf)
+        left (buffer/get-window-left w)
+        top (buffer/get-window-top w)
+        rows (buffer/get-window-rows w)
+        cols (buffer/get-window-cols w)
         tow (buffer/get-tow buf) ; (recalculate-tow buf rows cols (or (@tow-cache cache-id) {:row 1 :col 1}))
         crow (buffer/get-row buf)
         ccol (buffer/get-col buf)]

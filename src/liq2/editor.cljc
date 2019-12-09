@@ -9,19 +9,20 @@
                   ::modes {}
                   ::settings {:auto-switch-to-output true}
                   ::exit-handler nil
-                  ::dimensions nil
+                  ::window nil
                   ::output-handler nil}))
 
 (def ^:private macro-seq (atom ())) ; Macrofunctionality might belong to input handler.
 (def ^:private macro-record (atom false))
 
-(defn get-dimensions
+(defn get-window
   []
-  (if-let [d (@state ::dimensions)]
-    d
-    (let [d ((-> @state ::output-handler :dimensions))]
-      (swap! state assoc ::dimensions d)
-      d)))
+  (if-let [w (@state ::window)]
+    w
+    (let [d ((-> @state ::output-handler :dimensions))
+          w (buffer/window 1 1 (d :rows) (d :cols))]
+      (swap! state assoc ::window w)
+      w)))
 
 (defn set-setting
   [keyw value]
@@ -239,11 +240,12 @@
   (let [id (util/counter-next)
         o (if (options :rows)
             options
-            (let [b (get-current-buffer)] ;; TODO If there is no current-buffer, there will be a problem!
-              (assoc options :top (buffer/get-top b)
-                             :left (buffer/get-left b)
-                             :rows (buffer/get-rows b)
-                             :cols (buffer/get-cols b)))) 
+            (let [b (get-current-buffer) ;; TODO If there is no current-buffer, there will be a problem!
+                  w (buffer/get-window b)] 
+              (assoc options :top (buffer/get-window-top w)
+                             :left (buffer/get-window-left w)
+                             :rows (buffer/get-window-rows w)
+                             :cols (buffer/get-window-cols w)))) 
         buf (assoc (buffer/buffer text o) ::id id ::idx id)]
     (swap! state update ::buffers assoc id buf) 
     (highlight-buffer id)

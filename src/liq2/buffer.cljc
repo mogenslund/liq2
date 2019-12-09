@@ -19,6 +19,13 @@
   [p1 p2]
   [p1 p2])
 
+(defn window
+  [top left rows cols]
+  {::top top
+   ::left left
+   ::rows rows
+   ::cols cols})
+
 (defn buffer
   ([text {:keys [name filename top left rows cols major-mode mode] :as options}]
    (let [lines (mapv (fn [l] (mapv #(hash-map ::char %) l)) (str/split text #"\r?\n" -1))]
@@ -30,10 +37,7 @@
       ::line-ending "\n" 
       ::cursor (point 1 1)
       ::selection nil
-      ::top (or top 1)
-      ::left (or left 1)
-      ::rows (or rows 1)
-      ::cols (or cols 80)
+      ::window (window (or top 1) (or left 1) (or rows 1) (or cols 80))
       ::mem-col 1                ; Remember column when moving up and down
       ::tow (point 1 1)          ; Top of window
       ::mode (or mode :normal)
@@ -90,9 +94,19 @@
 ;; Information
 ;; ===========
 
-(defn set-dimensions
-  [buf top left rows cols]
-  (assoc buf ::top top ::left left ::rows rows ::cols cols))
+(defn set-window
+  [buf window]
+  (assoc buf ::window window))
+
+(defn get-window
+  [buf]
+  (buf ::window))
+
+(defn get-window-top [w] (w ::top))
+(defn get-window-left [w] (w ::left))
+(defn get-window-rows [w] (w ::rows))
+(defn get-window-cols [w] (w ::cols))
+
 
 (defn get-name [buf] (buf ::name))
 
@@ -123,18 +137,6 @@
 (defn get-col [buf] (-> buf ::cursor ::col))
 
 (defn get-row [buf] (-> buf ::cursor ::row))
-
-(defn set-top [buf n] (assoc buf ::top n))
-(defn get-top [buf] (buf ::top))
-
-(defn set-left [buf n] (assoc buf ::left n))
-(defn get-left [buf] (buf ::left))
-
-(defn set-rows [buf n] (assoc buf ::rows n))
-(defn get-rows [buf] (buf ::rows))
-
-(defn set-cols [buf n] (assoc buf ::cols n))
-(defn get-cols [buf] (buf ::cols))
 
 (defn set-point
   ([buf p] (assoc buf ::cursor p))
@@ -899,9 +901,10 @@
 
 (defn update-tow
   [buf]
-  (set-tow buf (recalculate-tow buf (get-rows buf) (get-cols buf) (get-tow buf)))
+  (let [w (get-window buf)]
+    (set-tow buf (recalculate-tow buf (get-window-rows w) (get-window-cols w) (get-tow buf)))
   ;(set-tow buf (point 1 1))
-  )
+    ))
 
 (comment (update-tow (buffer "ab[[cd]\nx[asdf]yz]")))
 

@@ -7,11 +7,13 @@
             [liq2.modes.typeahead-mode :as typeahead-mode]
             [liq2.modes.clojure-mode :as clojure-mode]
             [liq2.modes.info-dialog-mode :as info-dialog-mode]
+            [liq2.extras.cool-stuff :as cool-stuff]
             [liq2.buffer :as buffer]
             [liq2.editor :as editor]
             [liq2.tty-input :as input]
             [liq2.util :as util]
-            [liq2.tty-output :as output]))
+            [liq2.tty-output :as output])
+  (:gen-class))
 
 ;; clj -m liq2.experiments.core
 (defn -main
@@ -27,7 +29,9 @@
   (editor/set-output-handler output/output-handler)
   (editor/set-exit-handler input/exit-handler)
   (input/input-handler editor/handle-input)
-  (let [{:keys [:rows :cols]} (editor/get-dimensions)]
+  (let [w (editor/get-window)
+        rows (buffer/get-window-rows w)
+        cols (buffer/get-window-cols w)]
     ;(editor/paint-buffer)
     (editor/new-buffer "" {:name "*status-line*" :top rows :left 1 :rows 1 :cols cols
                         :major-mode :fundamental-mode :mode :insert})
@@ -39,4 +43,5 @@
     ;(editor/new-buffer "" {:top 1 :left 1 :rows (- rows 7) :cols cols :major-mode :clojure-mode})
     (editor/new-buffer "" {:name "output" :top 1 :left 1 :rows (- rows 1) :cols cols :mode :normal})
     (editor/new-buffer "" {:name "scratch" :top 1 :left 1 :rows (- rows 1) :cols cols :major-mode :clojure-mode})
-    (editor/paint-buffer)))
+    (editor/paint-buffer)
+    (cool-stuff/load-cool-stuff)))
