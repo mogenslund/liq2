@@ -36,7 +36,9 @@
 
 (defn execute
   []
-  (let [content (buffer/get-text (editor/get-current-buffer))]
+  (let [content (buffer/get-text (editor/get-current-buffer))
+        ;[command param] (str/split content #" " 2)
+        ]
     (apply-to-buffer buffer/clear)
     (editor/paint-buffer)
     (editor/previous-buffer)
@@ -51,6 +53,7 @@
           (= content ":bd") (editor/kill-buffer)
           (= content ":bd!") (editor/force-kill-buffer)
           (= content ":t1") (editor/highlight-buffer)
+          (= content ":ts") (editor/message (buffer/sexp-at-point (editor/get-current-buffer)))
           (= content ":t2") (editor/message (buffer/get-word (editor/get-current-buffer)))
           (= content ":t3") (((editor/get-mode :typeahead-mode) :init) ["aaa" "bbb" "aabb" "ccc"] str buffer/insert-string) 
           (= content ":t4") (editor/message (pr-str (buffer/get-line (editor/get-current-buffer) 1)))
@@ -62,7 +65,8 @@
           (= (subs content 0 1) "/") (apply-to-buffer #(buffer/search % (subs content 1))))))
 
 (def mode
-  {:insert {"esc" editor/previous-buffer
+  {:commands {":tt" (fn [t] (editor/message (buffer/sexp-at-point (editor/get-current-buffer))))}
+   :insert {"esc" editor/previous-buffer
             "backspace" (fn [] (apply-to-buffer #(if (> (buffer/get-col %) 1) (-> % buffer/left buffer/delete-char) %)))
             "\n" execute}
    :normal {"esc" (fn [] (apply-to-buffer #(buffer/set-mode % :insert)))

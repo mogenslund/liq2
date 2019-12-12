@@ -33,7 +33,7 @@
       ::filename filename
       ::lines lines
       ::lines-undo ()  ;; Conj lines into this when doing changes
-      ::lines-stack (list lines) ;; To use in connection with undo
+      ::lines-stack (list {::lines lines ::cursor (point 1 1)}) ;; To use in connection with undo
       ::line-ending "\n" 
       ::cursor (point 1 1)
       ::selection nil
@@ -72,7 +72,7 @@
 (defn set-undo-point
   "Return new lines with the current lines to the undo stack."
   [buf]
-  (let [newstack (conj (buf ::lines-stack) (buf ::lines))]
+  (let [newstack (conj (buf ::lines-stack) (select-keys buf [::lines ::cursor]))]
     (assoc buf ::lines-stack newstack
                ::lines-undo newstack)))
 
@@ -81,7 +81,8 @@
   [buf]
   (if (empty? (buf ::lines-undo))
     buf
-    (assoc buf ::lines (-> buf ::lines-undo first)
+    (assoc buf ::lines (-> buf ::lines-undo first ::lines)
+               ::cursor (-> buf ::lines-undo first ::cursor)
                ::lines-stack (conj (buf ::lines-stack) (-> buf ::lines-undo first))
                ::lines-undo (rest (buf ::lines-undo)))))
 

@@ -60,6 +60,15 @@
                   ") " sexp ")"))))
             (catch Exception e (println (util/pretty-exception e)))))))))
 
+(defn raw-eval-sexp-at-point
+  [buf]
+  (reset-repeat-counter) 
+  (let [sexp (if (= (buffer/get-mode buf) :visuel) (buffer/get-selected-text buf) (buffer/sexp-at-point buf))
+        namespace (or (get-namespace buf) "user")]
+    (try
+      (load-string
+        (str "(do (ns " namespace ") (in-ns '" namespace ") " sexp ")"))
+      (catch Exception e (println (util/pretty-exception e))))))
 
 (defn tmp-get-text
   []
@@ -199,7 +208,8 @@
                                                                        (buffer/set-tow (buffer/point (first res) 1))))))))
 
 (def mode
-  {:insert {"esc" (fn [] (apply-to-buffer #(buffer/left (buffer/set-normal-mode %))))
+  {:commands {":ts" #(editor/message (str % " -- " (buffer/sexp-at-point (editor/get-current-buffer))))}
+   :insert {"esc" (fn [] (apply-to-buffer #(buffer/left (buffer/set-normal-mode %))))
             "backspace" #(non-repeat-fun buffer/delete-backward)}
    :normal {"esc" #(reset! repeat-counter "0") 
             "C- " #(((editor/get-mode :buffer-chooser-mode) :init))
@@ -261,6 +271,7 @@
             "D" #(non-repeat-fun buffer/delete-to-line-end)
             "r" {:selfinsert (fn [buf c] (reset-repeat-counter) (buffer/set-char buf (first c)))}
             "c" {"p" {"p" #(eval-sexp-at-point (editor/get-current-buffer))
+                      "r" #(raw-eval-sexp-at-point (editor/get-current-buffer))
                       "t" tmp-print-buffer
                       "f" evaluate-file-raw}
                  "i" {"w" (fn [] (non-repeat-fun #(->> % buffer/word-region (delete-region %) set-insert-mode)))
@@ -283,7 +294,8 @@
             "q" editor/run-macro
             "o" #(non-repeat-fun buffer/append-line)}
     :visual {"esc" #(non-repeat-fun buffer/set-normal-mode)
-             "c" {"p" {"p" #(eval-sexp-at-point (editor/get-current-buffer))}}
+             "c" {"p" {"p" #(eval-sexp-at-point (editor/get-current-buffer))
+                       "r" #(raw-eval-sexp-at-point (editor/get-current-buffer))}}
              "y" #(apply-to-buffer copy-selection-to-clipboard)
              "d" #(apply-to-buffer delete)
              }})

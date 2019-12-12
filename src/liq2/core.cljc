@@ -13,7 +13,7 @@
             [liq2.tty-input :as input]
             [liq2.util :as util]
             [liq2.tty-output :as output])
-  (:gen-class))
+  #?(:clj (:gen-class)))
 
 ;; clj -m liq2.experiments.core
 (defn -main
