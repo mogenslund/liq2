@@ -10,22 +10,6 @@
 ;; ord delete-word.
 ;; In addition: change-outer-word, etc.
 
-(defn point
-  [row col]
-  {::row row
-   ::col col})
-
-(defn region
-  [p1 p2]
-  [p1 p2])
-
-(defn window
-  [top left rows cols]
-  {::top top
-   ::left left
-   ::rows rows
-   ::cols cols})
-
 (defn buffer
   ([text {:keys [name filename top left rows cols major-mode mode] :as options}]
    (let [lines (mapv (fn [l] (mapv #(hash-map ::char %) l)) (str/split text #"\r?\n" -1))]
@@ -33,13 +17,13 @@
       ::filename filename
       ::lines lines
       ::lines-undo ()  ;; Conj lines into this when doing changes
-      ::lines-stack (list {::lines lines ::cursor (point 1 1)}) ;; To use in connection with undo
+      ::lines-stack (list {::lines lines ::cursor {::row 1 ::col 1}}) ;; To use in connection with undo
       ::line-ending "\n" 
-      ::cursor (point 1 1)
+      ::cursor {::row 1 ::col 1}
       ::selection nil
-      ::window (window (or top 1) (or left 1) (or rows 1) (or cols 80))
+      ::window {::top (or top 1) ::left (or left 1) ::rows (or rows 1) ::cols (or cols 80)}
       ::mem-col 1                ; Remember column when moving up and down
-      ::tow (point 1 1)          ; Top of window
+      ::tow {::row 1 ::col 1}    ; Top of window
       ::mode (or mode :normal)
       ::encoding :utf-8          ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
       ::search-word ""
@@ -95,14 +79,6 @@
 ;; Information
 ;; ===========
 
-(defn set-window
-  [buf window]
-  (assoc buf ::window window))
-
-(defn get-window
-  [buf]
-  (buf ::window))
-
 (defn get-window-top [w] (w ::top))
 (defn get-window-left [w] (w ::left))
 (defn get-window-rows [w] (w ::rows))
@@ -141,7 +117,7 @@
 
 (defn set-point
   ([buf p] (assoc buf ::cursor p))
-  ([buf row col] (set-point buf (point row col))))
+  ([buf row col] (set-point buf {::row row ::col col})))
 
 (defn get-point
   [buf]
@@ -153,7 +129,7 @@
 
 (defn set-selection
   ([buf p] (assoc buf ::selection p))
-  ([buf row col] (set-selection buf (point row col)))
+  ([buf row col] (set-selection buf {::row row ::col col}))
   ([buf] (set-selection buf (get-point buf))))
 
 (defn get-selection
@@ -255,10 +231,10 @@
   ([buf r] (get-text buf (first r) (second r))))
 
 (comment
-  (get-text (buffer "abcdefg\n1234567\nABCDEF" {}) (point 1 1) (point 2 3))
-  (get-text (buffer "abcdefg\n1234567\nABCDEF" {}) (point 1 2) (point 2 3))
-  (get-text (buffer "abcdefg\n1234567\nABCDEF" {}) (point 2 2) (point 2 3))
-  (get-text (buffer "abcdefg\n\nABCDEF\n\n" {}) (point 1 2) (point 6 1))
+  (get-text (buffer "abcdefg\n1234567\nABCDEF" {}) {::row 1 ::col 1} {::row 2 ::col 3})
+  (get-text (buffer "abcdefg\n1234567\nABCDEF" {}) {::row 1 ::col 2} {::row 2 ::col 3})
+  (get-text (buffer "abcdefg\n1234567\nABCDEF" {}) {::row 2 ::col 2} {::row 2 ::col 3})
+  (get-text (buffer "abcdefg\n\nABCDEF\n\n" {}) {::row 1 ::col 2} {::row 6 ::col 1} )
 )
 
 (defn previous-point
@@ -267,40 +243,40 @@
   The previous point will be returned or nil, if the
   input is the first point"  
   ([buf p]
-   (cond (> (p ::col) 1) (point (p ::row) (dec (p ::col)))
-         (> (p ::row) 1) (point (dec (p ::row)) (col-count buf (dec (p ::row)))))) 
-  ([buf] (if (= (get-point buf) (point 1 1))
+   (cond (> (p ::col) 1) (update-in p [::col] dec)
+         (> (p ::row) 1) {::row (dec (p ::row)) ::col (col-count buf (dec (p ::row)))})) 
+  ([buf] (if (= (get-point buf) {::row 1 ::col 1})
            buf
            (set-point buf (previous-point buf (get-point buf))))))
 
 (defn next-point
   ([buf p]
-   (cond (< (p ::col) (col-count buf (p ::row))) (point (p ::row) (inc (p ::col)))
-         (< (p ::row) (line-count buf)) (point (inc (p ::row)) (min 1 (col-count buf (inc (p ::row))))))) 
+   (cond (< (p ::col) (col-count buf (p ::row))) (update-in p [::col] inc)
+         (< (p ::row) (line-count buf)) {::row (inc (p ::row)) ::col (min 1 (col-count buf (inc (p ::row))))})) 
   ([buf] (if-let [p (next-point buf (get-point buf))]
            (set-point buf p)
            buf)))
 
-(comment (next-point (buffer "aaa\n\nbbb\nccc") (point 5 1)))
-(comment (previous-point (buffer "aaa\n\nbbb\nccc") (point 2 1)))
-(comment (previous-point (buffer "aaa\n\nbbb\nccc") (point 1 1)))
+(comment (next-point (buffer "aaa\n\nbbb\nccc") {::row 5 ::col 1}))
+(comment (previous-point (buffer "aaa\n\nbbb\nccc") {::row 2 ::col 1}))
+(comment (previous-point (buffer "aaa\n\nbbb\nccc") {::row 1 ::col 1}))
 (comment
   (let [buf (buffer "aaa\n\nbbb\nccc")]
-    (loop [p (point 4 3)]
+    (loop [p {::row 4 ::col 3}]
       (when (previous-point buf p)
         (println (previous-point buf p))
         (recur (previous-point buf p))))))
 
 (defn end-point
   [buf]
-  (point (line-count buf) (col-count buf (line-count buf))))
+  {::row (line-count buf) ::col (col-count buf (line-count buf))})
 
 (comment
   (end-point (buffer "aaaa bbbb\nccc")))
 
 (defn start-point
   [buf]
-  (point 1 1))
+  {::row 1 ::col 1})
 
 (defn get-selected-text
   [buf]
@@ -316,7 +292,7 @@
            (and (<= (point-compare s p) 0) (<= (point-compare p c) 0)) true
            (and (<= (point-compare c p) 0) (<= (point-compare p s) 0)) true
            true false)))
-   ([buf row col] (selected? buf (point row col))))
+   ([buf row col] (selected? buf {::row row ::col col})))
 
 ;; Movements
 ;; =========
@@ -327,7 +303,7 @@
          maxcol (+ (count linevec) (if (= (get-mode buf) :insert) 1 0))
          newcol (max 1 (min maxcol (+ (get-col buf) n)))]
      (-> buf
-         (set-point (point (get-row buf) newcol))
+         (set-point {::row (get-row buf) ::col newcol})
          (assoc ::mem-col newcol)))) 
   ([buf]
    (right buf 1)))
@@ -344,7 +320,7 @@
          linevec (-> buf ::lines (get (dec newrow)))
          maxcol (+ (count linevec) (if (= (get-mode buf) :insert) 1 0))
          newcol (max 1 (min maxcol (buf ::mem-col)))]
-     (set-point buf (point newrow newcol)))) 
+     (set-point buf {::row newrow ::col newcol}))) 
   ([buf]
    (down buf 1)))
 
@@ -357,26 +333,26 @@
 (defn end-of-line
   [buf]
   (-> buf
-      (set-point (point (get-row buf) (col-count buf (get-row buf)))) 
+      (set-point {::row (get-row buf) ::col (col-count buf (get-row buf))}) 
       (assoc ::mem-col (col-count buf (get-row buf)))))
 
 (defn beginning-of-line
   [buf]
   (-> buf
-      (set-point (point (get-row buf) 1)) 
+      (set-point {::row (get-row buf) ::col 1}) 
       (assoc ::mem-col 1)))
 
 (defn beginning-of-buffer
   [buf]
   (-> buf
-      (set-point (point 1 1)) 
+      (set-point {::row 1 ::col 1}) 
       (assoc ::mem-col 1)))
 
 
 (defn end-of-buffer
   [buf]
   (-> buf
-      (set-point (point (line-count buf) (col-count buf (line-count buf))))
+      (set-point {::row (line-count buf) ::col (col-count buf (line-count buf))})
       (assoc ::mem-col (col-count buf (line-count buf)))))
 
 ;; Modifications
@@ -419,7 +395,7 @@
 (comment
   
   (get-char (buffer "abcd\nxyz"))
-  (get-char (buffer "abcd\nxyz") (point 1 ))
+  (get-char (buffer "abcd\nxyz") {::row 1 ::col 1})
 
   (let [buf (buffer "abcd\nxyz")]
     (-> buf
@@ -488,8 +464,8 @@
   ([buf char]
    (-> buf
        (insert-char (get-row buf) (get-col buf) char)
-       (set-point (point (if (= char \newline) (inc (get-row buf)) (get-row buf))
-                         (if (= char \newline) 1 (inc (get-col buf))))))))
+       (set-point {::row (if (= char \newline) (inc (get-row buf)) (get-row buf))
+                   ::col (if (= char \newline) 1 (inc (get-col buf)))}))))
 
 
 (defn append-line
@@ -497,7 +473,7 @@
    (-> buf
        (set-dirty true)
        (update ::lines #(insert-in-vector % row []))
-       (set-point (point (inc (get-row buf)) 1))
+       (set-point {::row (inc (get-row buf)) ::col 1})
        (set-mode :insert)))
   ([buf]
    (append-line buf (get-row buf))))
@@ -516,7 +492,7 @@
   ([buf row]
    (if (<= (line-count buf) 1)
      (assoc buf ::lines [[]]
-             ::cursor (point 1 1)
+             ::cursor {::row 1 ::col 1}
              ::mem-col 1)
      (let [b1 (update buf ::lines #(remove-from-vector % row))
            newrow (min (line-count b1) row)
@@ -549,13 +525,13 @@
      buf)))
 
 
-(comment (pr-str (get-text (delete (buffer "aa\naa\naa") (point 1 2) (point 2 2)))))
-(comment (pr-str (get-text (delete (buffer "aa\nbb\ncc") (point 2 2) (point 3 2)))))
-(comment (pr-str (get-text (delete (buffer "aa\nbbccdd\nee") (point 2 3) (point 2 4)))))
-(comment (pr-str (get-text (delete (buffer "aa\nbb\ncc") (point 1 2) (point 3 2)))))
-(comment (pr-str (get-text (delete (buffer "aa\n\nbb\ncc") (point 1 1) (point 2 1)))))
-(comment (pr-str (get-text (delete (buffer "aa\n\nbb\ncc") (point 2 1) (point 4 2)))))
-(comment (pr-str (get-text (delete (buffer "aaaaS\nK\nTbbbb\nbbbb") (point 1 1) (point 2 0)))))
+(comment (pr-str (get-text (delete (buffer "aa\naa\naa") {::row 1 ::col 2} {::row 2 ::col 2}))))
+(comment (pr-str (get-text (delete (buffer "aa\nbb\ncc") {::row 2 ::col 2} {::row 3 ::col 2}))))
+(comment (pr-str (get-text (delete (buffer "aa\nbbccdd\nee") {::row 2 ::col 3} {::row 2 ::col 4}))))
+(comment (pr-str (get-text (delete (buffer "aa\nbb\ncc") {::row 1 ::col 2} {::row 3 ::col 2}))))
+(comment (pr-str (get-text (delete (buffer "aa\n\nbb\ncc") {::row 1 ::col 1} {::row 2 ::col 1}))))
+(comment (pr-str (get-text (delete (buffer "aa\n\nbb\ncc") {::row 2 ::col 1} {::row 4 ::col 2}))))
+(comment (pr-str (get-text (delete (buffer "aaaaS\nK\nTbbbb\nbbbb") {::row 1 ::col 1} {::row 2 ::col 0}))))
 
 
 
@@ -566,8 +542,8 @@
     (delete buf (first r) (second r))
     buf))
 
-(comment (get-text (delete-region (buffer "aaaa") (region (point 1 2) (point 1 4)))))
-(comment (pr-str (get-text (delete-region (buffer "aa\naa\naa") (region (point 1 2) (point 2 1))))))
+(comment (get-text (delete-region (buffer "aaaa") [{::row 1 ::col 2} {::row 1 ::col 4}])))
+(comment (pr-str (get-text (delete-region (buffer "aa\naa\naa") [{::row 1 ::col 2} {::row 2 ::col 1}]))))
 
 (defn shrink-region
   [buf r]
@@ -575,8 +551,8 @@
     (let [p1 (first r)
           p2 (second r)]
       (if (= (point-compare p1 p2) -1)
-        (region (next-point buf p1) (previous-point buf p2))
-        (region (previous-point buf p1) (next-point buf p2))))))
+        [(next-point buf p1) (previous-point buf p2)]
+        [(previous-point buf p1) (next-point buf p2)]))))
 
 (defn delete-backward
   [buf]
@@ -586,7 +562,7 @@
                (-> buf
                    (delete-line (get-row buf))
                    (update-in [::lines (- (get-row buf) 2)] #(into [] (concat % v)))
-                   (set-point (point (dec (get-row buf)) (inc (col-count buf (dec (get-row buf))))))))))
+                   (set-point {::row (dec (get-row buf)) ::col (inc (col-count buf (dec (get-row buf))))})))))
 
 (comment
   (let [buf (buffer "abcd\nxyz")]
@@ -603,27 +579,27 @@
 
 (defn delete-to-line-end
   [buf]
-  (left (delete-region buf (region (get-point buf) (point (get-row buf) (col-count buf (get-row buf)))))))
+  (left (delete-region buf [(get-point buf) {::row (get-row buf) ::col (col-count buf (get-row buf))}])))
 
 (defn clear
   [buf]
   (assoc buf ::lines [[]]
-             ::cursor (point 1 1)
+             ::cursor {::row 1 ::col 1} 
              ::mem-col 1))
 
 (defn split-buffer
   ([buf p]
    (if (= p (start-point buf))
      [(clear buf) buf]
-     [(delete-region buf (region p (end-point buf)))
-      (delete-region buf (region (start-point buf) (point (get-point-row p) (dec (get-point-col p)))))]))
+     [(delete-region buf [p (end-point buf)])
+      (delete-region buf [(start-point buf) {::row (get-point-row p) ::col (dec (get-point-col p))}])]))
   ([buf] (split-buffer buf (get-point buf))))
 
-(comment (map get-text (split-buffer (buffer "aaaaSTbbbb\nbbbb") (point 1 6))))
-(comment (map get-text (split-buffer (buffer "aaaaS\nK\nTbbbb\nbbbb") (point 2 1))))
-(comment (map get-text (split-buffer (buffer "aa") (point 1 1))))
-(comment (map get-text (split-buffer (buffer "aa") (point 2 10))))
-(comment (map get-text (split-buffer (buffer "aa\n\nccc") (point 2 1))))
+(comment (map get-text (split-buffer (buffer "aaaaSTbbbb\nbbbb") {::row 1 ::col 6})))
+(comment (map get-text (split-buffer (buffer "aaaaS\nK\nTbbbb\nbbbb") {::row 2 ::col 1})))
+(comment (map get-text (split-buffer (buffer "aa") {::row 1 ::col 1})))
+(comment (map get-text (split-buffer (buffer "aa") {::row 2 ::col 1})))
+(comment (map get-text (split-buffer (buffer "aa\n\nccc") {::row 2 ::col 1})))
 
 
 (defn append-buffer
@@ -648,8 +624,8 @@
    (insert-buffer buf (get-point buf) buf0)))
 
 (comment (pr-str (get-text (insert-buffer (buffer "aaa\n\nbbb") (buffer "")))))
-(comment (get-text (insert-buffer (buffer "aaaaabbbbb") (point 1 6) (buffer "cccc"))))
-(comment (get-text (insert-buffer (buffer "aaaaa\n\nbbbbb") (point 2 1) (buffer "cccc"))))
+(comment (get-text (insert-buffer (buffer "aaaaabbbbb") {::row 1 ::col 6} (buffer "cccc"))))
+(comment (get-text (insert-buffer (buffer "aaaaa\n\nbbbbb") {::row 2 ::col 1} (buffer "cccc"))))
 (comment (get-text (insert-buffer (buffer "aaaaabbbbb") (buffer "cccc"))))
 (comment (get-row (insert-buffer (buffer "aaaaabbbbb") (buffer "cccc"))))
 (comment (pr-str (get-text (insert-buffer (buffer "") (buffer "")))))
@@ -682,9 +658,9 @@
         (recur (previous-point buf p))))))
 
 (comment
-  (previous-point (buffer "aaa bbb ccc") (point 1 8))
-  (previous-point (buffer "aaa bbb ccc") (point 1 1))
-  (match-before (buffer "aaa bbb ccc") (point 1 8) #"a"))
+  (previous-point (buffer "aaa bbb ccc") {::row 1 ::col 8})
+  (previous-point (buffer "aaa bbb ccc") {::row 1 ::col 1})
+  (match-before (buffer "aaa bbb ccc") {::row 1 ::col 8} #"a"))
 
 
 (defn paren-match-before
@@ -724,21 +700,21 @@
   ([buf p]
    (let [p0 (paren-match-before buf (if (= (get-char buf p) \)) (previous-point buf p) p) \()
          p1 (when p0 (paren-match-after buf (next-point buf p0) \)))]
-     (when p1 (region p0 p1))))
+     (when p1 [p0 p1])))
   ([buf] (paren-region buf (get-point buf))))
 
 (defn bracket-region
   ([buf p]
    (let [p0 (paren-match-before buf (if (= (get-char buf p) \]) (previous-point buf p) p) \[)
          p1 (when p0 (paren-match-after buf (next-point buf p0) \]))]
-     (when p1 (region p0 p1))))
+     (when p1 [p0 p1])))
   ([buf] (bracket-region buf (get-point buf))))
 
 (defn brace-region
   ([buf p]
    (let [p0 (paren-match-before buf (if (= (get-char buf p) \}) (previous-point buf p) p) \{)
          p1 (when p0 (paren-match-after buf (next-point buf p0) \}))]
-     (when p1 (region p0 p1))))
+     (when p1 [p0 p1])))
   ([buf] (brace-region buf (get-point buf))))
 
 (comment (paren-region (buffer "(asdf)")))
@@ -747,10 +723,10 @@
 (defn line-region
   ([buf p]
    (when (<= (p ::row) (line-count buf))
-     (region (point (p ::row) 1) (point (p ::row) (col-count buf (p ::row))))))
+     [(assoc p ::col 1) (assoc p ::col (col-count buf (p ::row)))]))
   ([buf] (line-region buf (get-point buf)))) 
 
-(comment (line-region (buffer "abc\ndefhi") (point 2 2)))
+(comment (line-region (buffer "abc\ndefhi") {::row 2 ::col 2}))
   
 
 (defn paren-matching-region
@@ -761,7 +737,7 @@
   [buf p]
   (let [pbegin (start-point buf)
         pend (end-point buf)
-        ncol (fn [p0] (point (p0 ::row) (inc (p0 ::col))))
+        ncol (fn [p0] (update p0 ::col inc))
         pmatch {\( \) \) \( \{ \} \} \{ \[ \] \] \[}
         p1 (loop [p0 p]
              (cond (nil? (get-char buf p0)) nil 
@@ -777,14 +753,14 @@
                   nnext (cond (= c par1) (inc n)
                               (= c par2) (dec n)
                               true n)]
-              (cond (= nnext 0) (region p1 p0)
+              (cond (= nnext 0) [p1 p0]
                     (= p0 start-point) nil
                     (= p0 end-point) nil
                     true (recur (direction buf p0) nnext)))))))))
 
-(comment (paren-region (buffer "ab (cde\naaa bbb (ccc))") (point 2 5)))
-(comment (paren-region (buffer "ab (cde\naaa bbb (ccc))") (point 2 5)))
-(comment (pr-str (paren-region (buffer "ab cde\naaa bbb ccc") (point 2 3))))
+(comment (paren-region (buffer "ab (cde\naaa bbb (ccc))") {::row 2 ::col 5}))
+(comment (paren-region (buffer "ab (cde\naaa bbb (ccc))") {::row 2 ::col 5}))
+(comment (pr-str (paren-region (buffer "ab cde\naaa bbb ccc") {::row 2 ::col 3})))
 
 (defn move-matching-paren
   [buf]
@@ -837,7 +813,7 @@
      (let [p (get-point b)
            c (str (get-char b))
            is-word (re-matches #"\w" c)]
-       (cond (= p (point 1 1)) b 
+       (cond (= p {::row 1 ::col 1}) b 
              (and is-word (= (p ::col) 1)) b
              (= (p ::col) 1) (recur (previous-point b))
              (and is-word (re-matches #"\W" (str (get-char (left b))))) b
@@ -853,7 +829,7 @@
            cols (col-count b (p ::row))
            c (str (get-char b))
            is-word (re-matches #"\w" c)]
-       (cond (= p (point rows cols)) b 
+       (cond (= p {::row rows ::col cols}) b 
              (and is-word (= (p ::col) cols)) b
              (= (p ::col) cols) (recur (next-point b))
              (and is-word (re-matches #"\W" (str (get-char (right b))))) b
@@ -863,12 +839,12 @@
 (defn word-region
   ([buf]
    (let [b1 (-> buf left end-of-word)]
-     (region (-> b1 beginning-of-word get-point)
-             (-> b1 get-point))))
+     [(-> b1 beginning-of-word get-point)
+             (-> b1 get-point)]))
   ([buf p]
    (word-region (set-point buf p))))
 
-(comment (word-region (buffer "aaa bbb ccc") (point 1 5)))
+(comment (word-region (buffer "aaa bbb ccc") {::row 1 ::col 5}))
 (comment (word-region (buffer "aaa bbb ccc")))
 
 (defn word-forward
@@ -879,7 +855,7 @@
            cols (col-count b (p ::row))
            c (str (get-char b))
            is-word (re-matches #"\w" c)]
-       (cond (= p (point rows cols)) b 
+       (cond (= p {::row rows ::col cols}) b 
              (and is-word (= (p ::col) 1)) b
              (and is-word (re-matches #"\W" (str (get-char (left b))))) b
              true (recur (next-point b))))))
@@ -902,9 +878,9 @@
 
 (defn update-tow
   [buf]
-  (let [w (get-window buf)]
-    (set-tow buf (recalculate-tow buf (get-window-rows w) (get-window-cols w) (get-tow buf)))
-  ;(set-tow buf (point 1 1))
+  (let [w (buf ::window)]
+    (set-tow buf (recalculate-tow buf (w ::rows) (w ::cols) (get-tow buf)))
+  ;(set-tow buf {::row 1 ::col 1})
     ))
 
 (comment (update-tow (buffer "ab[[cd]\nx[asdf]yz]")))
@@ -936,24 +912,24 @@
 (comment
 
   (let [buf (buffer "ab[[cd]\nx[asdf]yz]")]
-    (paren-match-before buf (point 2 8) \[))
+    (paren-match-before buf {::row 2 ::col 8} \[))
 
   (let [buf (buffer "aaa bbb ccc")]
-    (beginning-of-word (set-point buf (point 1 8))))
+    (beginning-of-word (set-point buf {::row 1 ::col 8})))
 
   (let [buf (buffer "aaa bbb ccc")]
-    (match-before buf (point 1 8) #"a"))
+    (match-before buf {::row 1 ::col 8} #"a"))
 
   (pr-str (get-line (buffer "") 2))
   
   (let [buf (buffer "ab[[cd]\nx[asdf]yz]")]
-    (paren-match-before buf (point 1 3) \]))
+    (paren-match-before buf {::row 1 ::col 3} \]))
 
   (let [buf (buffer "ab((cd)\nx(asdf)yz)")]
-    (paren-match-before buf (point 2 5) \)))
+    (paren-match-before buf {::row 2 ::col 5} \)))
 
   (let [buf (buffer "ab((cd)\nx(asdf)yz)")]
-    (sexp-at-point buf (point 2 2)))
+    (sexp-at-point buf {::row 2 ::col 2}))
 
   (let [buf (buffer "abcd\nxyz")]
     (-> buf

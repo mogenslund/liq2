@@ -41,7 +41,7 @@
     (when (> (buffer/get-row buf) 1)
       (if (util/folder? path)
         (do 
-          (apply-to-buffer #(buffer/set-point % (buffer/point 1 1)))
+          (apply-to-buffer #(buffer/set-point % {::buffer/row 1 ::buffer/col 1}))
           (editor/paint-buffer)
           (apply-to-buffer #(load-content % path))
           (editor/highlight-buffer))

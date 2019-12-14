@@ -30,8 +30,8 @@
   (editor/set-exit-handler input/exit-handler)
   (input/input-handler editor/handle-input)
   (let [w (editor/get-window)
-        rows (buffer/get-window-rows w)
-        cols (buffer/get-window-cols w)]
+        rows (w ::buffer/rows)
+        cols (w ::buffer/cols w)]
     ;(editor/paint-buffer)
     (editor/new-buffer "" {:name "*status-line*" :top rows :left 1 :rows 1 :cols cols
                         :major-mode :fundamental-mode :mode :insert})

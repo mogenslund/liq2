@@ -20,7 +20,7 @@
   (if-let [w (@state ::window)]
     w
     (let [d ((-> @state ::output-handler :dimensions))
-          w (buffer/window 1 1 (d :rows) (d :cols))]
+          w {::buffer/top 1 ::buffer/left 1 ::buffer/rows (d :rows) ::buffer/cols (d :cols)}]
       (swap! state assoc ::window w)
       w)))
 
@@ -241,11 +241,11 @@
         o (if (options :rows)
             options
             (let [b (get-current-buffer) ;; TODO If there is no current-buffer, there will be a problem!
-                  w (buffer/get-window b)] 
-              (assoc options :top (buffer/get-window-top w)
-                             :left (buffer/get-window-left w)
-                             :rows (buffer/get-window-rows w)
-                             :cols (buffer/get-window-cols w)))) 
+                  w (b ::buffer/window)] 
+              (assoc options :top (w ::buffer/top)
+                             :left (w ::buffer/left)
+                             :rows (w ::buffer/rows)
+                             :cols (w ::buffer/cols)))) 
         buf (assoc (buffer/buffer text o) ::id id ::idx id)]
     (swap! state update ::buffers assoc id buf) 
     (highlight-buffer id)

@@ -5,32 +5,32 @@
 (deftest right-test
   (testing "Forward char"
     (let [buf (buffer "abc\n\ndef")]
-      (is (= (get-point buf) (point 1 1)))
+      (is (= (get-point buf) {:liq2.buffer/row 1 :liq2.buffer/col 1}))
       (is (= (-> buf
                  right
                  get-point)
-             (point 1 2)))
+             {:liq2.buffer/row 1 :liq2.buffer/col 2}))
       (is (= (-> buf
                  (right 10)
                  get-point)
-             (point 1 3)))
+             {:liq2.buffer/row 1 :liq2.buffer/col 3}))
       (is (= (-> buf
                  down
                  right
                  get-point)
-             (point 2 1))))))
+             {:liq2.buffer/row 2 :liq2.buffer/col 1})))))
 
 (deftest get-text-test
   (testing "Get text"
     (let [buf (buffer "abc\n\ndef")]
       (is (= (get-text buf) "abc\n\ndef"))
-      (is (= (get-text buf (point 1 1) (point 1 10)) "abc"))
-      (is (= (get-text buf (point 1 1) (point 1 3)) "abc"))
-      (is (= (get-text buf (point 1 4) (point 2 1)) "\n"))
-      (is (= (get-text buf (point 1 4) (point 9 1)) "\n\ndef"))
-      (is (= (get-text buf (point 4 10) (point 4 20)) ""))
-      (is (= (get-text buf (point 5 1) (point 5 2)) ""))
-      (is (= (get-text buf (point 1 10) (point 1 1)) "abc")))))
+      (is (= (get-text buf {:liq2.buffer/row 1 :liq2.buffer/col 1} {:liq2.buffer/row 1 :liq2.buffer/col 10}) "abc"))
+      (is (= (get-text buf {:liq2.buffer/row 1 :liq2.buffer/col 1} {:liq2.buffer/row 1 :liq2.buffer/col 3}) "abc"))
+      (is (= (get-text buf {:liq2.buffer/row 1 :liq2.buffer/col 4} {:liq2.buffer/row 2 :liq2.buffer/col 1}) "\n"))
+      (is (= (get-text buf {:liq2.buffer/row 1 :liq2.buffer/col 4} {:liq2.buffer/row 9 :liq2.buffer/col 1}) "\n\ndef"))
+      (is (= (get-text buf {:liq2.buffer/row 4 :liq2.buffer/col 10} {:liq2.buffer/row 4 :liq2.buffer/col 20}) ""))
+      (is (= (get-text buf {:liq2.buffer/row 5 :liq2.buffer/col 1} {:liq2.buffer/row 5 :liq2.buffer/col 2}) ""))
+      (is (= (get-text buf {:liq2.buffer/row 1 :liq2.buffer/col 10} {:liq2.buffer/row 1 :liq2.buffer/col 1}) "abc")))))
 
 (defn random-string
   [len]

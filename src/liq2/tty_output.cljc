@@ -71,7 +71,7 @@
 
 (defn buffer-footprint
   [buf]
-  [(buffer/get-window buf) (buffer/get-name buf) (buffer/get-filename buf)])
+  [(buf ::buffer/window) (buf ::buffer/name) (buf ::buffer/file-name)])
 
 ;(defn calculate-wrapped-row-dist
 ;  [buf cols row1 row2]
@@ -104,14 +104,14 @@
 (defn print-buffer
   [buf]
   (let [cache-id (buffer-footprint buf)
-        w (buffer/get-window buf)
-        left (buffer/get-window-left w)
-        top (buffer/get-window-top w)
-        rows (buffer/get-window-rows w)
-        cols (buffer/get-window-cols w)
+        w (buf ::buffer/window)
+        top (w ::buffer/top)
+        left (w ::buffer/left)
+        rows (w ::buffer/rows)
+        cols (w ::buffer/cols)
         tow (buffer/get-tow buf) ; (recalculate-tow buf rows cols (or (@tow-cache cache-id) {:row 1 :col 1}))
-        crow (buffer/get-row buf)
-        ccol (buffer/get-col buf)]
+        crow (-> buf ::buffer/cursor ::buffer/row)
+        ccol (-> buf ::buffer/cursor ::buffer/col)]
   ;(swap! tow-cache assoc cache-id tow)
   (when (= cache-id @last-buffer)
     (tty-print "█")) ; To make it look like the cursor is still there while drawing.

@@ -204,8 +204,8 @@
                                                (fn [res]
                                                  (editor/previous-buffer)
                                                  (apply-to-buffer #(-> %
-                                                                       (buffer/set-point (buffer/point (first res) 1))
-                                                                       (buffer/set-tow (buffer/point (first res) 1))))))))
+                                                                       (buffer/set-point {::buffer/row (first res) ::buffer/col 1})
+                                                                       (buffer/set-tow {::buffer/row (first res) ::buffer/col 1})))))))
 
 (def mode
   {:commands {":ts" #(editor/message (str % " -- " (buffer/sexp-at-point (editor/get-current-buffer))))}
@@ -257,8 +257,8 @@
                  "i" #(typeahead-defs (editor/get-current-buffer))
                  "f" open-file-at-point}
             "G" #(non-repeat-fun buffer/end-of-buffer)
-            "z" {"t" (fn [] (non-repeat-fun #(buffer/set-tow % (buffer/point (buffer/get-row %) 1))))
-                 "\n" (fn [] (non-repeat-fun #(buffer/set-tow % (buffer/point (buffer/get-row %) 1))))}
+            "z" {"t" (fn [] (non-repeat-fun #(buffer/set-tow % {::buffer/row (buffer/get-row %) ::buffer/col 1})))
+                 "\n" (fn [] (non-repeat-fun #(buffer/set-tow % {::buffer/row (buffer/get-row %) ::buffer/col 1})))}
             "d" {"d" #(non-repeat-fun delete-line)
                  "i" {"w" (fn [] (non-repeat-fun #(->> % buffer/word-region (cut-region %))))
                       "(" (fn [] (non-repeat-fun #(->> % buffer/paren-region (shrink-region %) (cut-region %))))
