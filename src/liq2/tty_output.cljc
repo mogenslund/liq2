@@ -81,17 +81,17 @@
 ;  "This is a first draft, which does not handle edge
 ;  cases with very long lines and positioning logic."
 ;  [buf rows cols tow1]
-;  (cond (< (buffer/get-row buf) (tow1 :row)) (assoc tow1 :row (buffer/get-row buf))
-;        (> (- (buffer/get-row buf) (tow1 :row)) rows)
-;          (recalculate-tow buf rows cols (assoc tow1 :row (- (buffer/get-row buf) rows)))
-;        (> (calculate-wrapped-row-dist buf cols (tow1 :row) (+ (buffer/get-row buf) 1)) rows)
+;  (cond (< (-> buf ::buffer/cursor ::buffer/row) (tow1 :row)) (assoc tow1 :row (-> buf ::buffer/cursor ::buffer/row))
+;        (> (- (-> buf ::buffer/cursor ::buffer/row) (tow1 :row)) rows)
+;          (recalculate-tow buf rows cols (assoc tow1 :row (- (-> buf ::buffer/cursor ::buffer/row) rows)))
+;        (> (calculate-wrapped-row-dist buf cols (tow1 :row) (+ (-> buf ::buffer/cursor ::buffer/row) 1)) rows)
 ;          (recalculate-tow buf rows cols (update tow1 :row inc))
 ;        true tow1))
 
 ;(defn recalculate-tow
 ;  "Basic version, just to check possible speed"
 ;  [buf rows cols tow1]
-;  (assoc tow1 :row (buffer/get-row buf)))
+;  (assoc tow1 :row (-> buf ::buffer/cursor ::buffer/row)))
 
 
 ;(comment
@@ -118,7 +118,7 @@
   (tty-print esc "?25l") ; Hide cursor
   (when-let [statusline (buf :status-line)]
     (print-buffer statusline))
-  (loop [trow top tcol left row (buffer/get-point-row tow) col (buffer/get-point-col tow) cursor-row nil cursor-col nil color nil bgcolor nil]
+  (loop [trow top tcol left row (tow ::buffer/row) col (tow ::buffer/col) cursor-row nil cursor-col nil color nil bgcolor nil]
     (if (< trow (+ rows top))
       (do
       ;; Check if row has changed...

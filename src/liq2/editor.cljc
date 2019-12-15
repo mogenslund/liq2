@@ -58,7 +58,7 @@
 
 (defn get-buffer-id-by-name
   [name]
-  (when-let [buf (first (filter #(= (buffer/get-name %) name) (vals (@state ::buffers))))]
+  (when-let [buf (first (filter #(= (% ::buffer/name) name) (vals (@state ::buffers))))]
     (buf ::id)))
 
 (defn get-buffer
@@ -73,7 +73,7 @@
 
 (defn regular-buffers
   []
-  (filter #(not= (subs (str (buffer/get-name %) " ") 0 1) "*") (vals (@state ::buffers))))
+  (filter #(not= (subs (str (% ::buffer/name) " ") 0 1) "*") (vals (@state ::buffers))))
 
 (defn get-current-buffer-id
   "Highest idx is current buffer.
@@ -157,12 +157,12 @@
        #(-> %
             buffer/clear
             (buffer/insert-string
-              (str (or (buffer/get-filename buf) (buffer/get-name buf)) "  "
+              (str (or (buf ::buffer/filename) (buf ::buffer/name)) "  "
                    (if (buffer/dirty? buf) " [+] " "     ")
-                   (cond (= (buffer/get-mode buf) :insert) "-- INSERT --   "
-                         (= (buffer/get-mode buf) :visual) "-- VISUAL --   "
+                   (cond (= (buf ::buffer/mode) :insert) "-- INSERT --   "
+                         (= (buf ::buffer/mode) :visual) "-- VISUAL --   "
                          true "               ")
-                   (buffer/get-row buf) "," (buffer/get-col buf)))
+                   (-> buf ::buffer/cursor ::buffer/row) "," (-> buf ::buffer/cursor ::buffer/col)))
             buffer/beginning-of-buffer))
      ;((@state ::output-handler) (get-buffer "*status-line*"))
        ((-> @state ::output-handler :printer) (assoc (highlight-paren buf) :status-line (get-buffer "*status-line*")))))
@@ -177,12 +177,12 @@
          #(-> %
               buffer/clear
               (buffer/insert-string
-                (str (or (buffer/get-filename buf) (buffer/get-name buf)) "  "
+                (str (or (buf ::buffer/filename) (buf ::buffer/name)) "  "
                      (if (buffer/dirty? buf) " [+] " "     ")
-                     (cond (= (buffer/get-mode buf) :insert) "-- INSERT --   "
-                           (= (buffer/get-mode buf) :visual) "-- VISUAL --   "
+                     (cond (= (buf ::buffer/mode) :insert) "-- INSERT --   "
+                           (= (buf ::buffer/mode) :visual) "-- VISUAL --   "
                            true "               ")
-                     (buffer/get-row buf) "," (buffer/get-col buf)))
+                     (-> buf ::buffer/cursor ::buffer/row) "," (-> buf ::buffer/cursor ::buffer/col)))
               buffer/beginning-of-buffer
               buffer/update-tow))
        ;((@state ::output-handler) (get-buffer "*status-line*"))
@@ -219,7 +219,7 @@
   ([idname]
    (apply-to-buffer idname
      (fn [buf]
-       (let [hl ((get-mode (buffer/get-major-mode buf)) :syntax)]
+       (let [hl ((get-mode (buf ::buffer/major-mode)) :syntax)]
          (if hl
            (highlighter/highlight buf hl)
            buf)))))
@@ -229,9 +229,9 @@
   ([idname]
    (apply-to-buffer idname
      (fn [buf]
-       (let [hl ((get-mode (buffer/get-major-mode buf)) :syntax)]
+       (let [hl ((get-mode (buf ::buffer/major-mode)) :syntax)]
          (if hl
-           (highlighter/highlight buf hl (buffer/get-row buf))
+           (highlighter/highlight buf hl (-> buf ::buffer/cursor ::buffer/row))
            buf)))))
   ([] (highlight-buffer-row (get-current-buffer-id))))
 
@@ -275,7 +275,7 @@
       (do
         (message (str
           "There are unsaved files. Use :q! to force quit:\n"
-          (str/join "\n" (map buffer/get-filename bufs))) :view true :timer 1500)))))
+          (str/join "\n" (map ::buffer/filename bufs))) :view true :timer 1500)))))
 
 (def tmp-keymap (atom nil))
 
@@ -284,8 +284,8 @@
   ;(spit "/tmp/liq2.log" (str "INPUT: " c "\n"))
   (when (and @macro-record (not= c "Q"))
     (swap! macro-seq conj c))
-  (let [mode (buffer/get-mode (get-current-buffer))
-        major-mode (buffer/get-major-mode (get-current-buffer))
+  (let [mode ((get-current-buffer) ::buffer/mode)
+        major-mode ((get-current-buffer) ::buffer/major-mode)
         tmp-k-selfinsert (and @tmp-keymap (@tmp-keymap :selfinsert)) 
         tmp-k (and @tmp-keymap
                    (or (@tmp-keymap c)

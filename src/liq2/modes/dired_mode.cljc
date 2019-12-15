@@ -19,7 +19,7 @@
 
 (defn run
   []
-  (let [f (or (buffer/get-filename (editor/get-current-buffer)) ".")
+  (let [f (or ((editor/get-current-buffer) ::buffer/filename) ".")
         folder (util/absolute (util/get-folder f))
         id (editor/get-buffer-id-by-name "*dired*")]
     (if id
@@ -38,7 +38,7 @@
         parent (buffer/get-line buf 1)
         f (buffer/get-line buf)
         path (str parent "/" f)]
-    (when (> (buffer/get-row buf) 1)
+    (when (> (-> buf ::buffer/cursor ::buffer/row) 1)
       (if (util/folder? path)
         (do 
           (apply-to-buffer #(buffer/set-point % {::buffer/row 1 ::buffer/col 1}))
@@ -51,7 +51,7 @@
   []
   (let [buf (editor/get-current-buffer)
         parent (buffer/get-line buf 1)
-        f (if (= (buffer/get-row buf) 1) "" (buffer/get-line buf))
+        f (if (= (-> buf ::buffer/cursor ::buffer/row) 1) "" (buffer/get-line buf))
         path (str parent "/" f)]
     (switch-to-buffer "*minibuffer*")
     (apply-to-buffer #(-> %
@@ -60,7 +60,7 @@
                           buffer/insert-at-line-end))))
 
 (def mode
-  {:insert {"esc" (fn [] (apply-to-buffer #(-> % (buffer/set-mode :normal) buffer/left)))}
+  {:insert {"esc" (fn [] (apply-to-buffer #(-> % (assoc ::buffer/mode :normal) buffer/left)))}
    :normal {"q" editor/previous-buffer
             "\n" choose
             "h" #(apply-to-buffer buffer/left)

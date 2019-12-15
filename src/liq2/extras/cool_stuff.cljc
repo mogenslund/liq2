@@ -49,7 +49,7 @@
 (defn send-sexp-at-point-to-repl 
   [buf]
   (when (not @socket) (jack-in 5555))
-  (let [sexp (if (= (buffer/get-mode buf) :visuel)
+  (let [sexp (if (= (buf ::buffer/mode) :visuel)
                (buffer/get-selected-text buf)
                (buffer/sexp-at-point buf))]
     (send-to-repl sexp)))

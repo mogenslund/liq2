@@ -45,7 +45,7 @@
   [buf]
   (reset-repeat-counter) 
   (binding [*print-length* 200]
-    (let [sexp (if (= (buffer/get-mode buf) :visuel) (buffer/get-selected-text buf) (buffer/sexp-at-point buf))
+    (let [sexp (if (= (buf ::buffer/mode) :visuel) (buffer/get-selected-text buf) (buffer/sexp-at-point buf))
           pr-str-str (fn [x] (if (string? x) x (pr-str x)))
           namespace (or (get-namespace buf) "user")]
       (editor/message "" :view true); ( :view true :timer 1500)
@@ -63,7 +63,7 @@
 (defn raw-eval-sexp-at-point
   [buf]
   (reset-repeat-counter) 
-  (let [sexp (if (= (buffer/get-mode buf) :visuel) (buffer/get-selected-text buf) (buffer/sexp-at-point buf))
+  (let [sexp (if (= (buf ::buffer/mode) :visuel) (buffer/get-selected-text buf) (buffer/sexp-at-point buf))
         namespace (or (get-namespace buf) "user")]
     (try
       (load-string
@@ -87,7 +87,7 @@
   (reset-repeat-counter) 
   (let [buf (editor/get-current-buffer)
         part (buffer/get-word buf)
-        buffer-file (or (buffer/get-filename buf) (buffer/get-filename (editor/get-buffer (editor/previous-regular-buffer-id))))
+        buffer-file (or (buf ::buffer/filename) ((editor/get-buffer (editor/previous-regular-buffer-id)) ::buffer/filename))
         alternative-parent (if buffer-file (util/get-folder buffer-file) ".")
         filepath (util/resolve-path part alternative-parent)]
     (editor/open-file filepath)))
@@ -100,7 +100,7 @@
   ([filepath]
     (try (editor/message (load-file filepath))
       (catch Exception e (editor/message (util/pretty-exception e)))))
-  ([] (when-let [filepath (buffer/get-filename (editor/get-current-buffer))] (evaluate-file-raw filepath))))
+  ([] (when-let [filepath ((editor/get-current-buffer) ::buffer/filename)] (evaluate-file-raw filepath))))
 
 (defn copy-selection-to-clipboard
   [buf]
@@ -189,7 +189,7 @@
 
 (defn yank-filename
   []
-  (when-let [f (buffer/get-filename (editor/get-current-buffer))]
+  (when-let [f ((editor/get-current-buffer) ::buffer/filename)]
     (util/set-clipboard-content f false)))
 
 (def sample-code "(ns user.user (:require [liq2.editor :as editor] [liq2.buffer :as buffer])) (liq2.editor/apply-to-buffer liq2.buffer/end-of-line) :something")
@@ -257,8 +257,8 @@
                  "i" #(typeahead-defs (editor/get-current-buffer))
                  "f" open-file-at-point}
             "G" #(non-repeat-fun buffer/end-of-buffer)
-            "z" {"t" (fn [] (non-repeat-fun #(buffer/set-tow % {::buffer/row (buffer/get-row %) ::buffer/col 1})))
-                 "\n" (fn [] (non-repeat-fun #(buffer/set-tow % {::buffer/row (buffer/get-row %) ::buffer/col 1})))}
+            "z" {"t" (fn [] (non-repeat-fun #(buffer/set-tow % {::buffer/row (-> % ::buffer/cursor ::buffer/row) ::buffer/col 1})))
+                 "\n" (fn [] (non-repeat-fun #(buffer/set-tow % {::buffer/row (-> % ::buffer/cursor ::buffer/row) ::buffer/col 1})))}
             "d" {"d" #(non-repeat-fun delete-line)
                  "i" {"w" (fn [] (non-repeat-fun #(->> % buffer/word-region (cut-region %))))
                       "(" (fn [] (non-repeat-fun #(->> % buffer/paren-region (shrink-region %) (cut-region %))))

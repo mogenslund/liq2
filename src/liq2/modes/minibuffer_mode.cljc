@@ -8,7 +8,7 @@
 (defn write-file
   []
   (let [buf (editor/get-current-buffer)]
-    (when-let [f (buffer/get-filename buf)]
+    (when-let [f (buf ::buffer/filename)]
       (util/write-file f (buffer/get-text buf)))
     (apply-to-buffer #(buffer/set-dirty % false))))
 
@@ -26,7 +26,7 @@
 
 (defn external-command
   [text]
-   #?(:clj (let [f (or (buffer/get-filename (editor/get-current-buffer)) ".")
+   #?(:clj (let [f (or ((editor/get-current-buffer) ::buffer/filename) ".")
                  folder (util/absolute (util/get-folder f))]
              (editor/message (str "Running command: " text "\n") :view true)
              (future
@@ -67,7 +67,7 @@
 (def mode
   {:commands {":tt" (fn [t] (editor/message (buffer/sexp-at-point (editor/get-current-buffer))))}
    :insert {"esc" editor/previous-buffer
-            "backspace" (fn [] (apply-to-buffer #(if (> (buffer/get-col %) 1) (-> % buffer/left buffer/delete-char) %)))
+            "backspace" (fn [] (apply-to-buffer #(if (> (-> % ::buffer/cursor ::buffer/col %) 1) (-> % buffer/left buffer/delete-char) %)))
             "\n" execute}
-   :normal {"esc" (fn [] (apply-to-buffer #(buffer/set-mode % :insert)))
+   :normal {"esc" (fn [] (apply-to-buffer #(assoc % ::buffer/mode :insert)))
             "l" #(apply-to-buffer buffer/right)}})

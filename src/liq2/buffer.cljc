@@ -79,41 +79,15 @@
 ;; Information
 ;; ===========
 
-(defn get-window-top [w] (w ::top))
-(defn get-window-left [w] (w ::left))
-(defn get-window-rows [w] (w ::rows))
-(defn get-window-cols [w] (w ::cols))
-
-
-(defn get-name [buf] (buf ::name))
-
-(defn set-filename [buf path] (assoc buf ::filename path))
-(defn get-filename [buf] (buf ::filename))
-
 (defn line-count [buf] (count (buf ::lines)))
 
 (defn col-count [buf row] (-> buf ::lines (get (dec row)) count))
-
-(defn set-mode [buf m] (assoc buf ::mode m))
-(defn get-mode [buf] (buf ::mode))
-
-
-(defn set-major-mode [buf m] (assoc buf ::major-mode m))
-
-(defn get-major-mode [buf] (buf ::major-mode))
 
 (comment 
   (let [buf (buffer "abcd\nxyz")]
     (-> buf
         (set-mode :insert)
         get-mode)))
-
-(defn get-point-col [p] (p ::col))
-(defn get-point-row [p] (p ::row))
-
-(defn get-col [buf] (-> buf ::cursor ::col))
-
-(defn get-row [buf] (-> buf ::cursor ::row))
 
 (defn set-point
   ([buf p] (assoc buf ::cursor p))
@@ -143,25 +117,25 @@
 (defn set-visual-mode
   [buf]
   (-> buf
-    (set-mode :visual)
-    set-selection))
+      (assoc ::mode :visual)
+      set-selection))
 
 (defn set-normal-mode
   [buf]
   (-> buf
-      (set-mode :normal)
+      (assoc ::mode :normal)
       remove-selection))
   
 (defn set-insert-mode
   [buf]
   (-> buf
-      (set-mode :insert)
+      (assoc ::mode :insert)
       remove-selection))
 
 (defn set-dirty
   [buf val]
   (set-undo-point
-    (if (get-filename buf)
+    (if (buf ::filename)
       (assoc buf ::dirty val)
       buf)))
 
@@ -191,7 +165,7 @@
      (if (> col (count r))
        ""
        (str/join (map ::char (subvec r (dec col)))))))
-  ([buf] (get-line buf (get-row buf))))
+  ([buf] (get-line buf (-> buf ::cursor ::row))))
 
 (comment (pr-str (get-line (buffer "aaa\nbbb\nccc") 2)))
 
@@ -210,7 +184,7 @@
        (if (or (> (+ (count w) idx) col) (empty? l))
        w
        (recur (rest l) (+ idx (count w) 1))))))
-  ([buf] (get-word buf (get-row buf) (get-col buf))))
+  ([buf] (get-word buf (-> buf ::cursor ::row) (-> buf ::cursor ::col))))
 
 (defn get-text
   ([buf]
@@ -299,11 +273,11 @@
 
 (defn right
   ([buf n]
-   (let [linevec (-> buf ::lines (get (dec (get-row buf))))
-         maxcol (+ (count linevec) (if (= (get-mode buf) :insert) 1 0))
-         newcol (max 1 (min maxcol (+ (get-col buf) n)))]
+   (let [linevec (-> buf ::lines (get (dec (-> buf ::cursor ::row))))
+         maxcol (+ (count linevec) (if (= (buf ::mode) :insert) 1 0))
+         newcol (max 1 (min maxcol (+ (-> buf ::cursor ::col) n)))]
      (-> buf
-         (set-point {::row (get-row buf) ::col newcol})
+         (set-point {::row (-> buf ::cursor ::row) ::col newcol})
          (assoc ::mem-col newcol)))) 
   ([buf]
    (right buf 1)))
@@ -316,9 +290,9 @@
 
 (defn down
   ([buf n]
-   (let [newrow (max 1 (min (count (buf ::lines)) (+ (get-row buf) n)))
+   (let [newrow (max 1 (min (count (buf ::lines)) (+ (-> buf ::cursor ::row) n)))
          linevec (-> buf ::lines (get (dec newrow)))
-         maxcol (+ (count linevec) (if (= (get-mode buf) :insert) 1 0))
+         maxcol (+ (count linevec) (if (= (buf ::mode) :insert) 1 0))
          newcol (max 1 (min maxcol (buf ::mem-col)))]
      (set-point buf {::row newrow ::col newcol}))) 
   ([buf]
@@ -333,13 +307,13 @@
 (defn end-of-line
   [buf]
   (-> buf
-      (set-point {::row (get-row buf) ::col (col-count buf (get-row buf))}) 
-      (assoc ::mem-col (col-count buf (get-row buf)))))
+      (set-point {::row (-> buf ::cursor ::row) ::col (col-count buf (-> buf ::cursor ::row))}) 
+      (assoc ::mem-col (col-count buf (-> buf ::cursor ::row)))))
 
 (defn beginning-of-line
   [buf]
   (-> buf
-      (set-point {::row (get-row buf) ::col 1}) 
+      (set-point {::row (-> buf ::cursor ::row) ::col 1}) 
       (assoc ::mem-col 1)))
 
 (defn beginning-of-buffer
@@ -389,7 +363,7 @@
   ([buf p]
    (get-char buf (p ::row) (p ::col)))
   ([buf]
-   (get-char buf (get-row buf) (get-col buf))))
+   (get-char buf (-> buf ::cursor ::row) (-> buf ::cursor ::col))))
 
 
 (comment
@@ -411,8 +385,8 @@
   [buf attr]
   (-> buf
       ::lines
-      (get (dec (get-row buf)))
-      (get (dec (get-col buf))) attr))
+      (get (dec (-> buf ::cursor ::row)))
+      (get (dec (-> buf ::cursor ::col))) attr))
 
 ;(into [] (subvec v 0 n))
 (defn insert-line-break
@@ -433,7 +407,7 @@
        (append-line-at-end (- row (line-count buf)))
        (append-spaces-to-row row (- col (col-count buf row)))
        (assoc-in [::lines (dec row) (dec col)] {::char char})))
-  ([buf char] (set-char buf (get-row buf) (get-col buf) char)))
+  ([buf char] (set-char buf (-> buf ::cursor ::row) (-> buf ::cursor ::col) char)))
 
 (defn get-style
   ([buf row col]
@@ -442,7 +416,7 @@
        (get (dec row))
        (get (dec col))
        ::style))
-  ([buf] (get-style buf (get-row buf) (get-col buf))))
+  ([buf] (get-style buf (-> buf ::cursor ::row) (-> buf ::cursor ::col))))
 
 (defn set-style
   ([buf row col style]
@@ -463,9 +437,9 @@
      (update-in (set-dirty buf true) [::lines (dec row)] #(insert-in-vector % (dec col) {::char char}))))
   ([buf char]
    (-> buf
-       (insert-char (get-row buf) (get-col buf) char)
-       (set-point {::row (if (= char \newline) (inc (get-row buf)) (get-row buf))
-                   ::col (if (= char \newline) 1 (inc (get-col buf)))}))))
+       (insert-char (-> buf ::cursor ::row) (-> buf ::cursor ::col) char)
+       (set-point {::row (if (= char \newline) (inc (-> buf ::cursor ::row)) (-> buf ::cursor ::row))
+                   ::col (if (= char \newline) 1 (inc (-> buf ::cursor ::col)))}))))
 
 
 (defn append-line
@@ -473,20 +447,20 @@
    (-> buf
        (set-dirty true)
        (update ::lines #(insert-in-vector % row []))
-       (set-point {::row (inc (get-row buf)) ::col 1})
-       (set-mode :insert)))
+       (set-point {::row (inc (-> buf ::cursor ::row)) ::col 1})
+       (assoc ::mode :insert)))
   ([buf]
-   (append-line buf (get-row buf))))
+   (append-line buf (-> buf ::cursor ::row))))
 
 (defn delete-char
   ([buf row col n]
    (update-in (set-dirty buf true) [::lines (dec row)] #(remove-from-vector % col (+ col n -1))))
   ([buf n]
    (-> buf
-       (delete-char (get-row buf) (get-col buf) n)))
+       (delete-char (-> buf ::cursor ::row) (-> buf ::cursor ::col) n)))
   ([buf]
    (-> buf
-       (delete-char (get-row buf) (get-col buf) 1))))
+       (delete-char (-> buf ::cursor ::row) (-> buf ::cursor ::col) 1))))
 
 (defn delete-line
   ([buf row]
@@ -496,9 +470,9 @@
              ::mem-col 1)
      (let [b1 (update buf ::lines #(remove-from-vector % row))
            newrow (min (line-count b1) row)
-           newcol (min (col-count b1 newrow) (get-col buf))]
+           newcol (min (col-count b1 newrow) (-> buf ::cursor ::col))]
         (set-point b1 newrow newcol))))
-  ([buf] (delete-line buf (get-row buf))))
+  ([buf] (delete-line buf (-> buf ::cursor ::row))))
 
 (comment (pr-str (get-text (-> (buffer "aaa\nbbb\nccc") down right delete-line))))
 (comment (pr-str (get-text (-> (buffer "aaa\nbbb\nccc") down down delete-line))))
@@ -556,13 +530,13 @@
 
 (defn delete-backward
   [buf]
-  (cond (> (get-col buf) 1) (-> buf left delete-char)
-        (= (get-row buf) 1) buf
-        true (let [v (-> buf ::lines (get (dec (get-row buf))))]
+  (cond (> (-> buf ::cursor ::col) 1) (-> buf left delete-char)
+        (= (-> buf ::cursor ::row) 1) buf
+        true (let [v (-> buf ::lines (get (dec (-> buf ::cursor ::row))))]
                (-> buf
-                   (delete-line (get-row buf))
-                   (update-in [::lines (- (get-row buf) 2)] #(into [] (concat % v)))
-                   (set-point {::row (dec (get-row buf)) ::col (inc (col-count buf (dec (get-row buf))))})))))
+                   (delete-line (-> buf ::cursor ::row))
+                   (update-in [::lines (- (-> buf ::cursor ::row) 2)] #(into [] (concat % v)))
+                   (set-point {::row (dec (-> buf ::cursor ::row)) ::col (inc (col-count buf (dec (-> buf ::cursor ::row))))})))))
 
 (comment
   (let [buf (buffer "abcd\nxyz")]
@@ -579,7 +553,7 @@
 
 (defn delete-to-line-end
   [buf]
-  (left (delete-region buf [(get-point buf) {::row (get-row buf) ::col (col-count buf (get-row buf))}])))
+  (left (delete-region buf [(get-point buf) {::row (-> buf ::cursor ::row) ::col (col-count buf (-> buf ::cursor ::row))}])))
 
 (defn clear
   [buf]
@@ -592,7 +566,7 @@
    (if (= p (start-point buf))
      [(clear buf) buf]
      [(delete-region buf [p (end-point buf)])
-      (delete-region buf [(start-point buf) {::row (get-point-row p) ::col (dec (get-point-col p))}])]))
+      (delete-region buf [(start-point buf) {::row (p ::row) ::col (dec (p ::col))}])]))
   ([buf] (split-buffer buf (get-point buf))))
 
 (comment (map get-text (split-buffer (buffer "aaaaSTbbbb\nbbbb") {::row 1 ::col 6})))
@@ -640,7 +614,7 @@
   [buf]
   (-> buf
       end-of-line
-      (set-mode :insert)
+      (assoc ::mode :insert)
       right))
 
 (defn set-attribute
@@ -777,11 +751,11 @@
    (let [b (assoc buf ::search-word w)
          regex (re-pattern w)
          l (get-line b)
-         s (subs l (min (get-col b) (count l)))
+         s (subs l (min (-> b ::cursor ::col) (count l)))
          res (str/split s regex 2)]
      (if (>= (count res) 2)
        (right b (inc (count (first res))))
-       (loop [row (inc (get-row b))]
+       (loop [row (inc (-> b ::cursor ::row))]
          (let [s (get-line b row)]
            (cond (re-find regex s) (set-point b row (inc (count (first (str/split s regex 2)))))
                  (>= row (line-count b)) b
@@ -869,10 +843,10 @@
   "This is a first draft, which does not handle edge
   cases with very long lines and positioning logic."
   [buf rows cols tow1]
-  (cond (< (get-row buf) (tow1 ::row)) (assoc tow1 ::row (get-row buf))
-        (> (- (get-row buf) (tow1 ::row)) rows)
-          (recalculate-tow buf rows cols (assoc tow1 ::row (- (get-row buf) rows)))
-        (> (calculate-wrapped-row-dist buf cols (tow1 ::row) (+ (get-row buf) 1)) rows)
+  (cond (< (-> buf ::cursor ::row) (tow1 ::row)) (assoc tow1 ::row (-> buf ::cursor ::row))
+        (> (- (-> buf ::cursor ::row) (tow1 ::row)) rows)
+          (recalculate-tow buf rows cols (assoc tow1 ::row (- (-> buf ::cursor ::row) rows)))
+        (> (calculate-wrapped-row-dist buf cols (tow1 ::row) (+ (-> buf ::cursor ::row) 1)) rows)
           (recalculate-tow buf rows cols (update tow1 ::row inc))
         true tow1))
 

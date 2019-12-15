@@ -9,7 +9,7 @@
   (-> buf
       buffer/clear
       (buffer/insert-string (str/join "\n"
-                              (map #(str (buffer/get-name %) (if (buffer/dirty? %) " [+]" "    "))
+                              (map #(str (% ::buffer/name) (if (buffer/dirty? %) " [+]" "    "))
                                    (rest (editor/all-buffers)))))
       buffer/beginning-of-buffer))
 
@@ -22,10 +22,10 @@
 
 (defn choose-buffer
   []
-  (editor/previous-buffer (buffer/get-row (editor/get-current-buffer))))
+  (editor/previous-buffer (-> (editor/get-current-buffer) ::buffer/cursor ::buffer/row)))
 
 (def mode
-  {:insert {"esc" (fn [] (apply-to-buffer #(-> % (buffer/set-mode :normal) buffer/left)))}
+  {:insert {"esc" (fn [] (apply-to-buffer #(-> % (assoc ::buffer/mode :normal) buffer/left)))}
    :normal {"q" editor/previous-buffer
             "\n" choose-buffer
             "h" #(apply-to-buffer buffer/left)
