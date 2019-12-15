@@ -221,14 +221,14 @@
          (> (p ::row) 1) {::row (dec (p ::row)) ::col (col-count buf (dec (p ::row)))})) 
   ([buf] (if (= (get-point buf) {::row 1 ::col 1})
            buf
-           (set-point buf (previous-point buf (get-point buf))))))
+           (assoc buf ::cursor (previous-point buf (get-point buf))))))
 
 (defn next-point
   ([buf p]
    (cond (< (p ::col) (col-count buf (p ::row))) (update-in p [::col] inc)
          (< (p ::row) (line-count buf)) {::row (inc (p ::row)) ::col (min 1 (col-count buf (inc (p ::row))))})) 
   ([buf] (if-let [p (next-point buf (get-point buf))]
-           (set-point buf p)
+           (assoc buf ::cursor p)
            buf)))
 
 (comment (next-point (buffer "aaa\n\nbbb\nccc") {::row 5 ::col 1}))
@@ -277,7 +277,7 @@
          maxcol (+ (count linevec) (if (= (buf ::mode) :insert) 1 0))
          newcol (max 1 (min maxcol (+ (-> buf ::cursor ::col) n)))]
      (-> buf
-         (set-point {::row (-> buf ::cursor ::row) ::col newcol})
+         (assoc ::cursor {::row (-> buf ::cursor ::row) ::col newcol})
          (assoc ::mem-col newcol)))) 
   ([buf]
    (right buf 1)))
@@ -294,7 +294,7 @@
          linevec (-> buf ::lines (get (dec newrow)))
          maxcol (+ (count linevec) (if (= (buf ::mode) :insert) 1 0))
          newcol (max 1 (min maxcol (buf ::mem-col)))]
-     (set-point buf {::row newrow ::col newcol}))) 
+     (assoc buf ::cursor {::row newrow ::col newcol}))) 
   ([buf]
    (down buf 1)))
 
@@ -307,26 +307,26 @@
 (defn end-of-line
   [buf]
   (-> buf
-      (set-point {::row (-> buf ::cursor ::row) ::col (col-count buf (-> buf ::cursor ::row))}) 
+      (assoc ::cursor {::row (-> buf ::cursor ::row) ::col (col-count buf (-> buf ::cursor ::row))}) 
       (assoc ::mem-col (col-count buf (-> buf ::cursor ::row)))))
 
 (defn beginning-of-line
   [buf]
   (-> buf
-      (set-point {::row (-> buf ::cursor ::row) ::col 1}) 
+      (assoc ::cursor {::row (-> buf ::cursor ::row) ::col 1}) 
       (assoc ::mem-col 1)))
 
 (defn beginning-of-buffer
   [buf]
   (-> buf
-      (set-point {::row 1 ::col 1}) 
+      (assoc ::cursor {::row 1 ::col 1}) 
       (assoc ::mem-col 1)))
 
 
 (defn end-of-buffer
   [buf]
   (-> buf
-      (set-point {::row (line-count buf) ::col (col-count buf (line-count buf))})
+      (assoc ::cursor {::row (line-count buf) ::col (col-count buf (line-count buf))})
       (assoc ::mem-col (col-count buf (line-count buf)))))
 
 ;; Modifications
@@ -438,7 +438,7 @@
   ([buf char]
    (-> buf
        (insert-char (-> buf ::cursor ::row) (-> buf ::cursor ::col) char)
-       (set-point {::row (if (= char \newline) (inc (-> buf ::cursor ::row)) (-> buf ::cursor ::row))
+       (assoc ::cursor {::row (if (= char \newline) (inc (-> buf ::cursor ::row)) (-> buf ::cursor ::row))
                    ::col (if (= char \newline) 1 (inc (-> buf ::cursor ::col)))}))))
 
 
@@ -447,7 +447,7 @@
    (-> buf
        (set-dirty true)
        (update ::lines #(insert-in-vector % row []))
-       (set-point {::row (inc (-> buf ::cursor ::row)) ::col 1})
+       (assoc ::cursor {::row (inc (-> buf ::cursor ::row)) ::col 1})
        (assoc ::mode :insert)))
   ([buf]
    (append-line buf (-> buf ::cursor ::row))))
@@ -471,7 +471,7 @@
      (let [b1 (update buf ::lines #(remove-from-vector % row))
            newrow (min (line-count b1) row)
            newcol (min (col-count b1 newrow) (-> buf ::cursor ::col))]
-        (set-point b1 newrow newcol))))
+        (assoc b1 ::cursor {::row newrow ::col newcol}))))
   ([buf] (delete-line buf (-> buf ::cursor ::row))))
 
 (comment (pr-str (get-text (-> (buffer "aaa\nbbb\nccc") down right delete-line))))
@@ -492,7 +492,7 @@
                                     #(insert-in-vector % (q ::row) (into [] (concat t1 t2)))))
                (- (q ::row) (p ::row) -1))
           set-normal-mode
-          (set-point p))))
+          (assoc ::cursor p))))
   ([buf]
    (if-let [p (get-selection buf)]
      (delete buf (get-point buf) p)
@@ -536,7 +536,7 @@
                (-> buf
                    (delete-line (-> buf ::cursor ::row))
                    (update-in [::lines (- (-> buf ::cursor ::row) 2)] #(into [] (concat % v)))
-                   (set-point {::row (dec (-> buf ::cursor ::row)) ::col (inc (col-count buf (dec (-> buf ::cursor ::row))))})))))
+                   (assoc ::cursor {::row (dec (-> buf ::cursor ::row)) ::col (inc (col-count buf (dec (-> buf ::cursor ::row))))})))))
 
 (comment
   (let [buf (buffer "abcd\nxyz")]
@@ -740,7 +740,7 @@
   [buf]
   (let [r (paren-matching-region buf (get-point buf))]
     (if r
-      (update-mem-col (set-point buf (second r)))
+      (update-mem-col (assoc buf ::cursor (second r)))
       buf)))
 
 
@@ -757,7 +757,7 @@
        (right b (inc (count (first res))))
        (loop [row (inc (-> b ::cursor ::row))]
          (let [s (get-line b row)]
-           (cond (re-find regex s) (set-point b row (inc (count (first (str/split s regex 2)))))
+           (cond (re-find regex s) (assoc b ::cursor {::row row ::col (inc (count (first (str/split s regex 2))))})
                  (>= row (line-count b)) b
                  true (recur (inc row))))))))
   ([buf] (search buf (buf ::search-word))))
@@ -816,7 +816,7 @@
      [(-> b1 beginning-of-word get-point)
              (-> b1 get-point)]))
   ([buf p]
-   (word-region (set-point buf p))))
+   (word-region (assoc buf ::cursor p))))
 
 (comment (word-region (buffer "aaa bbb ccc") {::row 1 ::col 5}))
 (comment (word-region (buffer "aaa bbb ccc")))
@@ -889,7 +889,7 @@
     (paren-match-before buf {::row 2 ::col 8} \[))
 
   (let [buf (buffer "aaa bbb ccc")]
-    (beginning-of-word (set-point buf {::row 1 ::col 8})))
+    (beginning-of-word (assoc buf ::cursor {::row 1 ::col 8})))
 
   (let [buf (buffer "aaa bbb ccc")]
     (match-before buf {::row 1 ::col 8} #"a"))

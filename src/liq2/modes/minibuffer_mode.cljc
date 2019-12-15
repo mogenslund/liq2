@@ -67,7 +67,7 @@
 (def mode
   {:commands {":tt" (fn [t] (editor/message (buffer/sexp-at-point (editor/get-current-buffer))))}
    :insert {"esc" editor/previous-buffer
-            "backspace" (fn [] (apply-to-buffer #(if (> (-> % ::buffer/cursor ::buffer/col %) 1) (-> % buffer/left buffer/delete-char) %)))
+            "backspace" (fn [] (apply-to-buffer #(if (> (-> % ::buffer/cursor ::buffer/col) 1) (-> % buffer/left buffer/delete-char) %)))
             "\n" execute}
    :normal {"esc" (fn [] (apply-to-buffer #(assoc % ::buffer/mode :insert)))
             "l" #(apply-to-buffer buffer/right)}})
