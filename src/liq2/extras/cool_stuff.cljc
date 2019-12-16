@@ -1,7 +1,8 @@
 (ns liq2.extras.cool-stuff
   (:require [clojure.string :as str]
             [liq2.editor :as editor]
-            [liq2.buffer :as buffer])
+            [liq2.buffer :as buffer]
+            [liq2.modes.minibuffer-mode :as minibuffer-mode])
   (:import [java.net Socket]
            [java.io BufferedInputStream BufferedOutputStream
                     BufferedReader InputStreamReader]
@@ -24,39 +25,42 @@
 
 (defn jack-in
   [port]
-  (let [s (Socket. "localhost" port)]
-    (reset! socket {:socket s
-                    :in (BufferedInputStream. (.getInputStream s))
-                    :out (BufferedOutputStream. (.getOutputStream s))
-                    :reader (BufferedReader. (InputStreamReader. (BufferedInputStream. (.getInputStream s))))})
-    (future
-      (loop []
-        (when @socket
-          (editor/message (.readLine (@socket :reader))))
-        (recur)))))
+  (let [s (try (Socket. "localhost" (if (int? port) port (Integer/parseInt port))) (catch Exception e nil))]
+    (when s
+      (reset! socket {:socket s
+                      :in (BufferedInputStream. (.getInputStream s))
+                      :out (BufferedOutputStream. (.getOutputStream s))
+                      :reader (BufferedReader. (InputStreamReader. (BufferedInputStream. (.getInputStream s))))})
+      (future
+        (loop []
+          (when @socket
+            (editor/message (.readLine (@socket :reader))))
+          (recur))))))
 
 (defn jack-out
   []
-  (.close @socket)
-  (reset! @socket nil))
+  (when (and @socket (@socket :socket))
+    (when (.isConnected (@socket :socket))
+      (.close (@socket :socket)))
+  (reset! socket nil)))
 
 (defn send-to-repl
   [text]
-  (when (.isConnected (@socket :socket))
+  (when (and @socket (@socket :socket) (.isConnected (@socket :socket)))
     (.write (@socket :out) (.getBytes (str text "\n") (Charset/forName "UTF-8")))
     (.flush (@socket :out))))
 
 (defn send-sexp-at-point-to-repl 
   [buf]
-  (when (not @socket) (jack-in 5555))
-  (let [sexp (if (= (buf ::buffer/mode) :visuel)
+  (let [sexp (if (= (buf ::buffer/mode) :visual)
                (buffer/get-selected-text buf)
                (buffer/sexp-at-point buf))]
     (send-to-repl sexp)))
 
-
 (defn load-cool-stuff
   []
+  (swap! editor/state update ::minibuffer-mode/commands #(cons [#"^:jack-in (\d+)" jack-in] %)) 
+  (swap! editor/state update ::minibuffer-mode/commands #(cons [#"^:jack-out$" jack-out] %)) 
   (editor/add-key-bindings :clojure-mode :normal
     {"C-o" output-snapshot
      "f5" #(send-sexp-at-point-to-repl (editor/get-current-buffer))

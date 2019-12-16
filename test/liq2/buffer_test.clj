@@ -5,19 +5,19 @@
 (deftest right-test
   (testing "Forward char"
     (let [buf (buffer "abc\n\ndef")]
-      (is (= (get-point buf) {:liq2.buffer/row 1 :liq2.buffer/col 1}))
+      (is (= (buf :liq2.buffer/cursor) {:liq2.buffer/row 1 :liq2.buffer/col 1}))
       (is (= (-> buf
                  right
-                 get-point)
+                 :liq2.buffer/cursor)
              {:liq2.buffer/row 1 :liq2.buffer/col 2}))
       (is (= (-> buf
                  (right 10)
-                 get-point)
+                 :liq2.buffer/cursor)
              {:liq2.buffer/row 1 :liq2.buffer/col 3}))
       (is (= (-> buf
                  down
                  right
-                 get-point)
+                 :liq2.buffer/cursor)
              {:liq2.buffer/row 2 :liq2.buffer/col 1})))))
 
 (deftest get-text-test

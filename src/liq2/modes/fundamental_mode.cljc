@@ -111,7 +111,7 @@
         (util/set-clipboard-content text false)
         (-> buf
             buffer/set-normal-mode
-            (buffer/set-point p)
+            (assoc ::buffer/cursor p)
             buffer/update-mem-col))
       buf)))
 
@@ -184,7 +184,7 @@
   (if r
     (let [text (buffer/get-text buf r)]
       (util/set-clipboard-content text false)
-      (buffer/set-point buf (first r)))
+      (assoc buf ::buffer/cursor (first r)))
     buf))
 
 (defn yank-filename
@@ -204,8 +204,8 @@
                                                (fn [res]
                                                  (editor/previous-buffer)
                                                  (apply-to-buffer #(-> %
-                                                                       (buffer/set-point {::buffer/row (first res) ::buffer/col 1})
-                                                                       (buffer/set-tow {::buffer/row (first res) ::buffer/col 1})))))))
+                                                                       (assoc ::buffer/cursor {::buffer/row (first res) ::buffer/col 1})
+                                                                       (assoc ::buffer/tow {::buffer/row (first res) ::buffer/col 1})))))))
 
 (def mode
   {:commands {":ts" #(editor/message (str % " -- " (buffer/sexp-at-point (editor/get-current-buffer))))}
@@ -257,8 +257,8 @@
                  "i" #(typeahead-defs (editor/get-current-buffer))
                  "f" open-file-at-point}
             "G" #(non-repeat-fun buffer/end-of-buffer)
-            "z" {"t" (fn [] (non-repeat-fun #(buffer/set-tow % {::buffer/row (-> % ::buffer/cursor ::buffer/row) ::buffer/col 1})))
-                 "\n" (fn [] (non-repeat-fun #(buffer/set-tow % {::buffer/row (-> % ::buffer/cursor ::buffer/row) ::buffer/col 1})))}
+            "z" {"t" (fn [] (non-repeat-fun #(assoc % ::buffer/tow {::buffer/row (-> % ::buffer/cursor ::buffer/row) ::buffer/col 1})))
+                 "\n" (fn [] (non-repeat-fun #(assoc % ::buffer/tow {::buffer/row (-> % ::buffer/cursor ::buffer/row) ::buffer/col 1})))}
             "d" {"d" #(non-repeat-fun delete-line)
                  "i" {"w" (fn [] (non-repeat-fun #(->> % buffer/word-region (cut-region %))))
                       "(" (fn [] (non-repeat-fun #(->> % buffer/paren-region (shrink-region %) (cut-region %))))

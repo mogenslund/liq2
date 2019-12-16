@@ -109,7 +109,7 @@
         left (w ::buffer/left)
         rows (w ::buffer/rows)
         cols (w ::buffer/cols)
-        tow (buffer/get-tow buf) ; (recalculate-tow buf rows cols (or (@tow-cache cache-id) {:row 1 :col 1}))
+        tow (buf ::buffer/tow) ; (recalculate-tow buf rows cols (or (@tow-cache cache-id) {:row 1 :col 1}))
         crow (-> buf ::buffer/cursor ::buffer/row)
         ccol (-> buf ::buffer/cursor ::buffer/col)]
   ;(swap! tow-cache assoc cache-id tow)
