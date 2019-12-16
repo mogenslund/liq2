@@ -7,7 +7,7 @@
 
 (defn write-file
   []
-  (let [buf (editor/get-current-buffer)]
+  (let [buf (editor/current-buffer)]
     (when-let [f (buf ::buffer/filename)]
       (util/write-file f (buffer/get-text buf)))
     (apply-to-buffer #(buffer/set-dirty % false))))
@@ -26,7 +26,7 @@
 
 (defn external-command
   [text]
-   #?(:clj (let [f (or ((editor/get-current-buffer) ::buffer/filename) ".")
+   #?(:clj (let [f (or ((editor/current-buffer) ::buffer/filename) ".")
                  folder (util/absolute (util/get-folder f))]
              (editor/message (str "Running command: " text "\n") :view true)
              (future
@@ -51,16 +51,16 @@
    [#"^:bd$" #(editor/kill-buffer)]
    [#"^:bd!$" #(editor/force-kill-buffer)]
    [#"^:t1$" #(editor/highlight-buffer)]
-   [#"^:ts$" #(editor/message (buffer/sexp-at-point (editor/get-current-buffer)))]
-   [#"^:t2$" #(editor/message (buffer/get-word (editor/get-current-buffer)))]
+   [#"^:ts$" #(editor/message (buffer/sexp-at-point (editor/current-buffer)))]
+   [#"^:t2$" #(editor/message (buffer/get-word (editor/current-buffer)))]
    [#"^:t3$" #(((editor/get-mode :typeahead-mode) :init)
                  ["aaa" "bbb" "aabb" "ccc"]
                  str
                  (fn [res]
                    (editor/previous-buffer)
                    (editor/apply-to-buffer (fn [buf] (buffer/insert-string buf res)))))]
-   [#"^:t4$" #(editor/message (pr-str (buffer/get-line (editor/get-current-buffer) 1)))]
-   [#"^:t5$" #(editor/message (pr-str (:liq2.buffer/lines (editor/get-current-buffer))))]
+   [#"^:t4$" #(editor/message (pr-str (buffer/get-line (editor/current-buffer) 1)))]
+   [#"^:t5$" #(editor/message (pr-str (:liq2.buffer/lines (editor/current-buffer))))]
    [#"^:t6$" #(((editor/get-mode :info-dialog-mode) :init) "This is the info dialog")]
    [#"^:! (.*)" #(external-command %)]
    [#"^:e (.*)" e-cmd]
@@ -76,7 +76,7 @@
 
 (defn execute
   []
-  (let [content (buffer/get-text (editor/get-current-buffer))
+  (let [content (buffer/get-text (editor/current-buffer))
         ;[command param] (str/split content #" " 2)
         ]
     (apply-to-buffer buffer/clear)
@@ -86,7 +86,7 @@
       (resolve-and-execute content))))
 
 (def mode
-  {:commands {":tt" (fn [t] (editor/message (buffer/sexp-at-point (editor/get-current-buffer))))}
+  {:commands {":tt" (fn [t] (editor/message (buffer/sexp-at-point (editor/current-buffer))))}
    :insert {"esc" editor/previous-buffer
             "backspace" (fn [] (apply-to-buffer #(if (> (-> % ::buffer/cursor ::buffer/col) 1) (-> % buffer/left buffer/delete-char) %)))
             "\n" execute}

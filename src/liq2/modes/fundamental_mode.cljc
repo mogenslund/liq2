@@ -21,7 +21,7 @@
 
 (defn tmp-eval
   []
-  (let [res (util/eval-safe (buffer/get-selected-text (editor/get-current-buffer)))]
+  (let [res (util/eval-safe (buffer/get-selected-text (editor/current-buffer)))]
     (editor/apply-to-buffer "output" #(-> % buffer/clear (buffer/insert-string (str res))))
     (editor/paint-buffer  "output")))
 
@@ -72,20 +72,20 @@
 
 (defn tmp-get-text
   []
-  (let [res (buffer/get-selected-text (editor/get-current-buffer))]
+  (let [res (buffer/get-selected-text (editor/current-buffer))]
     (editor/apply-to-buffer "output" #(-> % buffer/clear (buffer/insert-string (str res))))
     (editor/paint-buffer "output")))
 
 (defn tmp-print-buffer
   []
-  (let [res (pr-str (editor/get-current-buffer))]
+  (let [res (pr-str (editor/current-buffer))]
     (editor/apply-to-buffer "output" #(-> % buffer/clear (buffer/insert-string (str res))))
     (editor/paint-buffer "output")))
 
 (defn open-file-at-point
   []
   (reset-repeat-counter) 
-  (let [buf (editor/get-current-buffer)
+  (let [buf (editor/current-buffer)
         part (buffer/get-word buf)
         buffer-file (or (buf ::buffer/filename) ((editor/get-buffer (editor/previous-regular-buffer-id)) ::buffer/filename))
         alternative-parent (if buffer-file (util/get-folder buffer-file) ".")
@@ -100,7 +100,7 @@
   ([filepath]
     (try (editor/message (load-file filepath))
       (catch Exception e (editor/message (util/pretty-exception e)))))
-  ([] (when-let [filepath ((editor/get-current-buffer) ::buffer/filename)] (evaluate-file-raw filepath))))
+  ([] (when-let [filepath ((editor/current-buffer) ::buffer/filename)] (evaluate-file-raw filepath))))
 
 (defn copy-selection-to-clipboard
   [buf]
@@ -162,7 +162,7 @@
 
 (defn copy-line
   []
-  (let [text (buffer/get-line (editor/get-current-buffer))]
+  (let [text (buffer/get-line (editor/current-buffer))]
     (util/set-clipboard-content text true)))
 
 (defn delete
@@ -189,7 +189,7 @@
 
 (defn yank-filename
   []
-  (when-let [f ((editor/get-current-buffer) ::buffer/filename)]
+  (when-let [f ((editor/current-buffer) ::buffer/filename)]
     (util/set-clipboard-content f false)))
 
 (def sample-code "(ns user.user (:require [liq2.editor :as editor] [liq2.buffer :as buffer])) (liq2.editor/apply-to-buffer liq2.buffer/end-of-line) :something")
@@ -208,7 +208,7 @@
                                                                        (assoc ::buffer/tow {::buffer/row (first res) ::buffer/col 1})))))))
 
 (def mode
-  {:commands {":ts" #(editor/message (str % " -- " (buffer/sexp-at-point (editor/get-current-buffer))))}
+  {:commands {":ts" #(editor/message (str % " -- " (buffer/sexp-at-point (editor/current-buffer))))}
    :insert {"esc" (fn [] (apply-to-buffer #(buffer/left (buffer/set-normal-mode %))))
             "backspace" #(non-repeat-fun buffer/delete-backward)}
    :normal {"esc" #(reset! repeat-counter "0") 
@@ -254,7 +254,7 @@
             "p" paste-clipboard
             "P" paste-clipboard-here
             "g" {"g" #(non-repeat-fun buffer/beginning-of-buffer)
-                 "i" #(typeahead-defs (editor/get-current-buffer))
+                 "i" #(typeahead-defs (editor/current-buffer))
                  "f" open-file-at-point}
             "G" #(non-repeat-fun buffer/end-of-buffer)
             "z" {"t" (fn [] (non-repeat-fun #(assoc % ::buffer/tow {::buffer/row (-> % ::buffer/cursor ::buffer/row) ::buffer/col 1})))
@@ -270,8 +270,8 @@
             "A" #(non-repeat-fun buffer/insert-at-line-end)
             "D" #(non-repeat-fun buffer/delete-to-line-end)
             "r" {:selfinsert (fn [buf c] (reset-repeat-counter) (buffer/set-char buf (first c)))}
-            "c" {"p" {"p" #(eval-sexp-at-point (editor/get-current-buffer))
-                      "r" #(raw-eval-sexp-at-point (editor/get-current-buffer))
+            "c" {"p" {"p" #(eval-sexp-at-point (editor/current-buffer))
+                      "r" #(raw-eval-sexp-at-point (editor/current-buffer))
                       "t" tmp-print-buffer
                       "f" evaluate-file-raw}
                  "i" {"w" (fn [] (non-repeat-fun #(->> % buffer/word-region (delete-region %) set-insert-mode)))
@@ -294,8 +294,8 @@
             "q" editor/run-macro
             "o" #(non-repeat-fun buffer/append-line)}
     :visual {"esc" #(non-repeat-fun buffer/set-normal-mode)
-             "c" {"p" {"p" #(eval-sexp-at-point (editor/get-current-buffer))
-                       "r" #(raw-eval-sexp-at-point (editor/get-current-buffer))}}
+             "c" {"p" {"p" #(eval-sexp-at-point (editor/current-buffer))
+                       "r" #(raw-eval-sexp-at-point (editor/current-buffer))}}
              "y" #(apply-to-buffer copy-selection-to-clipboard)
              "d" #(apply-to-buffer delete)
              }})

@@ -63,7 +63,7 @@
   (swap! editor/state update ::minibuffer-mode/commands #(cons [#"^:jack-out$" jack-out] %)) 
   (editor/add-key-bindings :clojure-mode :normal
     {"C-o" output-snapshot
-     "f5" #(send-sexp-at-point-to-repl (editor/get-current-buffer))
+     "f5" #(send-sexp-at-point-to-repl (editor/current-buffer))
      "f6" jack-out})
   (editor/add-key-bindings :clojure-mode :visual
-    {"f5" #(send-sexp-at-point-to-repl (editor/get-current-buffer))}))
+    {"f5" #(send-sexp-at-point-to-repl (editor/current-buffer))}))

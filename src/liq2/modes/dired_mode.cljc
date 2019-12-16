@@ -19,7 +19,7 @@
 
 (defn run
   []
-  (let [f (or ((editor/get-current-buffer) ::buffer/filename) ".")
+  (let [f (or ((editor/current-buffer) ::buffer/filename) ".")
         folder (util/absolute (util/get-folder f))
         id (editor/get-buffer-id-by-name "*dired*")]
     (if id
@@ -34,7 +34,7 @@
 
 (defn choose
   []
-  (let [buf (editor/get-current-buffer)
+  (let [buf (editor/current-buffer)
         parent (buffer/get-line buf 1)
         f (buffer/get-line buf)
         path (str parent "/" f)]
@@ -49,7 +49,7 @@
 
 (defn new-file
   []
-  (let [buf (editor/get-current-buffer)
+  (let [buf (editor/current-buffer)
         parent (buffer/get-line buf 1)
         f (if (= (-> buf ::buffer/cursor ::buffer/row) 1) "" (buffer/get-line buf))
         path (str parent "/" f)]

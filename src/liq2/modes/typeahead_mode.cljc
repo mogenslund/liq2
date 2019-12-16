@@ -48,7 +48,7 @@
 (defn execute
   []
   (let [st @state
-        index (- (-> (editor/get-current-buffer) ::buffer/cursor ::buffer/row) 2)
+        index (- (-> (editor/current-buffer) ::buffer/cursor ::buffer/row) 2)
         res (first (drop index (st ::filtered)))] 
     ((st ::callback) res)))
 

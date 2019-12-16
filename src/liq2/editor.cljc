@@ -75,7 +75,7 @@
   []
   (filter #(not= (subs (str (% ::buffer/name) " ") 0 1) "*") (vals (@state ::buffers))))
 
-(defn get-current-buffer-id
+(defn current-buffer-id
   "Highest idx is current buffer.
   So idx is updated each time buffer is switched."
   []
@@ -85,11 +85,11 @@
 
 (comment
   (map ::idx (vals (@state ::buffers)))
-  (get-current-buffer-id))
+  (current-buffer-id))
 
-(defn get-current-buffer
+(defn current-buffer
   []
-  (get-buffer (get-current-buffer-id)))
+  (get-buffer (current-buffer-id)))
 
 (defn switch-to-buffer
   [idname]
@@ -134,7 +134,7 @@
    (if (number? idname)
      (swap! state update-in [::buffers idname] fun)
      (apply-to-buffer (get-buffer-id-by-name idname) fun)))
-  ([fun] (apply-to-buffer (get-current-buffer-id) fun)))
+  ([fun] (apply-to-buffer (current-buffer-id) fun)))
 
 (comment
   (new-buffer)
@@ -166,7 +166,7 @@
             buffer/beginning-of-buffer))
      ;((@state ::output-handler) (get-buffer "*status-line*"))
        ((-> @state ::output-handler :printer) (assoc (highlight-paren buf) :status-line (get-buffer "*status-line*")))))
-  ([] (paint-buffer-old (get-current-buffer))))
+  ([] (paint-buffer-old (current-buffer))))
 
 (defn paint-buffer
   ([nameid]
@@ -187,7 +187,7 @@
               buffer/update-tow))
        ;((@state ::output-handler) (get-buffer "*status-line*"))
          ((-> @state ::output-handler :printer) (assoc (highlight-paren buf) :status-line (get-buffer "*status-line*"))))))
-  ([] (paint-buffer (get-current-buffer-id))))
+  ([] (paint-buffer (current-buffer-id))))
 
 (defn message
   [s & {:keys [:append :view :timer]}]
@@ -206,14 +206,14 @@
      (let [id (if (number? idname) idname (get-buffer-id-by-name idname))]
        (swap! state update ::buffers dissoc id))
        (previous-regular-buffer)))
-  ([] (force-kill-buffer (get-current-buffer-id))))
+  ([] (force-kill-buffer (current-buffer-id))))
 
 (defn kill-buffer
   ([idname]
    (if (not (buffer/dirty? (get-buffer idname)))
      (force-kill-buffer idname)
      (message "There are unsaved changes. Use bd! to force kill." :view true :timer 1500)))
-  ([] (kill-buffer (get-current-buffer-id))))
+  ([] (kill-buffer (current-buffer-id))))
 
 (defn highlight-buffer
   ([idname]
@@ -223,7 +223,7 @@
          (if hl
            (highlighter/highlight buf hl)
            buf)))))
-  ([] (highlight-buffer (get-current-buffer-id))))
+  ([] (highlight-buffer (current-buffer-id))))
 
 (defn highlight-buffer-row
   ([idname]
@@ -233,14 +233,14 @@
          (if hl
            (highlighter/highlight buf hl (-> buf ::buffer/cursor ::buffer/row))
            buf)))))
-  ([] (highlight-buffer-row (get-current-buffer-id))))
+  ([] (highlight-buffer-row (current-buffer-id))))
 
 (defn new-buffer
   [text {:keys [name] :as options}]
   (let [id (util/counter-next)
         o (if (options :rows)
             options
-            (let [b (get-current-buffer) ;; TODO If there is no current-buffer, there will be a problem!
+            (let [b (current-buffer) ;; TODO If there is no current-buffer, there will be a problem!
                   w (b ::buffer/window)] 
               (assoc options :top (w ::buffer/top)
                              :left (w ::buffer/left)
@@ -284,8 +284,8 @@
   ;(spit "/tmp/liq2.log" (str "INPUT: " c "\n"))
   (when (and @macro-record (not= c "Q"))
     (swap! macro-seq conj c))
-  (let [mode ((get-current-buffer) ::buffer/mode)
-        major-mode ((get-current-buffer) ::buffer/major-mode)
+  (let [mode ((current-buffer) ::buffer/mode)
+        major-mode ((current-buffer) ::buffer/major-mode)
         tmp-k-selfinsert (and @tmp-keymap (@tmp-keymap :selfinsert)) 
         tmp-k (and @tmp-keymap
                    (or (@tmp-keymap c)
@@ -298,7 +298,7 @@
                  (when (not= mode :insert) (((get-mode major-mode) :normal) c)))]
     (cond (fn? action) (action)
           (map? action) (reset! tmp-keymap action)
-          ;action (swap! state update-in [::buffers (get-current-buffer-id)] (action :function))
+          ;action (swap! state update-in [::buffers (current-buffer-id)] (action :function))
           (= mode :insert) (apply-to-buffer #(buffer/insert-char % (first c))))
     (cond (= c "esc") (highlight-buffer) ; TODO Maybe not highlight from scratch each time
           (= mode :insert) (highlight-buffer-row))

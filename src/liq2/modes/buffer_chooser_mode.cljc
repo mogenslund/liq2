@@ -22,7 +22,7 @@
 
 (defn choose-buffer
   []
-  (editor/previous-buffer (-> (editor/get-current-buffer) ::buffer/cursor ::buffer/row)))
+  (editor/previous-buffer (-> (editor/current-buffer) ::buffer/cursor ::buffer/row)))
 
 (def mode
   {:insert {"esc" (fn [] (apply-to-buffer #(-> % (assoc ::buffer/mode :normal) buffer/left)))}
