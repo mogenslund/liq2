@@ -15,6 +15,14 @@
             [liq2.tty-output :as output])
   #?(:clj (:gen-class)))
 
+(defn load-dot-liq2
+  []
+  (try
+    (let [path (util/resolve-home "~/.liq2")]
+      (when (util/exists? path)
+        (load-file path)))
+   (catch Exception e (editor/message (str "Error loading .liq2:\n" e)))))
+
 ;; clj -m liq2.experiments.core
 (defn -main
   []
@@ -44,4 +52,5 @@
     (editor/new-buffer "" {:name "output" :top 1 :left 1 :rows (- rows 1) :cols cols :mode :normal})
     (editor/new-buffer "" {:name "scratch" :top 1 :left 1 :rows (- rows 1) :cols cols :major-mode :clojure-mode})
     (editor/paint-buffer)
-    (cool-stuff/load-cool-stuff)))
+    (cool-stuff/load-cool-stuff)
+    (load-dot-liq2)))
