@@ -192,7 +192,8 @@
 (defn message
   [s & {:keys [:append :view :timer]}]
   (if append
-    (apply-to-buffer "output" #(-> % (buffer/insert-string (str s "\n"))))
+    ;(apply-to-buffer "output" #(-> % (buffer/append-buffer (buffer/buffer (str s "\n"))) buffer/end-of-buffer))
+    (apply-to-buffer "output" #(-> % buffer/end-of-buffer (buffer/insert-string (str s "\n"))))
     (apply-to-buffer "output" #(-> % buffer/clear (buffer/insert-string (str s)))))
   (paint-buffer "output")
   (when (and view (get-setting :auto-switch-to-output))

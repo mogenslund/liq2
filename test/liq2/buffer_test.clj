@@ -2,6 +2,27 @@
   (:require [clojure.test :refer :all]
             [liq2.buffer :refer :all]))
 
+(deftest line-count-test
+  (testing "Line count"
+    (is (= (-> (buffer "") line-count) 1)) 
+    (is (= (-> (buffer "abc") line-count) 1)) 
+    (is (= (-> (buffer "abc\n") line-count) 2)) 
+    (is (= (-> (buffer "abc  \n  abc") line-count) 2)) 
+    (is (= (-> (buffer "abc\n\n") line-count) 3)) 
+    (is (= (-> (buffer "abc\n\nabc") line-count) 3)) 
+    (is (= (-> (buffer "abc\n\n") end-of-buffer line-count) 3)) 
+    (is (= (-> (buffer "abc\n\nabc") end-of-buffer line-count) 3))))
+
+(deftest col-count-test
+  (testing "Col count"
+    (is (= (-> (buffer "") (col-count 1)) 0)) 
+    (is (= (-> (buffer "a") (col-count 1)) 1)) 
+    (is (= (-> (buffer "a\n") (col-count 1)) 1)) 
+    (is (= (-> (buffer "a\n") (col-count 2)) 0)) 
+    (is (= (-> (buffer "a\n") (col-count 10)) 0)) 
+    (is (= (-> (buffer "a\nabc") (col-count 2)) 3))))
+
+
 (deftest right-test
   (testing "Forward char"
     (let [buf (buffer "abc\n\ndef")]
@@ -20,6 +41,20 @@
                  :liq2.buffer/cursor)
              {:liq2.buffer/row 2 :liq2.buffer/col 1})))))
 
+(deftest point-compare-test
+  (testing "Point compare"
+    (is (= (point-compare {:liq2.buffer/row 1 :liq2.buffer/col 1} {:liq2.buffer/row 1 :liq2.buffer/col 2}) -1))
+    (is (= (point-compare {:liq2.buffer/row 1 :liq2.buffer/col 10} {:liq2.buffer/row 1 :liq2.buffer/col 2}) 1))
+    (is (= (point-compare {:liq2.buffer/row 2 :liq2.buffer/col 1} {:liq2.buffer/row 1 :liq2.buffer/col 2}) 1))
+    (is (= (point-compare {:liq2.buffer/row 1 :liq2.buffer/col 2} {:liq2.buffer/row 1 :liq2.buffer/col 2}) 0))))
+
+(deftest get-line-test
+  (testing "Get line"
+    (is (= (-> (buffer "") get-line) ""))
+    (is (= (-> (buffer "aaa") (get-line 1)) "aaa"))
+    (is (= (-> (buffer "aaa") (get-line 2)) ""))
+    (is (= (-> (buffer "\naaa") (get-line 2)) "aaa"))))
+
 (deftest get-text-test
   (testing "Get text"
     (let [buf (buffer "abc\n\ndef")]
@@ -31,6 +66,34 @@
       (is (= (get-text buf {:liq2.buffer/row 4 :liq2.buffer/col 10} {:liq2.buffer/row 4 :liq2.buffer/col 20}) ""))
       (is (= (get-text buf {:liq2.buffer/row 5 :liq2.buffer/col 1} {:liq2.buffer/row 5 :liq2.buffer/col 2}) ""))
       (is (= (get-text buf {:liq2.buffer/row 1 :liq2.buffer/col 10} {:liq2.buffer/row 1 :liq2.buffer/col 1}) "abc")))))
+
+(deftest delete-region-test
+  (testing "Delete region"
+    (is (= (-> (buffer "abc") (delete-region [{:liq2.buffer/row 1 :liq2.buffer/col 1} {:liq2.buffer/row 1 :liq2.buffer/col 3}]) get-text) ""))
+    (is (= (-> (buffer "abc") (delete-region [{:liq2.buffer/row 1 :liq2.buffer/col 1} {:liq2.buffer/row 1 :liq2.buffer/col 4}]) get-text) ""))
+    (is (= (-> (buffer "abc") (delete-region [{:liq2.buffer/row 1 :liq2.buffer/col 4} {:liq2.buffer/row 1 :liq2.buffer/col 4}]) get-text) "abc"))
+    (is (= (-> (buffer "abc") (delete-region [{:liq2.buffer/row 1 :liq2.buffer/col 1} {:liq2.buffer/row 1 :liq2.buffer/col 5}]) get-text) ""))
+    (is (= (-> (buffer "abc") (delete-region [{:liq2.buffer/row 1 :liq2.buffer/col 1} {:liq2.buffer/row 1 :liq2.buffer/col 1}]) get-text) "bc"))
+    (is (= (-> (buffer "") (delete-region [{:liq2.buffer/row 1 :liq2.buffer/col 1} {:liq2.buffer/row 1 :liq2.buffer/col 1}]) get-text) ""))
+    (is (= (-> (buffer "a\n") (delete-region [{:liq2.buffer/row 1 :liq2.buffer/col 2} {:liq2.buffer/row 2 :liq2.buffer/col 0}]) get-text) "a"))
+    (is (= (-> (buffer "\n") (delete-region [{:liq2.buffer/row 1 :liq2.buffer/col 0} {:liq2.buffer/row 2 :liq2.buffer/col 0}]) get-text) ""))
+    (is (= (-> (buffer "a\n") (delete-region [{:liq2.buffer/row 1 :liq2.buffer/col 2} {:liq2.buffer/row 2 :liq2.buffer/col 1}]) get-text) "a"))
+    (is (= (-> (buffer "aa\n") (delete-region [{:liq2.buffer/row 1 :liq2.buffer/col 1} {:liq2.buffer/row 2 :liq2.buffer/col 0}]) get-text) ""))
+    (is (= (-> (buffer "abc") (delete-region [{:liq2.buffer/row 1 :liq2.buffer/col 1} {:liq2.buffer/row 1 :liq2.buffer/col 3}]) get-text) ""))))
+
+(deftest split-buffer-test
+  (testing "Split buffer"
+    (is (= (map get-text (split-buffer (buffer ""))) (list "" "")))
+    (is (= (map get-text (split-buffer (buffer "aabb") {:liq2.buffer/row 1 :liq2.buffer/col 1})) (list "" "aabb")))
+    (is (= (map get-text (split-buffer (buffer "aabb") {:liq2.buffer/row 1 :liq2.buffer/col 2})) (list "a" "abb")))
+    (is (= (map get-text (split-buffer (buffer "aabb") {:liq2.buffer/row 1 :liq2.buffer/col 3})) (list "aa" "bb")))
+    (is (= (map get-text (split-buffer (buffer "aabb") {:liq2.buffer/row 1 :liq2.buffer/col 4})) (list "aab" "b")))
+    (is (= (map get-text (split-buffer (buffer "aabb") {:liq2.buffer/row 1 :liq2.buffer/col 5})) (list "aabb" "")))
+    (is (= (map get-text (split-buffer (buffer "aa\nbb") {:liq2.buffer/row 2 :liq2.buffer/col 1})) (list "aa\n" "bb")))
+    (is (= (map get-text (split-buffer (buffer "aa\n") {:liq2.buffer/row 2 :liq2.buffer/col 1})) (list "aa\n" "")))
+    (is (= (map get-text (split-buffer (buffer "aa\n") {:liq2.buffer/row 2 :liq2.buffer/col 0})) (list "aa\n" "")))
+    (is (= (map get-text (split-buffer (buffer "\nbb") {:liq2.buffer/row 1 :liq2.buffer/col 1})) (list "" "\nbb")))
+    (is (= (map get-text (split-buffer (buffer "aabb") {:liq2.buffer/row 1 :liq2.buffer/col 3})) (list "aa" "bb")))))
 
 (defn random-string
   [len]

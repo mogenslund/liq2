@@ -547,10 +547,10 @@
 
 (defn split-buffer
   ([buf p]
-   (if (= p (start-point buf))
-     [(clear buf) buf]
-     [(delete-region buf [p (end-point buf)])
-      (delete-region buf [(start-point buf) {::row (p ::row) ::col (dec (p ::col))}])]))
+   (cond (= p (start-point buf)) [(clear buf) buf]
+         (= (point-compare p (end-point buf)) 1) [buf (buffer "")]
+         true [(delete-region buf [p (end-point buf)])
+               (delete-region buf [(start-point buf) {::row (p ::row) ::col (max 0 (dec (p ::col)))}])]))
   ([buf] (split-buffer buf (buf ::cursor))))
 
 (comment (map get-text (split-buffer (buffer "aaaaSTbbbb\nbbbb") {::row 1 ::col 6})))
@@ -568,6 +568,7 @@
       (set-dirty true)))
 
 (comment (pr-str (get-text (append-buffer (buffer "aaa\nbbb") (buffer "ccc\ndddd")))))
+(comment (pr-str (get-text (append-buffer (buffer "aaa\n") (buffer "bbb")))))
 (comment (pr-str (get-text (append-buffer (buffer "aaa") (buffer "bbb\n\n")))))
 (comment (pr-str (get-text (buffer "bbb\n\n"))))
 (comment (pr-str (get-text (append-buffer (buffer "aaa") (buffer "\nbbb")))))
@@ -582,6 +583,13 @@
    (insert-buffer buf (buf ::cursor) buf0)))
 
 (comment (pr-str (get-text (insert-buffer (buffer "aaa\n\nbbb") (buffer "")))))
+(comment (-> (buffer "aaa") end-of-buffer (insert-buffer (buffer "bbb")) get-text))
+(comment (-> (buffer "aaa\n") end-of-buffer (insert-buffer (buffer "bbb")) get-text))
+(comment (-> (buffer "aaa\n") :liq2.buffer/cursor pr-str println))
+(comment (-> (buffer "aaa\n") end-of-buffer :liq2.buffer/cursor pr-str println))
+(comment (-> (buffer "aaa\nb") end-of-buffer :liq2.buffer/cursor pr-str println))
+(comment (-> (buffer "aaa\n") end-of-buffer ::cursor))
+(comment (-> (buffer "aaa\n") end-of-buffer (insert-buffer (buffer "bbb")) get-text))
 (comment (get-text (insert-buffer (buffer "aaaaabbbbb") {::row 1 ::col 6} (buffer "cccc"))))
 (comment (get-text (insert-buffer (buffer "aaaaa\n\nbbbbb") {::row 2 ::col 1} (buffer "cccc"))))
 (comment (get-text (insert-buffer (buffer "aaaaabbbbb") (buffer "cccc"))))
