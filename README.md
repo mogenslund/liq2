@@ -15,6 +15,10 @@ A lot of pieces will be constructed and only some of them will make it to the en
 
 Also, I will try to make as much as possible work using both clj and Lumo.
 
+Most working keybindings and commands are documented here:
+
+    [Cheatsheet](https://github.com/mogenslund/liq2/wiki/Cheatsheet)
+
 ## Wiki
 
 I will attempt to use the [Wiki](https://github.com/mogenslund/liq2/wiki) in this repo to blog about the progress and what I am trying out.
@@ -22,7 +26,7 @@ I will attempt to use the [Wiki](https://github.com/mogenslund/liq2/wiki) in thi
 ## To run the pieces
 
     clj -m liq2.core
-    lumo -c src -m liq2.core
+    lumo -c src -m liq2.core (Lumo entry does not work at the moment. The primary focus is Java features.)
 
 ## Test
 

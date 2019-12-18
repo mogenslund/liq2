@@ -282,7 +282,10 @@
                  "i" {"w" (fn [] (non-repeat-fun #(->> % buffer/word-region (delete-region %) set-insert-mode)))
                       "(" (fn [] (non-repeat-fun #(->> % buffer/paren-region (shrink-region %) (delete-region %) set-insert-mode)))
                       "[" (fn [] (non-repeat-fun #(->> % buffer/bracket-region (shrink-region %) (delete-region %) set-insert-mode)))
-                      "{" (fn [] (non-repeat-fun #(->> % buffer/brace-region (shrink-region %) (delete-region %) set-insert-mode)))}}
+                      "{" (fn [] (non-repeat-fun #(->> % buffer/brace-region (shrink-region %) (delete-region %) set-insert-mode)))}
+                 "a" {"(" (fn [] (non-repeat-fun #(->> % buffer/paren-region (delete-region %) set-insert-mode)))
+                      "[" (fn [] (non-repeat-fun #(->> % buffer/bracket-region (delete-region %) set-insert-mode)))
+                      "{" (fn [] (non-repeat-fun #(->> % buffer/brace-region (delete-region %) set-insert-mode)))}}
             "/" (fn [] (reset-repeat-counter)
                        (switch-to-buffer "*minibuffer*")
                        (non-repeat-fun #(-> % buffer/clear (buffer/insert-char \/))))

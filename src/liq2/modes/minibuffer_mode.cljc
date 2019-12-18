@@ -47,6 +47,7 @@
    [#"^:new$" #(editor/new-buffer "" {})]
    [#"^:buffers$" #(((editor/get-mode :buffer-chooser-mode) :init))]
    [#"^:w$" #(write-file)]
+   [#"^:wq$" #(do (write-file) (editor/exit-program))]
    [#"^:t$" #(editor/open-file "/home/sosdamgx/proj/liquid/src/dk/salza/liq/slider.clj")]
    [#"^:bd$" #(editor/kill-buffer)]
    [#"^:bd!$" #(editor/force-kill-buffer)]
