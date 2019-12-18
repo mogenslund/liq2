@@ -41,18 +41,23 @@
         ") "
         (buffer/sexp-at-point buf) ")"))))
 
+(defn sanitice-output
+  [x]
+  (cond (string? x) x
+        (and (map? x) (x ::editor/buffers)) "<editor/state>"
+        true (pr-str x)))
+
 (defn eval-sexp-at-point
   [buf]
   (reset-repeat-counter) 
   (binding [*print-length* 200]
     (let [sexp (if (= (buf ::buffer/mode) :visuel) (buffer/get-selected-text buf) (buffer/sexp-at-point buf))
-          pr-str-str (fn [x] (if (string? x) x (pr-str x)))
           namespace (or (get-namespace buf) "user")]
       (editor/message "" :view true); ( :view true :timer 1500)
       (future
         (with-redefs [println (fn [& args] (editor/message (str/join " " args) :append true))]
           (try
-            (println (pr-str-str
+            (println (sanitice-output
               (load-string
                 (str
                   "(do (ns " namespace ") (in-ns '"
@@ -86,7 +91,7 @@
   []
   (reset-repeat-counter) 
   (let [buf (editor/current-buffer)
-        part (buffer/get-word buf)
+        part (str/replace (buffer/get-word buf) #":" "")
         buffer-file (or (buf ::buffer/filename) ((editor/get-buffer (editor/previous-regular-buffer-id)) ::buffer/filename))
         alternative-parent (if buffer-file (util/get-folder buffer-file) ".")
         filepath (util/resolve-path part alternative-parent)]

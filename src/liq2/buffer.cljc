@@ -810,7 +810,9 @@
   ([buf p]
    (word-region (assoc buf ::cursor p))))
 
-(comment (word-region (buffer "aaa bbb ccc") {::row 1 ::col 5}))
+(comment (word-region (buffer "aaa bbb ccc") {:liq2.buffer/row 1 :liq2.buffer/col 5}))
+(comment (word-region (buffer "aaa bb: ccc") {:liq2.buffer/row 1 :liq2.buffer/col 5}))
+(comment (word-region (buffer "aaa bb/ ccc") {:liq2.buffer/row 1 :liq2.buffer/col 5}))
 (comment (word-region (buffer "aaa bbb ccc")))
 
 (defn word-forward
