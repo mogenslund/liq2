@@ -2,7 +2,7 @@
   (:require [clojure.string :as str]
             [liq2.editor :as editor]
             [liq2.buffer :as buffer]
-            [liq2.modes.minibuffer-mode :as minibuffer-mode])
+            [liq2.util :as util])
   (:import [java.net Socket]
            [java.io BufferedInputStream BufferedOutputStream
                     BufferedReader InputStreamReader]
@@ -25,7 +25,7 @@
 
 (defn jack-in
   [port]
-  (let [s (try (Socket. "localhost" (if (int? port) port (Integer/parseInt port))) (catch Exception e nil))]
+  (let [s (try (Socket. "localhost" (util/int-value port)) (catch Exception e nil))]
     (when s
       (reset! socket {:socket s
                       :in (BufferedInputStream. (.getInputStream s))
@@ -59,8 +59,8 @@
 
 (defn load-cool-stuff
   []
-  (swap! editor/state update ::minibuffer-mode/commands #(cons [#"^:jack-in (\d+)" jack-in] %)) 
-  (swap! editor/state update ::minibuffer-mode/commands #(cons [#"^:jack-out$" jack-out] %)) 
+  (swap! editor/state assoc-in [::editor/commands :jack-in] jack-in) 
+  (swap! editor/state assoc-in [::editor/commands :jack-out] jack-out) 
   (editor/add-key-bindings :clojure-mode :normal
     {"C-o" output-snapshot
      "f5" #(send-sexp-at-point-to-repl (editor/current-buffer))

@@ -4,12 +4,15 @@
                :cljs [lumo.io :as io :refer [slurp spit]])
             #?(:cljs [cljs.js :refer [eval eval-str empty-state]])))
 
-
-
 (def counter (atom 0))
 (defn counter-next
   []
   (swap! counter inc))
+
+(defn int-value
+  [s]
+  #?(:clj (if (int? s) s (Integer/parseInt s))
+     :cljs (if (int? s) s (js/parseInt s))))
 
 (defn now
   "Current time in milliseconds"

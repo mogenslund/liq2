@@ -4,306 +4,118 @@
             [liq2.buffer :as buffer :refer [delete-region shrink-region set-insert-mode]]
             [liq2.util :as util]))
 
-(def repeat-counter (atom "0"))
-
-(defn reset-repeat-counter [] (reset! repeat-counter "0"))
-
-(defn repeat-fun
-  [fun]
-  (let [r (max (min (Integer/parseInt @repeat-counter) 99) 1)]
-    (reset-repeat-counter)
-    (editor/apply-to-buffer #(fun % r))))
-
 (defn non-repeat-fun
   [fun]
-  (reset-repeat-counter)
+  (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
   (editor/apply-to-buffer fun))
-
-(defn tmp-eval
-  []
-  (let [res (util/eval-safe (buffer/get-selected-text (editor/current-buffer)))]
-    (editor/apply-to-buffer "output" #(-> % buffer/clear (buffer/insert-string (str res))))
-    (editor/paint-buffer  "output")))
-
-(defn get-namespace
-  [buf]
-  (let [content (buffer/get-line buf 1)]
-    (re-find #"(?<=\(ns )[-a-z0-9\\.]+" content))) ;)
-
-(defn eval-sexp-at-point-old
-  [buf]
-  (reset-repeat-counter) 
-  (let [namespace (or (get-namespace buf) "user")]
-    (util/eval-safe
-      (str
-        "(do (ns " namespace ") (in-ns '"
-        namespace
-        ") "
-        (buffer/sexp-at-point buf) ")"))))
-
-(defn sanitice-output
-  [x]
-  (cond (string? x) x
-        (and (map? x) (x ::editor/buffers)) "<editor/state>"
-        true (pr-str x)))
-
-(defn eval-sexp-at-point
-  [buf]
-  (reset-repeat-counter) 
-  (binding [*print-length* 200]
-    (let [sexp (if (= (buf ::buffer/mode) :visuel) (buffer/get-selected-text buf) (buffer/sexp-at-point buf))
-          namespace (or (get-namespace buf) "user")]
-      (editor/message "" :view true); ( :view true :timer 1500)
-      (future
-        (with-redefs [println (fn [& args] (editor/message (str/join " " args) :append true))]
-          (try
-            (println (sanitice-output
-              (load-string
-                (str
-                  "(do (ns " namespace ") (in-ns '"
-                  namespace
-                  ") " sexp ")"))))
-            (catch Exception e (println (util/pretty-exception e)))))))))
-
-(defn raw-eval-sexp-at-point
-  [buf]
-  (reset-repeat-counter) 
-  (let [sexp (if (= (buf ::buffer/mode) :visuel) (buffer/get-selected-text buf) (buffer/sexp-at-point buf))
-        namespace (or (get-namespace buf) "user")]
-    (try
-      (load-string
-        (str "(do (ns " namespace ") (in-ns '" namespace ") " sexp ")"))
-      (catch Exception e (println (util/pretty-exception e))))))
-
-(defn tmp-get-text
-  []
-  (let [res (buffer/get-selected-text (editor/current-buffer))]
-    (editor/apply-to-buffer "output" #(-> % buffer/clear (buffer/insert-string (str res))))
-    (editor/paint-buffer "output")))
-
-(defn tmp-print-buffer
-  []
-  (let [res (pr-str (editor/current-buffer))]
-    (editor/apply-to-buffer "output" #(-> % buffer/clear (buffer/insert-string (str res))))
-    (editor/paint-buffer "output")))
-
-(defn open-file-at-point
-  []
-  (reset-repeat-counter) 
-  (let [buf (editor/current-buffer)
-        part (str/replace (buffer/get-word buf) #":" "")
-        buffer-file (or (buf ::buffer/filename) ((editor/get-buffer (editor/previous-regular-buffer-id)) ::buffer/filename))
-        alternative-parent (if buffer-file (util/get-folder buffer-file) ".")
-        filepath (util/resolve-path part alternative-parent)]
-    (editor/open-file filepath)))
-
-(defn evaluate-file-raw
-  "Evaluate a given file raw, without using
-  with-out-str or other injected functionality.
-  If no filepath is supplied the path connected
-  to the current buffer will be used."
-  ([filepath]
-    (try (editor/message (load-file filepath))
-      (catch Exception e (editor/message (util/pretty-exception e)))))
-  ([] (when-let [filepath ((editor/current-buffer) ::buffer/filename)] (evaluate-file-raw filepath))))
-
-(defn copy-selection-to-clipboard
-  [buf]
-  (let [p (buffer/get-selection buf)
-        text (buffer/get-selected-text buf)]
-    (if p
-      (do
-        (util/set-clipboard-content text false)
-        (-> buf
-            buffer/set-normal-mode
-            (assoc ::buffer/cursor p)
-            buffer/update-mem-col))
-      buf)))
-
-(defn paste-clipboard
-  []
-  (reset-repeat-counter)
-  (let [text (util/clipboard-content)] 
-    (if (util/clipboard-line?)
-      (apply-to-buffer
-        #(-> %
-             buffer/append-line
-             ;buffer/end-of-line
-             (buffer/insert-string text)
-             buffer/beginning-of-line
-             buffer/set-normal-mode))
-      (apply-to-buffer
-        #(-> %
-             buffer/set-insert-mode
-             buffer/right
-             (buffer/insert-string text)
-             (buffer/right (dec (count text)))
-             buffer/set-normal-mode)))))
-
-(defn paste-clipboard-here
-  []
-  (reset-repeat-counter)
-  (let [text (util/clipboard-content)] 
-    (if (util/clipboard-line?)
-      (apply-to-buffer
-        #(-> %
-             buffer/beginning-of-line
-             (buffer/insert-string (str text "\n"))
-             buffer/up
-             buffer/beginning-of-line
-             buffer/set-normal-mode))
-      (apply-to-buffer
-        #(-> %
-             buffer/set-insert-mode
-             (buffer/insert-string text)
-             (buffer/right (dec (count text)))
-             buffer/set-normal-mode)))))
-
-(defn delete-line
-  [buf]
-  (let [text (buffer/get-line buf)]
-    (util/set-clipboard-content text true)
-    (buffer/delete-line buf)))
-
-(defn copy-line
-  []
-  (let [text (buffer/get-line (editor/current-buffer))]
-    (util/set-clipboard-content text true)))
-
-(defn delete
-  [buf]
-  (let [text (buffer/get-selected-text buf)]
-    (util/set-clipboard-content text false)
-    (buffer/delete buf)))
-
-(defn cut-region
-  [buf r]
-  (if r
-    (let [text (buffer/get-text buf r)]
-      (util/set-clipboard-content text false)
-      (buffer/delete-region buf r))
-    buf))
-
-(defn yank-region
-  [buf r]
-  (if r
-    (let [text (buffer/get-text buf r)]
-      (util/set-clipboard-content text false)
-      (assoc buf ::buffer/cursor (first r)))
-    buf))
-
-(defn yank-filename
-  []
-  (when-let [f ((editor/current-buffer) ::buffer/filename)]
-    (util/set-clipboard-content f false)))
-
-(def sample-code "(ns user.user (:require [liq2.editor :as editor] [liq2.buffer :as buffer])) (liq2.editor/apply-to-buffer liq2.buffer/end-of-line) :something")
-
-(defn typeahead-defs
-  [buf]
-  (let [headlines (filter #(re-find #"^\(def|^#" (second %))
-                          (map #(vector % (buffer/get-line buf %))
-                               (range 1 (inc (buffer/line-count buf)))))]
-    (((editor/get-mode :typeahead-mode) :init) headlines 
-                                               second
-                                               (fn [res]
-                                                 (editor/previous-buffer)
-                                                 (apply-to-buffer #(-> %
-                                                                       (assoc ::buffer/cursor {::buffer/row (first res) ::buffer/col 1})
-                                                                       (assoc ::buffer/tow {::buffer/row (first res) ::buffer/col 1})))))))
 
 (def mode
   {:commands {":ts" #(editor/message (str % " -- " (buffer/sexp-at-point (editor/current-buffer))))}
    :insert {"esc" (fn [] (apply-to-buffer #(buffer/left (buffer/set-normal-mode %))))
-            "backspace" #(non-repeat-fun buffer/delete-backward)}
-   :normal {"esc" #(reset! repeat-counter "0") 
+            "backspace" #(non-repeat-fun buffer/delete-backward)
+            ;; Emacs
+            "C-b" :left
+            "C-n" :down
+            "C-p" :up
+            "C-f" :right
+            "left" :left 
+            "down" :down 
+            "up" :up 
+            "right" :right 
+            "M-x" (fn [] (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
+                         (switch-to-buffer "*minibuffer*")
+                         (non-repeat-fun #(-> % buffer/clear
+                                                (buffer/insert-char \M)
+                                                (buffer/insert-char \-)
+                                                (buffer/insert-char \x)
+                                                (buffer/insert-char \space))))}
+   :normal {"esc" (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
             "C- " #(((editor/get-mode :buffer-chooser-mode) :init))
-            "C-b" #(editor/previous-regular-buffer)
+            "C-b" :previous-regular-buffer
             "t" (fn [] (apply-to-buffer #(buffer/insert-string % "Just\nTesting")))
             "f2" editor/oldest-buffer
             "f3" #(non-repeat-fun buffer/debug-clear-undo)
-            "0" #(if (= @repeat-counter "0") (non-repeat-fun buffer/beginning-of-line) (swap! repeat-counter str "0"))
-            "1" #(swap! repeat-counter str "1")
-            "2" #(swap! repeat-counter str "2")
-            "3" #(swap! repeat-counter str "3")
-            "4" #(swap! repeat-counter str "4")
-            "5" #(swap! repeat-counter str "5")
-            "6" #(swap! repeat-counter str "6")
-            "7" #(swap! repeat-counter str "7")
-            "8" #(swap! repeat-counter str "8")
-            "9" #(swap! repeat-counter str "9")
-            "%" #(non-repeat-fun buffer/move-matching-paren)
-            "i" #(non-repeat-fun buffer/set-insert-mode)
-            "a" (fn [] (non-repeat-fun #(-> % buffer/set-insert-mode buffer/right)))
-            "h" #(repeat-fun buffer/left)
-            "j" #(repeat-fun buffer/down)
-            "k" #(repeat-fun buffer/up)
-            "l" #(repeat-fun buffer/right)
-            "w" #(repeat-fun buffer/word-forward)
-            "b" #(repeat-fun buffer/beginning-of-word)
-            "e" #(repeat-fun buffer/end-of-word)
-            "$" #(non-repeat-fun buffer/end-of-line)
-            "x" #(repeat-fun buffer/delete-char)
-            "v" #(non-repeat-fun buffer/set-visual-mode)
-            "n" #(non-repeat-fun buffer/search)
-            "u" #(non-repeat-fun buffer/undo)
-            "y" {"y" copy-line
-                 "%" yank-filename
-                 "i" {"w" (fn [] (non-repeat-fun #(->> % buffer/word-region (yank-region %))))
-                      "(" (fn [] (non-repeat-fun #(->> % buffer/paren-region (shrink-region %) (yank-region %))))
-                      "[" (fn [] (non-repeat-fun #(->> % buffer/bracket-region (shrink-region %) (yank-region %))))
-                      "{" (fn [] (non-repeat-fun #(->> % buffer/brace-region (shrink-region %) (yank-region %))))}
-                 "a" {"(" (fn [] (non-repeat-fun #(->> % buffer/paren-region (yank-region %))))
-                      "[" (fn [] (non-repeat-fun #(->> % buffer/bracket-region (yank-region %))))
-                      "{" (fn [] (non-repeat-fun #(->> % buffer/brace-region (yank-region %))))}}
-            "p" paste-clipboard
-            "P" paste-clipboard-here
-            "g" {"g" #(non-repeat-fun buffer/beginning-of-buffer)
-                 "i" #(typeahead-defs (editor/current-buffer))
-                 "f" open-file-at-point}
-            "G" #(non-repeat-fun buffer/end-of-buffer)
-            "z" {"t" (fn [] (non-repeat-fun #(assoc % ::buffer/tow {::buffer/row (-> % ::buffer/cursor ::buffer/row) ::buffer/col 1})))
-                 "\n" (fn [] (non-repeat-fun #(assoc % ::buffer/tow {::buffer/row (-> % ::buffer/cursor ::buffer/row) ::buffer/col 1})))}
-            "d" {"d" #(non-repeat-fun delete-line)
-                 "i" {"w" (fn [] (non-repeat-fun #(->> % buffer/word-region (cut-region %))))
-                      "(" (fn [] (non-repeat-fun #(->> % buffer/paren-region (shrink-region %) (cut-region %))))
-                      "[" (fn [] (non-repeat-fun #(->> % buffer/bracket-region (shrink-region %) (cut-region %))))
-                      "{" (fn [] (non-repeat-fun #(->> % buffer/brace-region (shrink-region %) (cut-region %))))}
-                 "a" {"(" (fn [] (non-repeat-fun #(->> % buffer/paren-region  (cut-region %))))
-                      "[" (fn [] (non-repeat-fun #(->> % buffer/bracket-region  (cut-region %))))
-                      "{" (fn [] (non-repeat-fun #(->> % buffer/brace-region  (cut-region %))))}}
-            "A" #(non-repeat-fun buffer/insert-at-line-end)
-            "D" #(non-repeat-fun buffer/delete-to-line-end)
-            "r" {:selfinsert (fn [buf c] (reset-repeat-counter) (buffer/set-char buf (first c)))}
-            "c" {"p" {"p" #(eval-sexp-at-point (editor/current-buffer))
-                      "r" #(raw-eval-sexp-at-point (editor/current-buffer))
-                      "t" tmp-print-buffer
-                      "f" evaluate-file-raw}
-                 "i" {"w" (fn [] (non-repeat-fun #(->> % buffer/word-region (delete-region %) set-insert-mode)))
-                      "(" (fn [] (non-repeat-fun #(->> % buffer/paren-region (shrink-region %) (delete-region %) set-insert-mode)))
-                      "[" (fn [] (non-repeat-fun #(->> % buffer/bracket-region (shrink-region %) (delete-region %) set-insert-mode)))
-                      "{" (fn [] (non-repeat-fun #(->> % buffer/brace-region (shrink-region %) (delete-region %) set-insert-mode)))}
-                 "a" {"(" (fn [] (non-repeat-fun #(->> % buffer/paren-region (delete-region %) set-insert-mode)))
-                      "[" (fn [] (non-repeat-fun #(->> % buffer/bracket-region (delete-region %) set-insert-mode)))
-                      "{" (fn [] (non-repeat-fun #(->> % buffer/brace-region (delete-region %) set-insert-mode)))}}
-            "/" (fn [] (reset-repeat-counter)
+            "0" :0 
+            "1" :1 
+            "2" :2 
+            "3" :3 
+            "4" :4 
+            "5" :5 
+            "6" :6 
+            "7" :7
+            "8" :8
+            "9" :9 
+            "%" :move-matching-paren
+            "i" :set-insert-mode 
+            "a" :insert-after-point
+            "h" :left 
+            "j" :down 
+            "k" :up 
+            "l" :right 
+            "left" :left 
+            "down" :down 
+            "up" :up 
+            "right" :right 
+            "w" :word-forward
+            "b" :beginning-of-word
+            "e" :end-of-word
+            "$" :end-of-line
+            "x" :delete-char
+            "v" :set-visual-mode
+            "n" :search
+            "u" :undo
+            "y" {"y" :copy-line
+                 "%" :yank-filename
+                 "i" {"w" :yank-inner-word
+                      "(" :yank-inner-paren
+                      "[" :yank-inner-bracket
+                      "{" :yank-inner-brace}
+                 "a" {"(" :yank-outer-paren
+                      "[" :yank-outer-bracket
+                      "{" :yank-outer-brace}}
+            "p" :paste-clipboard
+            "P" :paste-clipboard-here
+            "g" {"g" :beginning-of-buffer
+                 "i" :navigate-definitions
+                 "f" :open-file-at-point}
+            "G" :end-of-buffer
+            "z" {"t" :scroll-cursor-top 
+                 "\n" :scroll-cursor-top}
+            "d" {"d" :delete-line
+                 "i" {"w" :delete-inner-word
+                      "(" :delete-inner-paren
+                      "[" :delete-inner-bracket
+                      "{" :delete-inner-brace}
+                 "a" {"(" :delete-outer-paren
+                      "[" :delete-outer-bracket
+                      "{" :delete-outer-brace}}
+            "A" :insert-at-line-end
+            "D" :delete-to-line-end
+            "r" {:selfinsert (fn [buf c]
+                               (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
+                               (buffer/set-char buf (first c)))}
+            "c" {"p" {"p" :eval-sexp-at-point
+                      "r" :raw-eval-sexp-at-point
+                      "f" :evaluate-file-raw}
+                 "i" {"w" :change-inner-word
+                      "(" :change-inner-paren
+                      "[" :change-inner-bracket
+                      "{" :change-inner-brace}
+                 "a" {"(" :change-outer-paren
+                      "[" :change-outer-bracket
+                      "{" :change-outer-brace}}
+            "/" (fn [] (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
                        (switch-to-buffer "*minibuffer*")
                        (non-repeat-fun #(-> % buffer/clear (buffer/insert-char \/))))
-;            "-" (fn [] (reset-repeat-counter)
-;                       (switch-to-buffer "*minibuffer*")
-;                       (non-repeat-fun #(-> % buffer/clear (buffer/insert-char \/))))
-;            "æ" (fn [] (reset-repeat-counter)
-;                       (switch-to-buffer "*minibuffer*")
-;                       (non-repeat-fun #(-> % buffer/clear (buffer/insert-char \:))))
-            ":" (fn [] (reset-repeat-counter)
+            ":" (fn [] (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
                        (switch-to-buffer "*minibuffer*")
                        (non-repeat-fun #(-> % buffer/clear (buffer/insert-char \:))))
             "Q" editor/record-macro
             "q" editor/run-macro
-            "o" #(non-repeat-fun buffer/append-line)}
-    :visual {"esc" #(non-repeat-fun buffer/set-normal-mode)
-             "c" {"p" {"p" #(eval-sexp-at-point (editor/current-buffer))
-                       "r" #(raw-eval-sexp-at-point (editor/current-buffer))}}
-             "y" #(apply-to-buffer copy-selection-to-clipboard)
-             "d" #(apply-to-buffer delete)
+            "o" :append-line }
+    :visual {"esc" :set-normal-mode 
+             "c" {"p" {"p" :eval-sexp-at-point
+                       "r" :raw-eval-sexp-at-point}}
+             "y" :copy-selection-to-clipboard
+             "d" :delete 
              }})

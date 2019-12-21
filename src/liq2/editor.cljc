@@ -5,7 +5,8 @@
             [liq2.highlighter :as highlighter]
             [liq2.buffer :as buffer]))
 
-(def state (atom {::buffers {}
+(def state (atom {::commands {}
+                  ::buffers {}
                   ::modes {}
                   ::settings {:auto-switch-to-output true}
                   ::exit-handler nil
@@ -298,6 +299,7 @@
                  (((get-mode major-mode) mode) c)
                  (when (not= mode :insert) (((get-mode major-mode) :normal) c)))]
     (cond (fn? action) (action)
+          (keyword? action) (when (-> @state ::commands action) ((-> @state ::commands action)))
           (map? action) (reset! tmp-keymap action)
           ;action (swap! state update-in [::buffers (current-buffer-id)] (action :function))
           (= mode :insert) (apply-to-buffer #(buffer/insert-char % (first c))))

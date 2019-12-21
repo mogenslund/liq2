@@ -12,6 +12,7 @@
             [liq2.editor :as editor]
             [liq2.tty-input :as input]
             [liq2.util :as util]
+            [liq2.commands :as commands]
             [liq2.tty-output :as output])
   #?(:clj (:gen-class)))
 
@@ -27,6 +28,7 @@
 (defn -main
   []
   (input/init)
+  (swap! editor/state update ::editor/commands merge commands/commands)
   (editor/add-mode :fundamental-mode fundamental-mode/mode)
   (editor/add-mode :minibuffer-mode minibuffer-mode/mode)
   (editor/add-mode :buffer-chooser-mode buffer-chooser-mode/mode)
