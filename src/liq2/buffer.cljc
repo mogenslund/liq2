@@ -802,6 +802,22 @@
              true (recur (right b))))))
   ([buf n] (nth (iterate end-of-word buf) n)))
 
+(defn end-of-word-ws
+  ([buf]
+   (loop [b (or (next-point buf) buf)]
+     (let [p (b ::cursor)
+           rows (line-count b)
+           cols (col-count b (p ::row))
+           c (str (get-char b))
+           is-word (re-matches #"\S" c)]
+       (cond (= p {::row rows ::col cols}) b 
+             (and is-word (= (p ::col) cols)) b
+             (= (p ::col) cols) (recur (next-point b))
+             (and is-word (re-matches #"\s" (str (get-char (right b))))) b
+             true (recur (right b))))))
+  ([buf n] (nth (iterate end-of-word-ws buf) n)))
+
+
 (defn word-region
   ([buf]
    (let [b1 (-> buf left end-of-word)]
@@ -828,6 +844,21 @@
              (and is-word (re-matches #"\W" (str (get-char (left b))))) b
              true (recur (next-point b))))))
   ([buf n] (nth (iterate word-forward buf) n)))
+
+(defn word-forward-ws
+  ([buf]
+   (loop [b (or (next-point buf) buf)]
+     (let [p (b ::cursor)
+           rows (line-count b)
+           cols (col-count b (p ::row))
+           c (str (get-char b))
+           is-word (re-matches #"\S" c)]
+       (cond (= p {::row rows ::col cols}) b 
+             (and is-word (= (p ::col) 1)) b
+             (and is-word (re-matches #"\s" (str (get-char (left b))))) b
+             true (recur (next-point b))))))
+  ([buf n] (nth (iterate word-forward-ws buf) n)))
+
 
 (defn calculate-wrapped-row-dist
   [buf cols row1 row2]

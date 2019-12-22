@@ -57,8 +57,10 @@
             "up" :up 
             "right" :right 
             "w" :word-forward
+            "W" :word-forward-ws
             "b" :beginning-of-word
             "e" :end-of-word
+            "E" :end-of-word-ws
             "$" :end-of-line
             "x" :delete-char
             "v" :set-visual-mode

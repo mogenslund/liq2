@@ -23,7 +23,7 @@
   []
   (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
   (let [buf (editor/current-buffer)
-        part (str/replace (buffer/get-word buf) #":" "")
+        part (re-find #"[^:]+" (buffer/get-word buf))
         buffer-file (or (buf ::buffer/filename) ((editor/get-buffer (editor/previous-regular-buffer-id)) ::buffer/filename))
         alternative-parent (if buffer-file (util/get-folder buffer-file) ".")
         filepath (util/resolve-path part alternative-parent)]
@@ -251,8 +251,10 @@
    :9 #(swap! editor/state update ::repeat-counter (fn [t] (+ (* 10 t) 9)))
    :move-matching-paren #(non-repeat-fun buffer/move-matching-paren)
    :word-forward (fn [& args] (repeat-fun buffer/word-forward args))
+   :word-forward-ws (fn [& args] (repeat-fun buffer/word-forward-ws args))
    :beginning-of-word (fn [& args] (repeat-fun buffer/beginning-of-word args))
    :end-of-word (fn [& args] (repeat-fun buffer/end-of-word args))
+   :end-of-word-ws (fn [& args] (repeat-fun buffer/end-of-word-ws args))
    :end-of-line #(non-repeat-fun buffer/end-of-line)
    :delete-char (fn [& args] (repeat-fun buffer/delete-char args))
    :copy-selection-to-clipboard #(apply-to-buffer copy-selection-to-clipboard)
@@ -294,7 +296,7 @@
    :evaluate-file-raw evaluate-file-raw
 
    :paste-clipboard paste-clipboard
-   :paste-clipboard-here :paste-clipboard-here
+   :paste-clipboard-here paste-clipboard-here
    :beginning-of-buffer #(non-repeat-fun buffer/beginning-of-buffer)
    :navigate-definitions #(typeahead-defs (editor/current-buffer))
    :open-file-at-point open-file-at-point
