@@ -476,7 +476,8 @@
                                     #(insert-in-vector % (q ::row) (into [] (concat t1 t2)))))
                (- (q ::row) (p ::row) -1))
           set-normal-mode
-          (assoc ::cursor p))))
+          (assoc ::cursor p)
+          (set-dirty true))))
   ([buf]
    (if-let [p (get-selection buf)]
      (delete buf (buf ::cursor) p)
@@ -609,6 +610,43 @@
       (assoc ::mode :insert)
       right))
 
+(defn first-non-blank
+  [buf]
+  (let [l (get-line buf)
+        col (+ (or (count (re-find #"\s*" l)) 0) 1)]
+    (-> buf
+        (assoc-in [::cursor ::col] col))))
+
+(defn insert-at-beginning-of-line
+  [buf]
+  (-> buf
+      first-non-blank
+      set-insert-mode))
+
+(defn join-lines
+  [buf]
+  (if (= (-> buf ::cursor ::row) (-> buf ::lines count))
+    buf
+    (-> buf
+        down
+        beginning-of-line
+        delete-backward)))
+
+(defn join-lines-space
+  [buf]
+  (if (= (-> buf ::cursor ::row) (-> buf ::lines count))
+    buf
+    (let [b1 (if (= (-> buf end-of-line get-char) \space)
+               buf
+               (-> buf end-of-line set-insert-mode right (insert-char \space)))
+          col (-> buf down first-non-blank ::cursor ::col)
+          row (inc (-> buf ::cursor ::row))]
+    (-> b1
+        (delete {::row row ::col 0} {::row row ::col (dec col)})
+        delete-backward
+        left))))
+
+
 (defn set-attribute
   [buf row col attr value]
   (if (get-char buf row col)
@@ -691,6 +729,13 @@
    (when (<= (p ::row) (line-count buf))
      [(assoc p ::col 1) (assoc p ::col (col-count buf (p ::row)))]))
   ([buf] (line-region buf (buf ::cursor)))) 
+
+(defn eol-region
+  ([buf p]
+   (when (<= (p ::row) (line-count buf))
+     [p (assoc p ::col (col-count buf (p ::row)))]))
+  ([buf] (eol-region buf (buf ::cursor)))) 
+
 
 (comment (line-region (buffer "abc\ndefhi") {::row 2 ::col 2}))
   
@@ -830,6 +875,10 @@
 (comment (word-region (buffer "aaa bb: ccc") {:liq2.buffer/row 1 :liq2.buffer/col 5}))
 (comment (word-region (buffer "aaa bb/ ccc") {:liq2.buffer/row 1 :liq2.buffer/col 5}))
 (comment (word-region (buffer "aaa bbb ccc")))
+
+(defn char-region
+  ([buf p] [p p])
+  ([buf] (char-region (buf ::cursor))))
 
 (defn word-forward
   ([buf]

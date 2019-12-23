@@ -48,6 +48,7 @@
             "%" :move-matching-paren
             "i" :set-insert-mode 
             "a" :insert-after-point
+            "I" :insert-at-beginning-of-line
             "h" :left 
             "j" :down 
             "k" :up 
@@ -61,6 +62,7 @@
             "b" :beginning-of-word
             "e" :end-of-word
             "E" :end-of-word-ws
+            "^" :first-non-blank
             "$" :end-of-line
             "x" :delete-char
             "v" :set-visual-mode
@@ -79,7 +81,8 @@
             "P" :paste-clipboard-here
             "g" {"g" :beginning-of-buffer
                  "i" :navigate-definitions
-                 "f" :open-file-at-point}
+                 "f" :open-file-at-point
+                 "J" :join-lines}
             "G" :end-of-buffer
             "z" {"t" :scroll-cursor-top 
                  "\n" :scroll-cursor-top}
@@ -105,7 +108,10 @@
                       "{" :change-inner-brace}
                  "a" {"(" :change-outer-paren
                       "[" :change-outer-bracket
-                      "{" :change-outer-brace}}
+                      "{" :change-outer-brace}
+                 "c" :change-line
+                 "$" :change-eol}
+            "C" :change-eol
             "/" (fn [] (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
                        (switch-to-buffer "*minibuffer*")
                        (non-repeat-fun #(-> % buffer/clear (buffer/insert-char \/))))
@@ -114,7 +120,9 @@
                        (non-repeat-fun #(-> % buffer/clear (buffer/insert-char \:))))
             "Q" editor/record-macro
             "q" editor/run-macro
-            "o" :append-line }
+            "J" :join-lines-space
+            "o" :append-line
+            "O" :append-line-above}
     :visual {"esc" :set-normal-mode 
              "c" {"p" {"p" :eval-sexp-at-point
                        "r" :raw-eval-sexp-at-point}}

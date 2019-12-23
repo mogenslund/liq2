@@ -216,13 +216,6 @@
       (catch Exception e (editor/message (util/pretty-exception e)))))
   ([] (when-let [filepath ((editor/current-buffer) ::buffer/filename)] (evaluate-file-raw filepath))))
 
-(defn delete
-  [buf]
-  (let [text (buffer/get-selected-text buf)]
-    (util/set-clipboard-content text false)
-    (buffer/delete buf)))
-
-
 (defn run-command
   [s]
   (let [fargs (str/split s #" ")
@@ -237,6 +230,7 @@
    :down (fn [& args] (repeat-fun buffer/down args))
    :up (fn [& args] (repeat-fun buffer/up args))
    :right (fn [& args] (repeat-fun buffer/right args))
+   :first-non-blank #(non-repeat-fun buffer/first-non-blank)
    :0 #(if (= (@editor/state ::repeat-counter) 0)
          (non-repeat-fun buffer/beginning-of-line)
          (swap! editor/state update ::repeat-counter (fn [t] (* 10 t))))
@@ -256,7 +250,8 @@
    :end-of-word (fn [& args] (repeat-fun buffer/end-of-word args))
    :end-of-word-ws (fn [& args] (repeat-fun buffer/end-of-word-ws args))
    :end-of-line #(non-repeat-fun buffer/end-of-line)
-   :delete-char (fn [& args] (repeat-fun buffer/delete-char args))
+;   :delete-char (fn [& args] (repeat-fun buffer/delete-char args))
+   :delete-char (fn [& args] (repeat-fun #(do (util/set-clipboard-content (str (buffer/get-char %1)) false) (buffer/delete-char %1 %2)) args))
    :copy-selection-to-clipboard #(apply-to-buffer copy-selection-to-clipboard)
    :copy-line copy-line
    :yank-filename yank-filename
@@ -278,18 +273,24 @@
    :delete-outer-bracket  (fn [] (non-repeat-fun #(->> % buffer/bracket-region  (cut-region %))))
    :delete-outer-brace (fn [] (non-repeat-fun #(->> % buffer/brace-region  (cut-region %))))
 
-   :change-inner-word (fn [] (non-repeat-fun #(->> % buffer/word-region (delete-region %) set-insert-mode)))
-   :change-inner-paren (fn [] (non-repeat-fun #(->> % buffer/paren-region (shrink-region %) (delete-region %) set-insert-mode)))
-   :change-inner-bracket (fn [] (non-repeat-fun #(->> % buffer/bracket-region (shrink-region %) (delete-region %) set-insert-mode)))
-   :change-inner-brace (fn [] (non-repeat-fun #(->> % buffer/brace-region (shrink-region %) (delete-region %) set-insert-mode)))
-   :change-outer-paren (fn [] (non-repeat-fun #(->> % buffer/paren-region (delete-region %) set-insert-mode)))
-   :change-outer-bracket (fn [] (non-repeat-fun #(->> % buffer/bracket-region (delete-region %) set-insert-mode)))
-   :change-outer-brace (fn [] (non-repeat-fun #(->> % buffer/brace-region (delete-region %) set-insert-mode)))
+   :change-inner-word (fn [] (non-repeat-fun #(->> % buffer/word-region (cut-region %) set-insert-mode)))
+   :change-inner-paren (fn [] (non-repeat-fun #(->> % buffer/paren-region (shrink-region %) (cut-region %) set-insert-mode)))
+   :change-inner-bracket (fn [] (non-repeat-fun #(->> % buffer/bracket-region (shrink-region %) (cut-region %) set-insert-mode)))
+   :change-inner-brace (fn [] (non-repeat-fun #(->> % buffer/brace-region (shrink-region %) (cut-region %) set-insert-mode)))
+   :change-outer-paren (fn [] (non-repeat-fun #(->> % buffer/paren-region (cut-region %) set-insert-mode)))
+   :change-outer-bracket (fn [] (non-repeat-fun #(->> % buffer/bracket-region (cut-region %) set-insert-mode)))
+   :change-outer-brace (fn [] (non-repeat-fun #(->> % buffer/brace-region (cut-region %) set-insert-mode)))
+   :change-line (fn [] (non-repeat-fun #(->> % buffer/line-region (cut-region %) set-insert-mode)))
+   :change-eol (fn [] (non-repeat-fun #(->> % buffer/eol-region (cut-region %) set-insert-mode)))
 
    :insert-at-line-end #(non-repeat-fun buffer/insert-at-line-end)
+   :insert-at-beginning-of-line #(non-repeat-fun buffer/insert-at-beginning-of-line)
    :delete-to-line-end #(non-repeat-fun buffer/delete-to-line-end)
 
    :append-line #(non-repeat-fun buffer/append-line)
+   :append-line-above #(non-repeat-fun (fn [buf] (-> buf buffer/beginning-of-line (buffer/insert-char \newline) buffer/up)))
+   :join-lines #(non-repeat-fun buffer/join-lines)
+   :join-lines-space #(non-repeat-fun buffer/join-lines-space)
 
    :eval-sexp-at-point #(eval-sexp-at-point (editor/current-buffer))
    :raw-eval-sexp-at-point #(raw-eval-sexp-at-point (editor/current-buffer))
@@ -312,8 +313,10 @@
    :q  #(editor/exit-program)
    :q! #(editor/force-exit-program)
    :bnext #(editor/oldest-buffer)
+   :bn #(editor/oldest-buffer)
    :new #(editor/new-buffer "" {})
    :buffers #(((editor/get-mode :buffer-chooser-mode) :init))
+   :ls #(((editor/get-mode :buffer-chooser-mode) :init))
    :previous-regular-buffer editor/previous-regular-buffer
    :w #(write-file)
    :wq #(do (write-file) (editor/exit-program))
