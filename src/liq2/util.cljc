@@ -26,10 +26,23 @@
   #?(:clj (Thread/sleep ms)
      :cljs (do)))
 
+(defn folder?
+  [filepath]
+  (.isDirectory (io/file filepath)))
+
+(defn file?
+  [filepath]
+  (.isFile (io/file filepath)))
+
+(defn exists?
+  [filepath]
+  (.exists (io/file filepath)))
 
 (defn get-folder
   [filepath]
-  (str (.getParent (io/file filepath))))
+  (if (folder? filepath)
+    filepath
+    (str (.getParent (io/file filepath)))))
 
 (defn resolve-home
   [path]
@@ -63,18 +76,6 @@
 (defn canonical
   [filepath]
   (.getCanonicalPath (io/file filepath)))
-
-(defn folder?
-  [filepath]
-  (.isDirectory (io/file filepath)))
-
-(defn file?
-  [filepath]
-  (.isFile (io/file filepath)))
-
-(defn exists?
-  [filepath]
-  (.exists (io/file filepath)))
 
 (defn tmp-file
   [filename]

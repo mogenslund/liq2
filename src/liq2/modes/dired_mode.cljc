@@ -18,15 +18,16 @@
       buffer/down))
 
 (defn run
-  []
-  (let [f (or ((editor/current-buffer) ::buffer/filename) ".")
-        folder (util/absolute (util/get-folder f))
-        id (editor/get-buffer-id-by-name "*dired*")]
-    (if id
-      (switch-to-buffer id)
-      (editor/new-buffer "" {:major-mode :dired-mode :name "*dired*"}))
-    (apply-to-buffer #(load-content % folder))
-    (editor/highlight-buffer)))
+  ([path]
+   (let [f (or path ((editor/current-buffer) ::buffer/filename) ".")
+         folder (util/absolute (util/get-folder f))
+         id (editor/get-buffer-id-by-name "*dired*")]
+     (if id
+       (switch-to-buffer id)
+       (editor/new-buffer "" {:major-mode :dired-mode :name "*dired*"}))
+     (apply-to-buffer #(load-content % folder))
+     (editor/highlight-buffer)))
+  ([] (run nil)))
 
 (defn open-file
   [path]

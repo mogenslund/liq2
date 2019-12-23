@@ -48,9 +48,9 @@
 
 (defn e-cmd
   [t]
-  (if (= t ".")
-    (((editor/get-mode :dired-mode) :init))
-    (editor/open-file t)))
+  (cond (= t ".") (((editor/get-mode :dired-mode) :init))
+        (util/folder? t) (((editor/get-mode :dired-mode) :init) t)
+        true (editor/open-file t)))
 
 (defn copy-selection-to-clipboard
   [buf]
@@ -310,7 +310,7 @@
    :insert-after-point (fn [] (non-repeat-fun #(-> % buffer/set-insert-mode buffer/right)))
    :search  #(non-repeat-fun buffer/search)
    :undo #(non-repeat-fun buffer/undo)
-   :q  #(editor/exit-program)
+   :q #(editor/exit-program)
    :q! #(editor/force-exit-program)
    :bnext #(editor/oldest-buffer)
    :bn #(editor/oldest-buffer)
@@ -336,5 +336,6 @@
    :t5 #(editor/message (pr-str (:liq2.buffer/lines (editor/current-buffer))))
    :t6 #(((editor/get-mode :info-dialog-mode) :init) "This is the info dialog")
    :! (fn [& args] (external-command (str/join " " args)))
-   :e e-cmd})
+   :e e-cmd
+   :edit e-cmd})
  
