@@ -61,13 +61,22 @@
                           buffer/insert-at-line-end))))
 
 (def mode
-  {:insert {"esc" (fn [] (apply-to-buffer #(-> % (assoc ::buffer/mode :normal) buffer/left)))}
+  {:insert {"esc" (fn [] (apply-to-buffer #(-> % (assoc ::buffer/mode :normal) buffer/left)))
+            "\n" choose}
    :normal {"q" editor/previous-buffer
             "\n" choose
-            "h" #(apply-to-buffer buffer/left)
-            "j" #(apply-to-buffer buffer/down)
-            "k" #(apply-to-buffer buffer/up)
-            "l" #(apply-to-buffer buffer/right)
+            "h" :left 
+            "j" :down
+            "k" :up
+            "l" :right
+            "C-b" :left
+            "C-n" :down
+            "C-p" :up
+            "C-f" :right
+            "left" :left 
+            "down" :down 
+            "up" :up 
+            "right" :right
             "n" #(apply-to-buffer buffer/search)
             "0" #(apply-to-buffer buffer/beginning-of-line)
             "$" #(apply-to-buffer buffer/end-of-line)

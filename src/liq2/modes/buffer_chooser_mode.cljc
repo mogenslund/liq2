@@ -28,10 +28,18 @@
   {:insert {"esc" (fn [] (apply-to-buffer #(-> % (assoc ::buffer/mode :normal) buffer/left)))}
    :normal {"q" editor/previous-buffer
             "\n" choose-buffer
-            "h" #(apply-to-buffer buffer/left)
-            "j" #(apply-to-buffer buffer/down)
-            "k" #(apply-to-buffer buffer/up)
-            "l" #(apply-to-buffer buffer/right)
+            "h" :left 
+            "j" :down
+            "k" :up
+            "l" :right
+            "C-b" :left
+            "C-n" :down
+            "C-p" :up
+            "C-f" :right
+            "left" :left 
+            "down" :down 
+            "up" :up 
+            "right" :right
             "0" #(apply-to-buffer buffer/beginning-of-line)
             "$" #(apply-to-buffer buffer/end-of-line)
             "g" {"g" #(editor/apply-to-buffer buffer/beginning-of-buffer)}
