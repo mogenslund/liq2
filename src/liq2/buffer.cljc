@@ -391,7 +391,8 @@
        (append-line-at-end (- row (line-count buf)))
        (append-spaces-to-row row (- col (col-count buf row)))
        (assoc-in [::lines (dec row) (dec col)] {::char char})))
-  ([buf char] (set-char buf (-> buf ::cursor ::row) (-> buf ::cursor ::col) char)))
+  ([buf p char] (set-char buf (p ::row) (p ::col) char))
+  ([buf char] (set-char buf (-> buf ::cursor) char)))
 
 (defn get-style
   ([buf row col]

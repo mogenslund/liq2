@@ -8,6 +8,7 @@
             [liq2.modes.clojure-mode :as clojure-mode]
             [liq2.modes.info-dialog-mode :as info-dialog-mode]
             [liq2.extras.cool-stuff :as cool-stuff]
+            [liq2.extras.snake-mode :as snake-mode]
             [liq2.buffer :as buffer]
             [liq2.editor :as editor]
             [liq2.tty-input :as input]
@@ -23,6 +24,12 @@
       (when (util/exists? path)
         (load-file path)))
    (catch Exception e (editor/message (str "Error loading .liq2:\n" e)))))
+
+(defn load-extras
+  []
+  (cool-stuff/load-cool-stuff)
+  (swap! editor/state assoc-in [:liq2.editor/modes :snake-mode] liq2.extras.snake-mode/mode)
+  (swap! editor/state assoc-in [:liq2.editor/commands :snake] liq2.extras.snake-mode/run))
 
 ;; clj -m liq2.experiments.core
 (defn -main
@@ -54,5 +61,5 @@
     (editor/new-buffer "" {:name "output" :top 1 :left 1 :rows (- rows 1) :cols cols :mode :normal})
     (editor/new-buffer "" {:name "scratch" :top 1 :left 1 :rows (- rows 1) :cols cols :major-mode :clojure-mode})
     (editor/paint-buffer)
-    (cool-stuff/load-cool-stuff)
+    (load-extras)
     (load-dot-liq2)))
