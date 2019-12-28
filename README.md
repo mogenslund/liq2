@@ -15,9 +15,11 @@ A lot of pieces will be constructed and only some of them will make it to the en
 
 Also, I will try to make as much as possible work using both clj and Lumo.
 
+## Cheatsheet
+
 Most working keybindings and commands are documented here:
 
-    [Cheatsheet](https://github.com/mogenslund/liq2/wiki/Cheatsheet)
+[Cheatsheet](https://github.com/mogenslund/liq2/wiki/Cheatsheet)
 
 ## Wiki
 
