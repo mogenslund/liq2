@@ -180,9 +180,11 @@
 (defn eval-sexp-at-point
   [buf]
   (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
-  (binding [*print-length* 200]
-    (let [sexp (if (= (buf ::buffer/mode) :visuel) (buffer/get-selected-text buf) (buffer/sexp-at-point buf))
-          namespace (or (get-namespace buf) "user")]
+  (let [sexp (if (= (buf ::buffer/mode) :visuel) (buffer/get-selected-text buf) (buffer/sexp-at-point buf))
+        namespace (or (get-namespace buf) "user")]
+    (create-ns (symbol namespace))
+    (binding [*print-length* 200
+              *ns* (find-ns (symbol namespace))]
       (editor/message "" :view true); ( :view true :timer 1500)
       (future
         (with-redefs [println (fn [& args] (editor/message (str/join " " args) :append true))]
@@ -192,7 +194,7 @@
                 (str
                   "(do (ns " namespace ") (in-ns '"
                   namespace
-                  ") " sexp ")"))))
+                  ") " sexp "\n)"))))
             (catch Exception e (println (util/pretty-exception e)))))))))
 
 (defn raw-eval-sexp-at-point

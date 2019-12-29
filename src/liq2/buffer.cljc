@@ -154,7 +154,7 @@
 (comment (pr-str (get-line (buffer "aaa\nbbb\nccc") 2)))
 
 (comment
-  (str/join (map ::char (get ((buffer "abcde") :liq2.buffer/lines) 1)))
+  (str/join (map ::char (get ((buffer "abcde") ::lines) 1)))
   (get-line (buffer "abcde") 1)
   (get-line (buffer "abcde") 1 2)
   (type (get-line (buffer "abcde") 2 2))
