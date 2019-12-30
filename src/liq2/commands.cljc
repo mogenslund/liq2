@@ -39,10 +39,11 @@
 (defn external-command
   [text]
    #?(:clj (let [f (or ((editor/current-buffer) ::buffer/filename) ".")
-                 folder (util/absolute (util/get-folder f))]
-             (editor/message (str "Running command: " text "\n") :view true)
+                 folder (util/absolute (util/get-folder f))
+                 text1 (str/replace text #"%" f)]
+             (editor/message (str "Running command: " text1 "\n") :view true)
              (future
-               (doseq [output (s/cmdseq folder "/bin/sh" "-c" text)]
+               (doseq [output (s/cmdseq folder "/bin/sh" "-c" text1)]
                  (editor/message output :append true)))))
    #?(:cljs (do)))
 

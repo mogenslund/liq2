@@ -11,6 +11,10 @@
 ;; In addition: change-outer-word, etc.
 
 (defn buffer
+  "Create a buffer map.
+  Input: Various fields
+  Output: Buffer
+  Side effects: None" 
   ([text {:keys [name filename top left rows cols major-mode mode] :as options}]
    (let [lines (mapv (fn [l] (mapv #(hash-map ::char %) l)) (str/split text #"\r?\n" -1))]
      {::name (or name "")
@@ -33,6 +37,11 @@
   ([text] (buffer text {})))
 
 (defn insert-in-vector
+  "Insert an element into a vector, at a given position.
+  (insert-in-vector [:a :c :d] 1 :b) -> [:a :b :c :d])
+  Input: Vector, position, element
+  Output: Vector
+  Side effects: None"
   [v n elem]
   (into [] (concat
              (into [] (subvec v 0 n))
@@ -54,7 +63,10 @@
      v)))
 
 (defn set-undo-point
-  "Return new lines with the current lines to the undo stack."
+  "Return new lines with the current lines to the undo stack.
+  Input: Buffer
+  Output: Buffer
+  Side effects: None"
   [buf]
   (let [newstack (conj (buf ::lines-stack) (select-keys buf [::lines ::cursor]))]
     (assoc buf ::lines-stack newstack

@@ -7,7 +7,7 @@
             [liq2.modes.typeahead-mode :as typeahead-mode]
             [liq2.modes.clojure-mode :as clojure-mode]
             [liq2.modes.info-dialog-mode :as info-dialog-mode]
-            [liq2.extras.cool-stuff :as cool-stuff]
+            #?(:clj [liq2.extras.cool-stuff :as cool-stuff])
             [liq2.extras.snake-mode :as snake-mode]
             [liq2.buffer :as buffer]
             [liq2.editor :as editor]
@@ -27,7 +27,7 @@
 
 (defn load-extras
   []
-  (cool-stuff/load-cool-stuff)
+  #?(:clj (cool-stuff/load-cool-stuff))
   (swap! editor/state assoc-in [:liq2.editor/modes :snake-mode] liq2.extras.snake-mode/mode)
   (swap! editor/state assoc-in [:liq2.editor/commands :snake] liq2.extras.snake-mode/run))
 
@@ -62,4 +62,4 @@
     (editor/new-buffer "" {:name "scratch" :top 1 :left 1 :rows (- rows 1) :cols cols :major-mode :clojure-mode})
     (editor/paint-buffer)
     (load-extras)
-    (load-dot-liq2)))
+    #?(:clj (load-dot-liq2))))
