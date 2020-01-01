@@ -52,6 +52,7 @@
     (editor/apply-to-buffer "*snake*"
       #(-> %
            (buffer/set-char \█)
+           (buffer/set-style :red)
            (buffer/set-char (tail-point ::buffer/row) (tail-point ::buffer/col) \space))))
   (cond (= dir :right) (editor/apply-to-buffer "*snake*" buffer/right) 
         (= dir :left) (editor/apply-to-buffer "*snake*" buffer/left)

@@ -16,6 +16,7 @@
    :special-begin #"(?<=\()(ns |def(n|n-|test|record|protocol|macro)? )"
    :green-begin "✔"
    :red-begin "✘"
+   :yellow-begin "➜"
    :definition-begin #"[\w\#\.\-\_\:\+\=\>\<\/\!\?\*]+"
    :definition-end #"."})
 
@@ -28,6 +29,8 @@
                    (match :keyword-begin) :keyword
                    (match :comment-begin) :comment
                    (match :green-begin) :green
+                   (match :yellow-begin) :yellow
+                   (match :red-begin) :red
                    (match :special-begin) :special}}
       :string
        {:style :string
@@ -51,6 +54,10 @@
 
       :green
        {:style :green
+        :matchers {#".|$|^" :plain}}
+
+      :yellow
+       {:style :yellow
         :matchers {#".|$|^" :plain}}
 
       :red

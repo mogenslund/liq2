@@ -421,6 +421,7 @@
      (assoc-in buf [::lines (dec row) (dec col) ::style] style)
      buf))
   ([buf p style] (set-style buf (p ::row) (p ::col) style))
+  ([buf style] (set-style buf (-> buf ::cursor ::row) (-> buf ::cursor ::col) style))
   ([buf row col1 col2 style]
    (loop [b buf col col1]
      (if (> col col2)
