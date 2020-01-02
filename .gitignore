@@ -1,6 +1,8 @@
 pom.xml
 pom.xml.asc
 target
+out
+liq2.js
 .cpcache
 *~
 .lein-failures

@@ -1,15 +1,20 @@
 {:paths ["src"]
  :aliases
-  {:test
-   {:extra-paths ["test"]
-    :extra-deps
-     {com.cognitect/test-runner
-      {:git/url "https://github.com/cognitect-labs/test-runner.git",
-       :sha "209b64504cb3bd3b99ecfec7937b358a879f55c1"}},
-    :main-opts ["-m" "cognitect.test-runner"]},
+  {:node-build
+   {:extra-deps
+     {org.clojure/clojurescript {:git/url "https://github.com/clojure/clojurescript.git"
+                                 :sha "2f233d633f6dc44823105fd544685fc4da43ac6c"}}
+    :main-opts ["-m" "cljs.main" "--target" "node" "--output-to" "liq2.js" "-O" "simple" "-c" "liq2.core"]}
+   :test
+    {:extra-paths ["test"]
+     :extra-deps
+      {com.cognitect/test-runner
+       {:git/url "https://github.com/cognitect-labs/test-runner.git"
+        :sha "209b64504cb3bd3b99ecfec7937b358a879f55c1"}}
+     :main-opts ["-m" "cognitect.test-runner"]}
    :dev
-    {:extra-deps {nrepl/nrepl {:mvn/version "0.6.0"}},
-     :main-opts ["-m" "nrepl.cmdline" "--port" "12000" "--interactive" "debug=true"],
+    {:extra-deps {nrepl/nrepl {:mvn/version "0.6.0"}}
+     :main-opts ["-m" "nrepl.cmdline" "--port" "12000" "--interactive" "debug=true"]
      :extra-paths ["test"]}
    :uberjar
     {:extra-deps {luchiniatwork/cambada {:mvn/version "1.0.0"}}

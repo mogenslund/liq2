@@ -63,3 +63,5 @@
     (editor/paint-buffer)
     (load-extras)
     #?(:clj (load-dot-liq2))))
+
+#?(:cljs (set! cljs.core/*main-cli-fn* -main))

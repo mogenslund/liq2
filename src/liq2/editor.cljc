@@ -1,6 +1,6 @@
 (ns liq2.editor
   (:require [clojure.string :as str]
-            #?(:cljs [lumo.io :as io :refer [slurp spit]])
+            ;#?(:cljs [lumo.io :as io :refer [slurp spit]])
             [liq2.util :as util]
             [liq2.highlighter :as highlighter]
             [liq2.buffer :as buffer]))

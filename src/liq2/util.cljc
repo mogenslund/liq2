@@ -1,7 +1,8 @@
 (ns liq2.util
   (:require [clojure.string :as str]
             #?(:clj [clojure.java.io :as io]
-               :cljs [lumo.io :as io :refer [slurp spit]])
+              ; :cljs [lumo.io :as io :refer [slurp spit]]
+              )
             #?(:cljs [cljs.js :refer [eval eval-str empty-state]])))
 
 (def counter (atom 0))
@@ -101,7 +102,8 @@
   [path]
   #?(:clj (when (.exists (io/file path))
             (slurp path))
-     :cljs (slurp path)))
+     :cljs (do) ;(slurp path)
+     ))
 
 (defn write-file
   [path content]
@@ -127,12 +129,13 @@
 
 (defn clipboard-content
   []
-  (if (java.awt.GraphicsEnvironment/isHeadless)
-    @localclipboard
-    (let [clipboard (.getSystemClipboard (java.awt.Toolkit/getDefaultToolkit))]
-      (try
-        (.getTransferData (.getContents clipboard nil) (java.awt.datatransfer.DataFlavor/stringFlavor))
-        (catch Exception e "")))))
+  #?(:clj (if (java.awt.GraphicsEnvironment/isHeadless)
+            @localclipboard
+            (let [clipboard (.getSystemClipboard (java.awt.Toolkit/getDefaultToolkit))]
+              (try
+                (.getTransferData (.getContents clipboard nil) (java.awt.datatransfer.DataFlavor/stringFlavor))
+                (catch Exception e ""))))
+     :cljs @localclipboard))
 
 (defn clipboard-line?
   []
@@ -140,12 +143,14 @@
 
 (defn set-clipboard-content
   ([text line]
-   (reset! localclipboard text)
-   (reset! line? line)
-   (when (not (java.awt.GraphicsEnvironment/isHeadless))
-     (let [clipboard (.getSystemClipboard (java.awt.Toolkit/getDefaultToolkit))]
-       (.setContents clipboard (java.awt.datatransfer.StringSelection. text) nil))))
-  ([text] (set-clipboard-content false)))
+   #?(:clj (do (reset! localclipboard text)
+               (reset! line? line)
+               (when (not (java.awt.GraphicsEnvironment/isHeadless))
+                 (let [clipboard (.getSystemClipboard (java.awt.Toolkit/getDefaultToolkit))]
+                   (.setContents clipboard (java.awt.datatransfer.StringSelection. text) nil))))
+      :cljs (do (reset! localclipboard text)
+                (reset! line? line))))
+  ([text] (set-clipboard-content text false)))
 
 (defn pretty-exception
   [e]

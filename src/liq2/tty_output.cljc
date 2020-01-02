@@ -1,11 +1,10 @@
 (ns liq2.tty-output
   (:require [liq2.buffer :as buffer]
             #?(:clj [clojure.java.io :as io]
-               :cljs [lumo.io :as io])
+              ; :cljs [lumo.io :as io]
+              )
             [clojure.string :as str]))
 
-(def ^:private cache (atom {}))
-(def ^:private tow-cache (atom {})) ; Top of window stored here, for each buffer
 (def ^:private last-buffer (atom nil))
 (def esc "\033[")
 
@@ -109,10 +108,9 @@
         left (w ::buffer/left)
         rows (w ::buffer/rows)
         cols (w ::buffer/cols)
-        tow (buf ::buffer/tow) ; (recalculate-tow buf rows cols (or (@tow-cache cache-id) {:row 1 :col 1}))
+        tow (buf ::buffer/tow)
         crow (-> buf ::buffer/cursor ::buffer/row)
         ccol (-> buf ::buffer/cursor ::buffer/col)]
-  ;(swap! tow-cache assoc cache-id tow)
   (when (= cache-id @last-buffer)
     (tty-print "█")) ; To make it look like the cursor is still there while drawing.
   (tty-print esc "?25l") ; Hide cursor
@@ -160,6 +158,13 @@
 (def ^:private updater (atom nil))
 (def ^:private queue (atom []))
 
+(def ^:private next-buffer (atom nil))
+#?(:cljs (js/setInterval
+           #(when-let [buf @next-buffer]
+              (reset! next-buffer nil)
+              (print-buffer buf))
+           20))
+
 (defn printer
   [buf]
   #?(:clj (let [fp (buffer-footprint buf)]
@@ -176,7 +181,7 @@
                     (when-let [b (first @queue)]
                       (swap! queue #(subvec % 1))
                       (print-buffer b)))))))
-     :cljs (print-buffer buf)))
+     :cljs (reset! next-buffer buf)))
 
 (def output-handler
   {:printer printer
