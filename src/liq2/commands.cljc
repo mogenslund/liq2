@@ -275,6 +275,8 @@
    :delete-outer-paren (fn [] (non-repeat-fun #(->> % buffer/paren-region  (cut-region %))))
    :delete-outer-bracket  (fn [] (non-repeat-fun #(->> % buffer/bracket-region  (cut-region %))))
    :delete-outer-brace (fn [] (non-repeat-fun #(->> % buffer/brace-region  (cut-region %))))
+   :delete-to-word (fn [] (non-repeat-fun #(cut-region % [(% ::buffer/cursor) ((buffer/left (buffer/word-forward %)) ::buffer/cursor)])))
+   :delete-to-end-of-word (fn [] (non-repeat-fun #(cut-region % [(% ::buffer/cursor) ((buffer/end-of-word %) ::buffer/cursor)])))
 
    :change-inner-word (fn [] (non-repeat-fun #(->> % buffer/word-region (cut-region %) set-insert-mode)))
    :change-inner-paren (fn [] (non-repeat-fun #(->> % buffer/paren-region (shrink-region %) (cut-region %) set-insert-mode)))
@@ -285,6 +287,9 @@
    :change-outer-brace (fn [] (non-repeat-fun #(->> % buffer/brace-region (cut-region %) set-insert-mode)))
    :change-line (fn [] (non-repeat-fun #(->> % buffer/line-region (cut-region %) set-insert-mode)))
    :change-eol (fn [] (non-repeat-fun #(->> % buffer/eol-region (cut-region %) set-insert-mode)))
+   :change-to-end-of-word (fn [] (non-repeat-fun
+                                   #(set-insert-mode
+                                      (cut-region % [(% ::buffer/cursor) ((buffer/end-of-word %) ::buffer/cursor)]))))
 
    :insert-at-line-end #(non-repeat-fun buffer/insert-at-line-end)
    :insert-at-beginning-of-line #(non-repeat-fun buffer/insert-at-beginning-of-line)

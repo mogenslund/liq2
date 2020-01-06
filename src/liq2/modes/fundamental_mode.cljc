@@ -87,6 +87,8 @@
             "z" {"t" :scroll-cursor-top 
                  "\n" :scroll-cursor-top}
             "d" {"d" :delete-line
+                 "w" :delete-to-word
+                 "e" :delete-to-end-of-word
                  "i" {"w" :delete-inner-word
                       "(" :delete-inner-paren
                       "[" :delete-inner-bracket
@@ -110,7 +112,9 @@
                       "[" :change-outer-bracket
                       "{" :change-outer-brace}
                  "c" :change-line
-                 "$" :change-eol}
+                 "$" :change-eol
+                 "e" :change-to-end-of-word
+                 "w" :change-to-end-of-word}
             "C" :change-eol
             "/" (fn [] (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
                        (switch-to-buffer "*minibuffer*")
