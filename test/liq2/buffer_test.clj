@@ -97,9 +97,20 @@
 
 (defn random-string
   [len]
-  (let [chars ["a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k" "l" "m" "æ" "A" "B" "-" " " "\n"]]
+  (let [chars ["a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k" "l" "m" "æ" "A" "B" "-" " " "\n" "\r" "$" "\t" "-" ":"]]
     (apply str (repeatedly len (fn [] (rand-nth chars))))
   ))
+
+(defn random-buffer
+  []
+  (let [n (rand-int 20)]
+    (cond (= n 0) (buffer "")
+          (= n 1) (buffer "\n")
+          (= n 2) (buffer "\n\n")
+          (= n 3) (buffer "a")
+          (= n 4) (buffer "\na")
+          (= n 5) (buffer "a\n")
+          true (buffer (random-string (rand-int 50000))))))
 
 (defn random-textoperation
   [buf]
@@ -110,10 +121,9 @@
           (= r 3) (left buf (rand-int 20))
           (= r 4) (delete-char buf 1)
           (= r 5) (delete-char buf (rand-int 3))
-          ;(= r 6) (end-of-line buf)
-          ;(= r 7) (end-of-word buf)
-          ;(= r 8) (beginning-of-buffer buf)
-          ;(= r 9) (set-meta buf :something "abc")
+          (= r 6) (end-of-line buf)
+          (= r 7) (end-of-word buf)
+          (= r 8) (beginning-of-buffer buf)
           :else (insert-string buf (random-string (rand-int 100))))))
 
 (defn generate
@@ -137,3 +147,11 @@
               text (random-string len)]
           (is (= (buf (-> buf (insert-string text) (delete-char len)))))))
     )))
+
+(deftest algebraic-properties-test
+  (doseq [n (range 100)]
+    (let [b1 (random-buffer)
+          b2 (random-buffer)]
+      (is (= (get-text (append-buffer b1 b2)) (str (get-text b1) (get-text b2))))
+      (is (= (get-text (append-buffer b1 (buffer ""))) (get-text b1)))
+      )))

@@ -854,12 +854,14 @@
            cols (col-count b (p ::row))
            c (str (get-char b))
            is-word (re-matches #"\w" c)]
-       (cond (= p {::row rows ::col cols}) b 
+       (cond (and (= rows 1) (= cols 0)) b
+             (= p {::row rows ::col cols}) b 
              (and is-word (= (p ::col) cols)) b
              (= (p ::col) cols) (recur (next-point b))
              (and is-word (re-matches #"\W" (str (get-char (right b))))) b
              true (recur (right b))))))
   ([buf n] (nth (iterate end-of-word buf) n)))
+
 
 (defn end-of-word-ws
   ([buf]
