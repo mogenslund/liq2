@@ -684,7 +684,7 @@
 (defn paren-match-before
   "(abc (def) hi|jk)"
   [buf p0 paren]
-  (let [pmatch {\( \) \) \( \{ \} \} \{ \[ \] \] \[}]
+  (let [pmatch {\( \) \) \( \{ \} \} \{ \[ \] \] \[ \" \"}] ;"
     (loop [p p0 stack (list (pmatch paren))]
       (when p
         (let [c (get-char buf p)
@@ -699,7 +699,7 @@
 (defn paren-match-after
   "(abc (def) hi|jk)"
   [buf p0 paren]
-  (let [pmatch {\( \) \) \( \{ \} \} \{ \[ \] \] \[}]
+  (let [pmatch {\( \) \) \( \{ \} \} \{ \[ \] \] \[ \" \"}] ;"
     (loop [p p0 stack (list (pmatch paren))]
       (when p
         (let [c (get-char buf p)
@@ -737,6 +737,15 @@
 
 (comment (paren-region (buffer "(asdf)")))
 (comment (bracket-region (buffer "[asdf]")))
+
+(defn quote-region
+  ([buf p]
+   (let [p0 (paren-match-before buf (if (= (get-char buf p) \") (previous-point buf p) p) \") ;"
+         p1 (when p0 (paren-match-after buf (next-point buf p0) \"))] ;" 
+     (when p1 [p0 p1])))
+  ([buf] (quote-region buf (buf ::cursor))))
+
+(comment (quote-region (-> (buffer "(\"asdf\")") right right)))
 
 (defn line-region
   ([buf p]

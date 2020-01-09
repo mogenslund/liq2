@@ -73,10 +73,12 @@
                  "i" {"w" :yank-inner-word
                       "(" :yank-inner-paren
                       "[" :yank-inner-bracket
-                      "{" :yank-inner-brace}
+                      "{" :yank-inner-brace
+                      "\"" :yank-inner-quote}
                  "a" {"(" :yank-outer-paren
                       "[" :yank-outer-bracket
-                      "{" :yank-outer-brace}}
+                      "{" :yank-outer-brace
+                      "\"" :yank-outer-quote}}
             "p" :paste-clipboard
             "P" :paste-clipboard-here
             "g" {"g" :beginning-of-buffer
@@ -92,10 +94,12 @@
                  "i" {"w" :delete-inner-word
                       "(" :delete-inner-paren
                       "[" :delete-inner-bracket
-                      "{" :delete-inner-brace}
+                      "{" :delete-inner-brace
+                      "\"" :delete-inner-quote}
                  "a" {"(" :delete-outer-paren
                       "[" :delete-outer-bracket
-                      "{" :delete-outer-brace}}
+                      "{" :delete-outer-brace
+                      "\"" :delete-outer-quote}}
             "A" :insert-at-line-end
             "D" :delete-to-line-end
             "r" {:selfinsert (fn [buf c]
@@ -107,10 +111,12 @@
                  "i" {"w" :change-inner-word
                       "(" :change-inner-paren
                       "[" :change-inner-bracket
-                      "{" :change-inner-brace}
+                      "{" :change-inner-brace
+                      "\"" :change-inner-quote}
                  "a" {"(" :change-outer-paren
                       "[" :change-outer-bracket
-                      "{" :change-outer-brace}
+                      "{" :change-outer-brace
+                      "\"" :change-outer-quote}
                  "c" :change-line
                  "$" :change-eol
                  "e" :change-to-end-of-word
