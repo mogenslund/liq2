@@ -133,15 +133,15 @@
 (defn set-insert-mode
   [buf]
   (-> buf
+      set-undo-point
       (assoc ::mode :insert)
       remove-selection))
 
 (defn set-dirty
   [buf val]
-  (set-undo-point
-    (if (buf ::filename)
-      (assoc buf ::dirty val)
-      buf)))
+  (if (buf ::filename)
+    (assoc buf ::dirty val)
+    buf))
 
 (defn dirty?
   [buf]
@@ -443,10 +443,10 @@
 (defn append-line
   ([buf row]
    (-> buf
+       set-insert-mode
        (set-dirty true)
        (update ::lines #(insert-in-vector % row []))
-       (assoc ::cursor {::row (inc (-> buf ::cursor ::row)) ::col 1})
-       (assoc ::mode :insert)))
+       (assoc ::cursor {::row (inc (-> buf ::cursor ::row)) ::col 1})))
   ([buf]
    (append-line buf (-> buf ::cursor ::row))))
 
@@ -620,8 +620,8 @@
 (defn insert-at-line-end
   [buf]
   (-> buf
+      set-insert-mode
       end-of-line
-      (assoc ::mode :insert)
       right))
 
 (defn first-non-blank
@@ -634,8 +634,8 @@
 (defn insert-at-beginning-of-line
   [buf]
   (-> buf
-      first-non-blank
-      set-insert-mode))
+      set-insert-mode
+      first-non-blank))
 
 (defn join-lines
   [buf]
@@ -652,7 +652,7 @@
     buf
     (let [b1 (if (= (-> buf end-of-line get-char) \space)
                buf
-               (-> buf end-of-line set-insert-mode right (insert-char \space)))
+               (-> buf set-insert-mode end-of-line right (insert-char \space)))
           col (-> buf down first-non-blank ::cursor ::col)
           row (inc (-> buf ::cursor ::row))]
     (-> b1
