@@ -22,6 +22,7 @@
             "down" :down 
             "up" :up 
             "right" :right 
+            "C-x" {"C-e" :eval-sexp-at-point} 
             "M-x" (fn [] (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
                          (switch-to-buffer "*minibuffer*")
                          (non-repeat-fun #(-> % buffer/clear

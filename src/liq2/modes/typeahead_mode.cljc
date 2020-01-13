@@ -36,7 +36,7 @@
   [items tostringfun callback]
   (if-let [id (editor/get-buffer-id-by-name "*typeahead*")]
     (switch-to-buffer id)
-    (editor/new-buffer "" {:major-mode :typeahead-mode :name "*typeahead*"}))
+    (editor/new-buffer "" {:major-modes (list :typeahead-mode) :name "*typeahead*"}))
   (swap! state assoc
     ::tostringfun tostringfun
     ::callback callback

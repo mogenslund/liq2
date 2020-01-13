@@ -24,7 +24,7 @@
          id (editor/get-buffer-id-by-name "*dired*")]
      (if id
        (switch-to-buffer id)
-       (editor/new-buffer "" {:major-mode :dired-mode :name "*dired*"}))
+       (editor/new-buffer "" {:major-modes (list :dired-mode) :name "*dired*"}))
      (apply-to-buffer #(load-content % folder))
      (editor/highlight-buffer)))
   ([] (run nil)))

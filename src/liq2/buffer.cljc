@@ -15,7 +15,7 @@
   Input: Various fields
   Output: Buffer
   Side effects: None" 
-  ([text {:keys [name filename top left rows cols major-mode mode] :as options}]
+  ([text {:keys [name filename top left rows cols major-mode major-modes mode] :as options}]
    (let [lines (mapv (fn [l] (mapv #(hash-map ::char %) l)) (str/split text #"\r?\n" -1))]
      {::name (or name "")
       ::filename filename
@@ -32,8 +32,7 @@
       ::encoding :utf-8          ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
       ::search-word ""
       ::dirty false
-      ::major-mode (or major-mode :clojure-mode)
-      ::minor-modes []}))
+      ::major-modes (or major-modes (list :clojure-mode :fundamental-mode))}))
   ([text] (buffer text {})))
 
 (defn insert-in-vector

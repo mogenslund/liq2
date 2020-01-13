@@ -21,8 +21,7 @@
    :definition-end #"."})
 
 (def mode
-  (assoc fundamental-mode/mode
-    :syntax
+   {:syntax
      {:plain ; Context
        {:style :plain1 ; style
         :matchers {(match :string-begin) :string
@@ -66,4 +65,4 @@
 
       :definition
        {:style :definition
-        :matchers {(match :definition-end) :plain}}}))
+        :matchers {(match :definition-end) :plain}}}})

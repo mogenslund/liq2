@@ -17,7 +17,7 @@
   (let [id (editor/get-buffer-id-by-name "*info-dialog*")]
     (if id
       (switch-to-buffer id)
-      (editor/new-buffer "" {:major-mode :info-dialog-mode :name "*info-dialog*" :top 10 :left 10 :rows 7 :cols 60}))
+      (editor/new-buffer "" {:major-modes (list :info-dialog-mode) :name "*info-dialog*" :top 10 :left 10 :rows 7 :cols 60}))
     (apply-to-buffer #(-> % buffer/clear
                             (buffer/insert-string (content text))
                             buffer/beginning-of-buffer))))

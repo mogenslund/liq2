@@ -221,7 +221,7 @@
   ([idname]
    (apply-to-buffer idname
      (fn [buf]
-       (let [hl ((get-mode (buf ::buffer/major-mode)) :syntax)]
+       (let [hl (first (filter identity (map #(-> % get-mode :syntax) (buf ::buffer/major-modes))))]
          (if hl
            (highlighter/highlight buf hl)
            buf)))))
@@ -231,7 +231,7 @@
   ([idname]
    (apply-to-buffer idname
      (fn [buf]
-       (let [hl ((get-mode (buf ::buffer/major-mode)) :syntax)]
+       (let [hl (first (filter identity (map #(-> % get-mode :syntax) (buf ::buffer/major-modes))))]
          (if hl
            (highlighter/highlight buf hl (-> buf ::buffer/cursor ::buffer/row))
            buf)))))
@@ -281,6 +281,10 @@
 
 (def tmp-keymap (atom nil))
 
+(defn get-mode-fun
+  [major-modes mode c]
+  (first (filter identity (map #(get (-> % get-mode mode) c) major-modes))))
+
 (defn handle-input
   [c]
   ;(spit "/tmp/liq2.log" (str "INPUT: " c "\n"))
@@ -288,6 +292,7 @@
     (swap! macro-seq conj c))
   (let [mode ((current-buffer) ::buffer/mode)
         major-mode ((current-buffer) ::buffer/major-mode)
+        major-modes ((current-buffer) ::buffer/major-modes)
         tmp-k-selfinsert (and @tmp-keymap (@tmp-keymap :selfinsert)) 
         tmp-k (and @tmp-keymap
                    (or (@tmp-keymap c)
@@ -296,8 +301,12 @@
         _ (reset! tmp-keymap nil)
         action (or
                  tmp-k
-                 (((get-mode major-mode) mode) c)
-                 (when (not= mode :insert) (((get-mode major-mode) :normal) c)))]
+                 (and (fn? ((get-mode (first major-modes)) mode))
+                      (((get-mode (first major-modes)) mode) c))
+                 (get-mode-fun major-modes mode c)
+                 (when (not= mode :insert)
+                   (get-mode-fun major-modes :normal c)
+                   ))]
     (cond (fn? action) (action)
           (keyword? action) (when (-> @state ::commands action) ((-> @state ::commands action)))
           (map? action) (reset! tmp-keymap action)

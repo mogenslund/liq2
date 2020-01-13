@@ -51,15 +51,15 @@
         cols (w ::buffer/cols w)]
     ;(editor/paint-buffer)
     (editor/new-buffer "" {:name "*status-line*" :top rows :left 1 :rows 1 :cols cols
-                        :major-mode :fundamental-mode :mode :insert})
+                        :major-modes (list :fundamental-mode) :mode :insert})
     (editor/new-buffer ""
                        {:name "*minibuffer*" :top rows :left 1 :rows 1 :cols cols
-                        :major-mode :minibuffer-mode :mode :insert})
+                        :major-modes (list :minibuffer-mode) :mode :insert})
     ;(editor/new-buffer "Output" {:name "output" :top (- rows 5) :left 1 :rows 5 :cols cols :mode :normal})
     ;(editor/new-buffer "-----------------------------" {:name "*delimeter*" :top (- rows 6) :left 1 :rows 1 :cols cols})
     ;(editor/new-buffer "" {:top 1 :left 1 :rows (- rows 7) :cols cols :major-mode :clojure-mode})
     (editor/new-buffer "" {:name "output" :top 1 :left 1 :rows (- rows 1) :cols cols :mode :normal})
-    (editor/new-buffer "" {:name "scratch" :top 1 :left 1 :rows (- rows 1) :cols cols :major-mode :clojure-mode})
+    (editor/new-buffer "" {:name "scratch" :top 1 :left 1 :rows (- rows 1) :cols cols})
     (editor/paint-buffer)
     (load-extras)
     #?(:clj (load-dot-liq2))))

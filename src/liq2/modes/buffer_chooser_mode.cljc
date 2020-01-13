@@ -17,7 +17,7 @@
   []
   (if-let [id (editor/get-buffer-id-by-name "*buffer-chooser*")]
     (switch-to-buffer id)
-    (editor/new-buffer "" {:major-mode :buffer-chooser-mode :name "*buffer-chooser*"}))
+    (editor/new-buffer "" {:major-modes (list :buffer-chooser-mode) :name "*buffer-chooser*"}))
   (apply-to-buffer load-content))
 
 (defn choose-buffer
