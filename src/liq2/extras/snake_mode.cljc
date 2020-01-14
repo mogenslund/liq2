@@ -64,7 +64,7 @@
  (let [id (editor/get-buffer-id-by-name "*snake*")]
    (if id
      (editor/switch-to-buffer id)
-     (editor/new-buffer "" {:major-mode :snake-mode :name "*snake*"}))
+     (editor/new-buffer "" {:major-modes (list :snake-mode) :name "*snake*"}))
    (reset-view)
    ;; Game loop
    (future 

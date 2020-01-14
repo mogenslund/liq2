@@ -13,7 +13,7 @@
   (let [id (editor/get-buffer-id-by-name "output-snapshot")]
     (if id
       (editor/switch-to-buffer id)
-      (editor/new-buffer "" {:major-mode :clojure-mode :name "output-snapshot"}))
+      (editor/new-buffer "" {:name "output-snapshot"}))
     (editor/apply-to-buffer
       #(-> %
            buffer/clear
