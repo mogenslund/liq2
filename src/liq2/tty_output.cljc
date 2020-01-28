@@ -100,56 +100,67 @@
 
 ; Two pointers trow tcol in terminal row col in buffer
 
+(def theme
+  {:string "38;5;131"
+   :keyword "38;5;117"
+   :comment "38;5;105"
+   :special "38;5;11"
+   :green   "38;5;40"
+   :yellow "38;5;11"
+   :red "38;5;196"
+   :definition "38;5;40"
+   nil "0"})
+
 (defn print-buffer
   [buf]
   (let [cache-id (buffer-footprint buf)
         w (buf ::buffer/window)
-        top (w ::buffer/top)
-        left (w ::buffer/left)
-        rows (w ::buffer/rows)
-        cols (w ::buffer/cols)
-        tow (buf ::buffer/tow)
-        crow (-> buf ::buffer/cursor ::buffer/row)
-        ccol (-> buf ::buffer/cursor ::buffer/col)]
+        top (w ::buffer/top)   ; Window top margin
+        left (w ::buffer/left) ; Window left margin
+        rows (w ::buffer/rows) ; Window rows
+        cols (w ::buffer/cols) ; Window cols
+        tow (buf ::buffer/tow) ; Top of window
+        crow (-> buf ::buffer/cursor ::buffer/row)  ; Cursor row
+        ccol (-> buf ::buffer/cursor ::buffer/col)] ; Cursor col
   (when (= cache-id @last-buffer)
     (tty-print "█")) ; To make it look like the cursor is still there while drawing.
   (tty-print esc "?25l") ; Hide cursor
   (when-let [statusline (buf :status-line)]
     (print-buffer statusline))
-  (loop [trow top tcol left row (tow ::buffer/row) col (tow ::buffer/col) cursor-row nil cursor-col nil color nil bgcolor nil]
+  ;; Looping over the rows and cols in buffer window in the terminal
+  (loop [trow top  ; Terminal row
+         tcol left ; Terminal col
+         row (tow ::buffer/row)
+         col (tow ::buffer/col)
+         cursor-row nil
+         cursor-col nil
+         color nil
+         bgcolor nil]
     (if (< trow (+ rows top))
       (do
       ;; Check if row has changed...
         (let [cursor-match (or (and (= row crow) (= col ccol))
                                (and (= row crow) (not cursor-col) (> col ccol))
                                (and (not cursor-row) (> row crow)))
+              cm (or (-> buf ::buffer/lines (get (dec row)) (get (dec col))) {}) ; Char map like {::buffer/char \x ::buffer/style :string} 
               c (or (when (and cursor-match (buf :status-line)) "█") 
-                    (buffer/get-char buf row col)
+                    (cm ::buffer/char)
                     (if (and (= col 1) (> row (buffer/line-count buf))) (str esc "36m~" esc "0m") \space))
               new-cursor-row (if cursor-match trow cursor-row)
               new-cursor-col (if cursor-match tcol cursor-col)
-              new-color (cond (= (buffer/get-style buf row col) :string) "38;5;131"
-                              (= (buffer/get-style buf row col) :keyword) "38;5;117"
-                              (= (buffer/get-style buf row col) :comment) "38;5;105"
-                              (= (buffer/get-style buf row col) :special) "38;5;11"
-                              (= (buffer/get-style buf row col) :green)   "38;5;40"
-                              (= (buffer/get-style buf row col) :yellow) "38;5;11"
-                              (= (buffer/get-style buf row col) :red) "38;5;196"
-                              (= (buffer/get-style buf row col) :definition) "38;5;40"
-                              true "0")
-              new-bgcolor (if (buffer/selected? buf row col) "48;5;17" "49")]
+              new-color (theme (cm ::buffer/style))
+              new-bgcolor (if (buffer/selected? buf row col) "48;5;17" "49")
+              n-trow (if (< cols tcol) (inc trow) trow)
+              n-tcol (if (< cols tcol) left (inc tcol))
+              n-row (if (and (< cols tcol) (> col (buffer/col-count buf row))) (inc row) row)
+              n-col (if (and (< cols tcol) (> col (buffer/col-count buf row))) 1 (inc col))]
             (when (or (not= color new-color) (not= bgcolor new-bgcolor))
               (tty-print esc new-color "m")
               (tty-print esc new-bgcolor "m"))
             (if (= tcol left)
               (tty-print esc trow ";" tcol "H" esc "s" c)
               (tty-print c))
-          ;  (swap! cache assoc [trow tcol] c))
-          (if (> tcol cols)
-            (if (> (buffer/col-count buf row) col) 
-              (recur (inc trow) left row (inc col) new-cursor-row new-cursor-col new-color new-bgcolor) 
-              (recur (inc trow) left (inc row) 1 new-cursor-row new-cursor-col new-color new-bgcolor))
-            (recur trow (inc tcol) row (inc col) new-cursor-row new-cursor-col new-color new-bgcolor))))
+            (recur n-trow n-tcol n-row n-col new-cursor-row new-cursor-col new-color new-bgcolor)))
       (when (buf :status-line)
         (tty-print esc cursor-row ";" cursor-col "H" esc "s" (or (buffer/get-char buf) \space))
         (tty-print esc "?25h" esc cursor-row ";" cursor-col "H" esc "s")

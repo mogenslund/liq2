@@ -29,9 +29,6 @@
      (editor/highlight-buffer)))
   ([] (run nil)))
 
-(defn open-file
-  [path]
-  (editor/new-buffer (or (util/read-file path) "") {:name path :filename path}))
 
 (defn choose
   []
@@ -46,7 +43,7 @@
           (editor/paint-buffer)
           (apply-to-buffer #(load-content % path))
           (editor/highlight-buffer))
-        (open-file path)))))
+        (editor/open-file path)))))
 
 (defn new-file
   []

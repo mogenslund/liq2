@@ -126,6 +126,7 @@
             "/" (fn [] (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
                        (switch-to-buffer "*minibuffer*")
                        (non-repeat-fun #(-> % buffer/clear (buffer/insert-char \/))))
+            "f" {:selfinsert buffer/search} 
             ":" (fn [] (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
                        (switch-to-buffer "*minibuffer*")
                        (non-repeat-fun #(-> % buffer/clear (buffer/insert-char \:))))

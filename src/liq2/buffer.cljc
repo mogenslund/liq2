@@ -904,6 +904,22 @@
   ([buf p] [p p])
   ([buf] (char-region (buf ::cursor))))
 
+(defn hide-region
+  ""
+  ; [{::row 1 ::col 2} {::row 1 ::col 4}]
+  ; (assoc-in buf [::lines (dec row) (dec col) ::style] style)
+  ; ::hide
+  ; ::delta-row ::delta-col ::col
+  [buf r]
+  (let [[p q] (if (= (point-compare (first r) (second r)) -1) r [(second r) (first r)])]
+    (if (= (p ::row) (q ::row))
+      (assoc-in buf [::lines (dec (p ::row)) (dec (p ::col)) ::hide]
+                    {::row (p ::row) ::dcol (- (q ::col) (p ::col))})
+      (assoc-in buf [::lines (dec (p ::row)) (dec (p ::col)) ::hide]
+                    {::drow (- (q ::row) (p ::row)) ::col (q ::col)}))))
+
+(comment (hide-region (buffer "abc\ndef") [{::row 1 ::col 1} {::row 2 ::col 2}]))
+
 (defn word-forward
   ([buf]
    (loop [b (or (next-point buf) buf)]
