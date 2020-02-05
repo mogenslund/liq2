@@ -152,13 +152,28 @@
   (compare [(p1 ::row) (p1 ::col)]
            [(p2 ::row) (p2 ::col)]))
 
+(defn adjust-hidden-rows
+  [buf row n]
+  (update buf ::hidden-lines 
+    #(into {} (for [[k v] %] (if (>= k row) [(+ k n) (+ v n)] [k v])))))
+
 (defn row-hidden?
   [buf row]
   (some true? (for [[k v] (buf ::hidden-lines)] (<= k row v))))
 
 (defn visible-rows-count
   [buf row1 row2]
-  (reduce #(+ %1 (if (row-hidden? buf %2) 0 1)) (range row1 (inc row2))))
+  (if (< row2 row1)
+    0
+    (reduce #(+ %1 (if (row-hidden? buf %2) 0 1)) 0 (range row1 (inc row2)))))
+
+(comment (row-hidden? (-> (buffer "aaa\nbbb\nccc\nddd") (assoc ::hidden-lines {2 3})) 1))
+(comment (row-hidden? (-> (buffer "aaa\nbbb\nccc\nddd")) 1))
+(comment (row-hidden? (-> (buffer "aaa\nbbb\nccc\nddd") (assoc ::hidden-lines {2 3})) 2))
+(comment (visible-rows-count (-> (buffer "aaa\nbbb\nccc\nddd") (assoc ::hidden-lines {2 3})) 1 4))
+(comment (visible-rows-count (-> (buffer "aaa\nbbb\nccc\nddd") (assoc ::hidden-lines {2 3})) 3 3))
+(comment (visible-rows-count (-> (buffer "aaa\nbbb\nccc\nddd") (assoc ::hidden-lines {2 3})) 4 4))
+(comment (visible-rows-count (-> (buffer "aaa\nbbb\nccc\nddd")) 1 4))
 
 (defn next-visible-row
   ([buf row]
@@ -169,7 +184,8 @@
   ([buf]
    (next-visible-row buf (-> buf ::cursor ::row))))
 
-(comment (next-visible-row (buffer "abc\naaa\nbbb")))
+(comment (next-visible-row (buffer "aaa\nbbb\nccc\ndddd\neee")))
+(comment (nth (iterate #(next-visible-row (buffer "aaa\nbbb\nccc\ndddd\neee") %) 1) 3))
 
 (defn previous-visible-row
   ([buf row]
@@ -431,14 +447,17 @@
 ;(into [] (subvec v 0 n))
 (defn insert-line-break
   [buf row col]
-  (update (set-dirty buf true) ::lines
-    (fn [lines]
-      (let [l (lines (dec row))
-            l1 (into [] (subvec l 0 (dec col)))
-            l2 (into [] (subvec l (dec col)))]
-        (-> lines
-            (assoc (dec row) l1)
-            (insert-in-vector row l2))))))
+  (-> buf
+      (set-dirty true)
+      (update ::lines
+        (fn [lines]
+          (let [l (lines (dec row))
+                l1 (into [] (subvec l 0 (dec col)))
+                l2 (into [] (subvec l (dec col)))]
+            (-> lines
+                (assoc (dec row) l1)
+                (insert-in-vector row l2)))))
+      (adjust-hidden-rows (inc row) 1)))
 
 (defn set-char
   ([buf row col char]
@@ -490,7 +509,8 @@
        set-insert-mode
        (set-dirty true)
        (update ::lines #(insert-in-vector % row []))
-       (assoc ::cursor {::row (inc (-> buf ::cursor ::row)) ::col 1})))
+       (assoc ::cursor {::row (inc (-> buf ::cursor ::row)) ::col 1})
+       (adjust-hidden-rows (inc row) 1)))
   ([buf]
    (append-line buf (-> buf ::cursor ::row))))
 
@@ -513,7 +533,9 @@
      (let [b1 (update buf ::lines #(remove-from-vector % row))
            newrow (min (line-count b1) row)
            newcol (min (col-count b1 newrow) (-> buf ::cursor ::col))]
-        (assoc b1 ::cursor {::row newrow ::col newcol}))))
+        (-> b1
+            (assoc ::cursor {::row newrow ::col newcol})
+            (adjust-hidden-rows row -1)))))
   ([buf] (delete-line buf (-> buf ::cursor ::row))))
 
 (comment (pr-str (get-text (-> (buffer "aaa\nbbb\nccc") down right delete-line))))
@@ -535,6 +557,7 @@
                (- (q ::row) (p ::row) -1))
           set-normal-mode
           (assoc ::cursor p)
+          (adjust-hidden-rows (p ::row) 1)
           (set-dirty true))))
   ([buf]
    (if-let [p (get-selection buf)]
@@ -634,10 +657,11 @@
 
 (defn insert-buffer
   ([buf p buf0]
-   (let [[b1 b2] (split-buffer buf p)]
-     (append-buffer
-       b1
-       (append-buffer buf0 b2))))
+   (let [[b1 b2] (split-buffer buf p)
+         hidden ((adjust-hidden-rows buf (inc (p ::row)) (dec (line-count buf0))) ::hidden-lines)]
+     (assoc
+       (append-buffer b1 (append-buffer buf0 b2))
+       ::hidden-lines hidden)))
   ([buf buf0]
    (insert-buffer buf (buf ::cursor) buf0)))
 
@@ -688,7 +712,8 @@
     (-> buf
         down
         beginning-of-line
-        delete-backward)))
+        delete-backward
+        (adjust-hidden-rows (-> buf ::cursor ::row) -1))))
 
 (defn join-lines-space
   [buf]
@@ -992,13 +1017,19 @@
   "This is a first draft, which does not handle edge
   cases with very long lines and positioning logic."
   [buf rows cols tow1]
-  (cond (< (-> buf ::cursor ::row) (tow1 ::row)) (assoc tow1 ::row (-> buf ::cursor ::row))
-        (> (- (-> buf ::cursor ::row) (tow1 ::row)) rows)
-        ;(> (visible-rows-count buf (tow1 ::row) (-> buf ::cursor ::row)) rows)
-          (recalculate-tow buf rows cols (assoc tow1 ::row (- (-> buf ::cursor ::row) rows)))
-        (> (calculate-wrapped-row-dist buf cols (tow1 ::row) (+ (-> buf ::cursor ::row) 1)) rows)
-          (recalculate-tow buf rows cols (update tow1 ::row inc))
-        true tow1))
+  (let [row (-> buf ::cursor ::row)
+        towrow (tow1 ::row)]
+    (cond (< row towrow) (assoc tow1 ::row row)
+          ;(> (- row towrow) rows)
+          (> (visible-rows-count buf towrow row) rows)
+            ;(recalculate-tow buf rows cols (assoc tow1 ::row (- row rows)))
+            (recalculate-tow buf rows cols
+                         (assoc tow1 ::row (nth (iterate #(previous-visible-row buf %) row) (dec rows))))
+          (> (calculate-wrapped-row-dist buf cols (tow1 ::row) (+ row 1)) rows)
+            (recalculate-tow buf rows cols (update tow1 ::row inc))
+          true tow1)))
+
+(comment (nth (iterate #(previous-visible-row (buffer "aaa\nbbb\nccc\ndddd\neee") %) 1) 3))
 
 (defn update-tow
   [buf]
