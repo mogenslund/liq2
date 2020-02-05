@@ -152,14 +152,17 @@
               new-bgcolor (if (buffer/selected? buf row col) "48;5;17" "49")
               n-trow (if (< cols tcol) (inc trow) trow)
               n-tcol (if (< cols tcol) left (inc tcol))
-              n-row (if (and (< cols tcol) (> col (buffer/col-count buf row))) (inc row) row)
-              n-col (if (and (< cols tcol) (> col (buffer/col-count buf row))) 1 (inc col))]
+              n-row (cond (and (< cols tcol) (> col (buffer/col-count buf row))) (buffer/next-visible-row buf row)
+                          true row)
+              n-col (cond (and (< cols tcol) (> col (buffer/col-count buf row))) 1
+                          true (inc col))]
             (when (or (not= color new-color) (not= bgcolor new-bgcolor))
               (tty-print esc new-color "m")
               (tty-print esc new-bgcolor "m"))
             (if (= tcol left)
               (tty-print esc trow ";" tcol "H" esc "s" c)
               (tty-print c))
+            (when (and (= col (buffer/col-count buf row)) (> (buffer/next-visible-row buf row) (+ row 1))) (tty-print "…"))
             (recur n-trow n-tcol n-row n-col new-cursor-row new-cursor-col new-color new-bgcolor)))
       (when (buf :status-line)
         (tty-print esc cursor-row ";" cursor-col "H" esc "s" (or (buffer/get-char buf) \space))

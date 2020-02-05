@@ -8,6 +8,7 @@
             [liq2.modes.clojure-mode :as clojure-mode]
             [liq2.modes.info-dialog-mode :as info-dialog-mode]
             #?(:clj [liq2.extras.cool-stuff :as cool-stuff])
+            [liq2.extras.markdownfolds :as markdownfolds]
             [liq2.extras.snake-mode :as snake-mode]
             [liq2.buffer :as buffer]
             [liq2.editor :as editor]
@@ -28,6 +29,7 @@
 (defn load-extras
   []
   #?(:clj (cool-stuff/load-cool-stuff))
+  (markdownfolds/load-markdownfolds)
   (swap! editor/state assoc-in [:liq2.editor/modes :snake-mode] liq2.extras.snake-mode/mode)
   (swap! editor/state assoc-in [:liq2.editor/commands :snake] liq2.extras.snake-mode/run))
 
