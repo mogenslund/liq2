@@ -152,36 +152,6 @@
   (compare [(p1 ::row) (p1 ::col)]
            [(p2 ::row) (p2 ::col)]))
 
-(defn hide-region
-  ""
-  ; [{::row 1 ::col 2} {::row 1 ::col 4}]
-  ; (assoc-in buf [::lines (dec row) (dec col) ::style] style)
-  ; ::hide
-  ; ::delta-row ::delta-col ::col
-  ([buf r]
-   (let [[p q] (if (= (point-compare (first r) (second r)) -1) r [(second r) (first r)])]
-     (if (= (p ::row) (q ::row))
-       (assoc-in buf [::lines (dec (p ::row)) (dec (p ::col)) ::hide]
-                     {::row (p ::row) ::dcol (- (q ::col) (p ::col))})
-       (assoc-in buf [::lines (dec (p ::row)) (dec (p ::col)) ::hide]
-                     {::drow (- (q ::row) (p ::row)) ::col (q ::col)}))))
-  ([buf]
-   (if-let [p (get-selection buf)]
-     (hide-region buf [(buf ::cursor) p])
-     buf)))
-
-(defn unhide-region
-  ([buf p]
-   (assoc-in buf [::lines (dec (-> p ::row)) (dec (-> p ::col)) ::hide] nil))
-  ([buf]
-   (unhide-region buf (-> buf ::cursor))))
-
-(defn hidden-region?
-  ([buf p]
-   (-> buf ::lines (get (dec (-> p ::row))) (get (dec (-> p ::col))) ::hide))
-  ([buf]
-   (hidden-region? buf (buf ::cursor))))
-
 (defn next-non-hidden-row
   ([buf row]
    (reduce #(if (<= (first %2) %1 (second %2))

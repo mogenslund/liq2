@@ -297,9 +297,6 @@
                                    #(set-insert-mode
                                       (cut-region % [(% ::buffer/cursor) ((buffer/end-of-word %) ::buffer/cursor)]))))
 
-   :hide-region #(apply-to-buffer buffer/hide-region)
-   :unhide-region #(apply-to-buffer buffer/unhide-region)
-
    :insert-at-line-end #(non-repeat-fun buffer/insert-at-line-end)
    :insert-at-beginning-of-line #(non-repeat-fun buffer/insert-at-beginning-of-line)
    :delete-to-line-end #(non-repeat-fun buffer/delete-to-line-end)

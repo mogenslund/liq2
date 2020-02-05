@@ -88,8 +88,6 @@
                  "J" :join-lines}
             "G" :end-of-buffer
             "z" {"t" :scroll-cursor-top 
-                 "c" :hide-region
-                 "o" :unhide-region
                  "\n" :scroll-cursor-top}
             "d" {"d" :delete-line
                  "w" :delete-to-word

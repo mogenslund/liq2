@@ -150,15 +150,11 @@
               new-cursor-col (if cursor-match tcol cursor-col)
               new-color (theme (cm ::buffer/style))
               new-bgcolor (if (buffer/selected? buf row col) "48;5;17" "49")
-              hide (cm ::buffer/hide)
               n-trow (if (< cols tcol) (inc trow) trow)
               n-tcol (if (< cols tcol) left (inc tcol))
               n-row (cond (and (< cols tcol) (> col (buffer/col-count buf row))) (buffer/next-non-hidden-row buf row)
-                          (and hide (hide ::buffer/drow)) (+ row (hide ::buffer/drow))
                           true row)
               n-col (cond (and (< cols tcol) (> col (buffer/col-count buf row))) 1
-                          (and hide (hide ::buffer/dcol)) (+ col (hide ::buffer/dcol) 1)
-                          (and hide (hide ::buffer/col)) (inc (hide ::buffer/col 1))
                           true (inc col))]
             (when (or (not= color new-color) (not= bgcolor new-bgcolor))
               (tty-print esc new-color "m")
@@ -167,7 +163,6 @@
               (tty-print esc trow ";" tcol "H" esc "s" c)
               (tty-print c))
             (when (and (= col (buffer/col-count buf row)) (> (buffer/next-non-hidden-row buf row) (+ row 1))) (tty-print "…"))
-            (when hide (tty-print "…"))
             (recur n-trow n-tcol n-row n-col new-cursor-row new-cursor-col new-color new-bgcolor)))
       (when (buf :status-line)
         (tty-print esc cursor-row ";" cursor-col "H" esc "s" (or (buffer/get-char buf) \space))
