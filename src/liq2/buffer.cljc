@@ -152,25 +152,33 @@
   (compare [(p1 ::row) (p1 ::col)]
            [(p2 ::row) (p2 ::col)]))
 
-(defn next-non-hidden-row
+(defn row-hidden?
+  [buf row]
+  (some true? (for [[k v] (buf ::hidden-lines)] (<= k row v))))
+
+(defn visible-rows-count
+  [buf row1 row2]
+  (reduce #(+ %1 (if (row-hidden? buf %2) 0 1)) (range row1 (inc row2))))
+
+(defn next-visible-row
   ([buf row]
    (reduce #(if (<= (first %2) %1 (second %2))
               (inc (second %2))
               %1)
           (inc row) (buf ::hidden-lines)))
   ([buf]
-   (next-non-hidden-row buf (-> buf ::cursor ::row))))
+   (next-visible-row buf (-> buf ::cursor ::row))))
 
-(comment (next-non-hidden-row (buffer "abc\naaa\nbbb")))
+(comment (next-visible-row (buffer "abc\naaa\nbbb")))
 
-(defn previous-non-hidden-row
+(defn previous-visible-row
   ([buf row]
    (reduce #(if (<= (first %2) %1 (second %2))
               (dec (first %2))
               %1)
           (dec row) (buf ::hidden-lines)))
   ([buf]
-   (previous-non-hidden-row buf (-> buf ::cursor ::row))))
+   (previous-visible-row buf (-> buf ::cursor ::row))))
 
 
 (defn get-line
@@ -318,7 +326,7 @@
 (defn down
   ([buf n]
    (let [;newrow (max 1 (min (count (buf ::lines)) (+ (-> buf ::cursor ::row) n hide-inc)))
-         newrow (max 1 (min (count (buf ::lines)) (+ (next-non-hidden-row buf) (dec n))))
+         newrow (max 1 (min (count (buf ::lines)) (+ (next-visible-row buf) (dec n))))
          linevec (-> buf ::lines (get (dec newrow)))
          maxcol (+ (count linevec) (if (= (buf ::mode) :insert) 1 0))
          newcol (max 1 (min maxcol (buf ::mem-col)))]
@@ -328,7 +336,7 @@
 
 (defn up
   ([buf n]
-   (let [newrow (max 1 (min (count (buf ::lines)) (- (previous-non-hidden-row buf) (dec n))))
+   (let [newrow (max 1 (min (count (buf ::lines)) (- (previous-visible-row buf) (dec n))))
          linevec (-> buf ::lines (get (dec newrow)))
          maxcol (+ (count linevec) (if (= (buf ::mode) :insert) 1 0))
          newcol (max 1 (min maxcol (buf ::mem-col)))]
@@ -974,7 +982,11 @@
 
 (defn calculate-wrapped-row-dist
   [buf cols row1 row2]
-  (reduce #(+ 1 %1 (quot (dec (col-count buf %2)) cols)) 0 (range row1 row2))) 
+  ;; todo subtract number of hidden lines between row1 and row2
+  (reduce #(if (row-hidden? buf %2)
+             %1
+             (+ %1 1 (quot (dec (col-count buf %2)) cols)))
+          0 (range row1 row2))) 
 
 (defn recalculate-tow
   "This is a first draft, which does not handle edge
@@ -982,6 +994,7 @@
   [buf rows cols tow1]
   (cond (< (-> buf ::cursor ::row) (tow1 ::row)) (assoc tow1 ::row (-> buf ::cursor ::row))
         (> (- (-> buf ::cursor ::row) (tow1 ::row)) rows)
+        ;(> (visible-rows-count buf (tow1 ::row) (-> buf ::cursor ::row)) rows)
           (recalculate-tow buf rows cols (assoc tow1 ::row (- (-> buf ::cursor ::row) rows)))
         (> (calculate-wrapped-row-dist buf cols (tow1 ::row) (+ (-> buf ::cursor ::row) 1)) rows)
           (recalculate-tow buf rows cols (update tow1 ::row inc))

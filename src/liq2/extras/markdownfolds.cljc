@@ -38,9 +38,23 @@
  ([buf]
   (show-lines-below buf (buf ::buffer/cursor))))
 
+(defn hide-level
+  ([buf p]
+    (let [row (p ::buffer/row)]
+      (update buf ::buffer/hidden-lines assoc (inc row) (get-level-end buf row))))
+  ([buf]
+    (hide-level buf (buf ::buffer/cursor))))
+
+(defn hide-all-levels
+  [buf]
+  (loop [b buf row 1]
+    (if (> row (buffer/line-count b))
+      b
+      (recur (hide-level b {::buffer/row row ::buffer/col 1}) (inc row)))))
+
 (defn toggle-show-lines-below
   [buf]
-  (if (not= (buffer/next-non-hidden-row buf) (inc (-> buf ::buffer/cursor ::buffer/row)))
+  (if (not= (buffer/next-visible-row buf) (inc (-> buf ::buffer/cursor ::buffer/row)))
     (show-lines-below buf)
     (hide-lines-below buf (- (get-level-end buf) (-> buf ::buffer/cursor ::buffer/row)))))
 
@@ -49,5 +63,7 @@
   (editor/add-key-bindings
     :fundamental-mode
     :normal {"+" {"+" (fn [] (editor/apply-to-buffer #(toggle-show-lines-below %)))
+                  "a" (fn [] (editor/apply-to-buffer hide-all-levels))
+                  "t" (fn [] (editor/apply-to-buffer hide-level))
                   "-" (fn [] (editor/apply-to-buffer #(show-lines-below %)))}}
   ))
