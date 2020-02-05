@@ -52,6 +52,30 @@
       b
       (recur (hide-level b {::buffer/row row ::buffer/col 1}) (inc row)))))
 
+(defn hide-levels-between
+  [buf row0 row1]
+  (loop [b buf row row0]
+    (if (> row row1)
+      b
+      (recur (hide-level b {::buffer/row row ::buffer/col 1}) (inc row)))))
+
+(defn show-levels-between
+  [buf row0 row1]
+  (loop [b buf row row0]
+    (if (> row row1)
+      b
+      (recur (update b ::buffer/hidden-lines dissoc row) (inc row)))))
+
+(defn cycle-level-fold
+  [buf]
+  (let [r0 (-> buf ::buffer/cursor ::buffer/row)
+        r1 (get-level-end buf)]
+    (cond (buffer/row-hidden? buf (inc r0))
+            (-> buf show-lines-below (hide-levels-between (inc r0) r1))
+          (= (buffer/visible-rows-count buf (inc r0) r1) (- r1 r0))
+            (hide-levels-between buf r0 r1)
+          true (show-levels-between buf (inc r0) r1))))
+
 (defn toggle-show-lines-below
   [buf]
   (if (not= (buffer/next-visible-row buf) (inc (-> buf ::buffer/cursor ::buffer/row)))
@@ -62,7 +86,7 @@
   []
   (editor/add-key-bindings
     :fundamental-mode
-    :normal {"+" {"+" (fn [] (editor/apply-to-buffer #(toggle-show-lines-below %)))
+    :normal {"+" {"+" (fn [] (editor/apply-to-buffer cycle-level-fold))
                   "a" (fn [] (editor/apply-to-buffer hide-all-levels))
                   "t" (fn [] (editor/apply-to-buffer hide-level))
                   "-" (fn [] (editor/apply-to-buffer #(show-lines-below %)))}}
