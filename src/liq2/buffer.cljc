@@ -23,6 +23,7 @@
       ::lines-undo ()  ;; Conj lines into this when doing changes
       ::lines-stack (list {::lines lines ::cursor {::row 1 ::col 1}}) ;; To use in connection with undo
       ::line-ending "\n" 
+      ::hidden-lines {}
       ::cursor {::row 1 ::col 1}
       ::selection nil
       ::window {::top (or top 1) ::left (or left 1) ::rows (or rows 1) ::cols (or cols 80)}
@@ -151,6 +152,57 @@
   (compare [(p1 ::row) (p1 ::col)]
            [(p2 ::row) (p2 ::col)]))
 
+(defn hide-region
+  ""
+  ; [{::row 1 ::col 2} {::row 1 ::col 4}]
+  ; (assoc-in buf [::lines (dec row) (dec col) ::style] style)
+  ; ::hide
+  ; ::delta-row ::delta-col ::col
+  ([buf r]
+   (let [[p q] (if (= (point-compare (first r) (second r)) -1) r [(second r) (first r)])]
+     (if (= (p ::row) (q ::row))
+       (assoc-in buf [::lines (dec (p ::row)) (dec (p ::col)) ::hide]
+                     {::row (p ::row) ::dcol (- (q ::col) (p ::col))})
+       (assoc-in buf [::lines (dec (p ::row)) (dec (p ::col)) ::hide]
+                     {::drow (- (q ::row) (p ::row)) ::col (q ::col)}))))
+  ([buf]
+   (if-let [p (get-selection buf)]
+     (hide-region buf [(buf ::cursor) p])
+     buf)))
+
+(defn unhide-region
+  ([buf p]
+   (assoc-in buf [::lines (dec (-> p ::row)) (dec (-> p ::col)) ::hide] nil))
+  ([buf]
+   (unhide-region buf (-> buf ::cursor))))
+
+(defn hidden-region?
+  ([buf p]
+   (-> buf ::lines (get (dec (-> p ::row))) (get (dec (-> p ::col))) ::hide))
+  ([buf]
+   (hidden-region? buf (buf ::cursor))))
+
+(defn next-non-hidden-row
+  ([buf row]
+   (reduce #(if (<= (first %2) %1 (second %2))
+              (inc (second %2))
+              %1)
+          (inc row) (buf ::hidden-lines)))
+  ([buf]
+   (next-non-hidden-row buf (-> buf ::cursor ::row))))
+
+(comment (next-non-hidden-row (buffer "abc\naaa\nbbb")))
+
+(defn previous-non-hidden-row
+  ([buf row]
+   (reduce #(if (<= (first %2) %1 (second %2))
+              (dec (first %2))
+              %1)
+          (dec row) (buf ::hidden-lines)))
+  ([buf]
+   (previous-non-hidden-row buf (-> buf ::cursor ::row))))
+
+
 (defn get-line
   "Get line as string"
   ([buf row]
@@ -247,6 +299,16 @@
   [buf]
   {::row 1 ::col 1})
 
+(defn eol-point
+  ([buf p]
+   (assoc p ::col (col-count buf (p ::row))))
+  ([buf]
+   (eol-point buf (-> buf ::cursor))))
+
+(comment (eol-point (buffer "aaaa bbbb\nccc")))
+(comment (eol-point (buffer "aaaa bbbb\nccc") {::row 2 ::col 1}))
+ 
+
 (defn get-selected-text
   [buf]
   (if-let [p (get-selection buf)]
@@ -285,7 +347,8 @@
 
 (defn down
   ([buf n]
-   (let [newrow (max 1 (min (count (buf ::lines)) (+ (-> buf ::cursor ::row) n)))
+   (let [;newrow (max 1 (min (count (buf ::lines)) (+ (-> buf ::cursor ::row) n hide-inc)))
+         newrow (max 1 (min (count (buf ::lines)) (+ (next-non-hidden-row buf) (dec n))))
          linevec (-> buf ::lines (get (dec newrow)))
          maxcol (+ (count linevec) (if (= (buf ::mode) :insert) 1 0))
          newcol (max 1 (min maxcol (buf ::mem-col)))]
@@ -295,7 +358,11 @@
 
 (defn up
   ([buf n]
-   (down buf (- n)))
+   (let [newrow (max 1 (min (count (buf ::lines)) (- (previous-non-hidden-row buf) (dec n))))
+         linevec (-> buf ::lines (get (dec newrow)))
+         maxcol (+ (count linevec) (if (= (buf ::mode) :insert) 1 0))
+         newcol (max 1 (min maxcol (buf ::mem-col)))]
+     (assoc buf ::cursor {::row newrow ::col newcol})))
   ([buf]
    (up buf 1)))
 
@@ -903,20 +970,6 @@
 (defn char-region
   ([buf p] [p p])
   ([buf] (char-region (buf ::cursor))))
-
-(defn hide-region
-  ""
-  ; [{::row 1 ::col 2} {::row 1 ::col 4}]
-  ; (assoc-in buf [::lines (dec row) (dec col) ::style] style)
-  ; ::hide
-  ; ::delta-row ::delta-col ::col
-  [buf r]
-  (let [[p q] (if (= (point-compare (first r) (second r)) -1) r [(second r) (first r)])]
-    (if (= (p ::row) (q ::row))
-      (assoc-in buf [::lines (dec (p ::row)) (dec (p ::col)) ::hide]
-                    {::row (p ::row) ::dcol (- (q ::col) (p ::col))})
-      (assoc-in buf [::lines (dec (p ::row)) (dec (p ::col)) ::hide]
-                    {::drow (- (q ::row) (p ::row)) ::col (q ::col)}))))
 
 (comment (hide-region (buffer "abc\ndef") [{::row 1 ::col 1} {::row 2 ::col 2}]))
 
