@@ -5,23 +5,23 @@
             #?(:clj [liq2.tools.shell :as s])
             [liq2.util :as util]))
 
-(swap! editor/state assoc ::repeat-counter 0)
+(swap! editor/state assoc ::editor/repeat-counter 0)
 
 (defn repeat-fun
   [fun args]
-  (let [r (max (min (@editor/state ::repeat-counter) 999) 1)
+  (let [r (max (min (@editor/state ::editor/repeat-counter) 999) 1)
         n (when (not (empty? args)) (util/int-value (first args)))]
-    (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
+    (when (not= (@editor/state ::editor/repeat-counter) 0) (swap! editor/state assoc ::editor/repeat-counter 0))
     (editor/apply-to-buffer #(fun % (or n r)))))
 
 (defn non-repeat-fun
   [fun]
-  (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
+  (when (not= (@editor/state ::editor/repeat-counter) 0) (swap! editor/state assoc ::editor/repeat-counter 0))
   (editor/apply-to-buffer fun))
 
 (defn open-file-at-point
   []
-  (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
+  (when (not= (@editor/state ::editor/repeat-counter) 0) (swap! editor/state assoc ::editor/repeat-counter 0))
   (let [buf (editor/current-buffer)
         part (re-find #"[^:]+" (buffer/get-word buf))
         buffer-file (or (buf ::buffer/filename) ((editor/get-buffer (editor/previous-regular-buffer-id)) ::buffer/filename))
@@ -68,7 +68,7 @@
 
 (defn paste-clipboard
   []
-  (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
+  (when (not= (@editor/state ::editor/repeat-counter) 0) (swap! editor/state assoc ::editor/repeat-counter 0))
   (let [text (util/clipboard-content)] 
     (if (util/clipboard-line?)
       (apply-to-buffer
@@ -88,7 +88,7 @@
 
 (defn paste-clipboard-here
   []
-  (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
+  (when (not= (@editor/state ::editor/repeat-counter) 0) (swap! editor/state assoc ::editor/repeat-counter 0))
   (let [text (util/clipboard-content)] 
     (if (util/clipboard-line?)
       (apply-to-buffer
@@ -164,7 +164,7 @@
 
 (defn raw-eval-sexp-at-point
   [buf]
-  (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
+  (when (not= (@editor/state ::editor/repeat-counter) 0) (swap! editor/state assoc ::editor/repeat-counter 0))
   (let [sexp (if (= (buf ::buffer/mode) :visuel) (buffer/get-selected-text buf) (buffer/sexp-at-point buf))
         namespace (or (get-namespace buf) "user")]
     (try
@@ -180,7 +180,7 @@
 
 (defn eval-sexp-at-point
   [buf]
-  (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
+  (when (not= (@editor/state ::editor/repeat-counter) 0) (swap! editor/state assoc ::editor/repeat-counter 0))
   (let [sexp (if (= (buf ::buffer/mode) :visuel) (buffer/get-selected-text buf) (buffer/sexp-at-point buf))
         namespace (or (get-namespace buf) "user")]
     (create-ns (symbol namespace))
@@ -200,7 +200,7 @@
 
 (defn raw-eval-sexp-at-point
   [buf]
-  (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
+  (when (not= (@editor/state ::editor/repeat-counter) 0) (swap! editor/state assoc ::editor/repeat-counter 0))
   (let [sexp (if (= (buf ::buffer/mode) :visuel) (buffer/get-selected-text buf) (buffer/sexp-at-point buf))
         namespace (or (get-namespace buf) "user")]
     (try
@@ -229,30 +229,19 @@
 
 
 (def commands
-  {:left (fn [& args] (repeat-fun buffer/left args))
-   :down (fn [& args] (repeat-fun buffer/down args))
-   :up (fn [& args] (repeat-fun buffer/up args))
-   :right (fn [& args] (repeat-fun buffer/right args))
+  {:left ^:motion #(buffer/left %1 %2)
+   :down ^:motion #(buffer/down %1 %2)
+   :up ^:motion #(buffer/up %1 %2)
+   :right ^:motion #(buffer/right %1 %2)
    :first-non-blank #(non-repeat-fun buffer/first-non-blank)
-   :0 #(if (= (@editor/state ::repeat-counter) 0)
-         (non-repeat-fun buffer/beginning-of-line)
-         (swap! editor/state update ::repeat-counter (fn [t] (* 10 t))))
-   :1 #(swap! editor/state update ::repeat-counter (fn [t] (+ (* 10 t) 1)))
-   :2 #(swap! editor/state update ::repeat-counter (fn [t] (+ (* 10 t) 2)))
-   :3 #(swap! editor/state update ::repeat-counter (fn [t] (+ (* 10 t) 3)))
-   :4 #(swap! editor/state update ::repeat-counter (fn [t] (+ (* 10 t) 4)))
-   :5 #(swap! editor/state update ::repeat-counter (fn [t] (+ (* 10 t) 5)))
-   :6 #(swap! editor/state update ::repeat-counter (fn [t] (+ (* 10 t) 6)))
-   :7 #(swap! editor/state update ::repeat-counter (fn [t] (+ (* 10 t) 7)))
-   :8 #(swap! editor/state update ::repeat-counter (fn [t] (+ (* 10 t) 8)))
-   :9 #(swap! editor/state update ::repeat-counter (fn [t] (+ (* 10 t) 9)))
+   :0 #(non-repeat-fun buffer/beginning-of-line)
    :move-matching-paren #(non-repeat-fun buffer/move-matching-paren)
-   :word-forward (fn [& args] (repeat-fun buffer/word-forward args))
-   :word-forward-ws (fn [& args] (repeat-fun buffer/word-forward-ws args))
+   :word-forward ^:motion #(buffer/word-forward %1 %2)
+   :word-forward-ws ^:motion #(buffer/word-forward-ws %1 %2)
    :beginning-of-word (fn [& args] (repeat-fun buffer/beginning-of-word args))
    :end-of-word (fn [& args] (repeat-fun buffer/end-of-word args))
    :end-of-word-ws (fn [& args] (repeat-fun buffer/end-of-word-ws args))
-   :end-of-line #(non-repeat-fun buffer/end-of-line)
+   :end-of-line ^:motion (fn [buf n] (buffer/end-of-line buf))
 ;   :delete-char (fn [& args] (repeat-fun buffer/delete-char args))
    :delete-char (fn [& args] (repeat-fun #(do (util/set-clipboard-content (str (buffer/get-char %1)) false) (buffer/delete-char %1 %2)) args))
    :copy-selection-to-clipboard #(apply-to-buffer copy-selection-to-clipboard)
@@ -280,7 +269,7 @@
    :delete-outer-brace (fn [] (non-repeat-fun #(->> % buffer/brace-region  (cut-region %))))
    :delete-outer-quote (fn [] (non-repeat-fun #(->> % buffer/quote-region  (cut-region %))))
    :delete-to-word (fn [] (non-repeat-fun #(cut-region % [(% ::buffer/cursor) ((buffer/left (buffer/word-forward %)) ::buffer/cursor)])))
-   :delete-to-end-of-word (fn [] (non-repeat-fun #(cut-region % [(% ::buffer/cursor) ((buffer/end-of-word %) ::buffer/cursor)])))
+   :delete-to-end-of-word (fn [& args] (repeat-fun #(cut-region %1 [(%1 ::buffer/cursor) ((buffer/end-of-word %1 %2) ::buffer/cursor)]) args))
 
    :change-inner-word (fn [] (non-repeat-fun #(->> % buffer/word-region (cut-region %) set-insert-mode)))
    :change-inner-paren (fn [] (non-repeat-fun #(->> % buffer/paren-region (shrink-region %) (cut-region %) set-insert-mode)))

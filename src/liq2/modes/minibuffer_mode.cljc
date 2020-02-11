@@ -9,9 +9,12 @@
   [s]
   (let [fargs (str/split s #" ")
         keyw (keyword (first fargs))
-        args (rest fargs)]
-    (when-let [fun (-> @editor/state ::editor/commands keyw)]
-      (apply fun args)))) 
+        args (rest fargs)
+        n (if (and (first args) (re-matches #"\d+" (first args))) (Integer/parseInt (first args)) 1)]
+    (when-let [command (-> @editor/state ::editor/commands keyw)]
+      (let [m (or (meta command) {})]
+        (cond (m :motion) (apply-to-buffer #(command % n))
+              true (apply command args))))))
 
 (defn execute
   []

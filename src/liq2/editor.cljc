@@ -285,36 +285,54 @@
   [major-modes mode c]
   (first (filter identity (map #(get (-> % get-mode mode) c) major-modes))))
 
+(defn handle-keyword-action
+  [k]
+  (when-let [command (-> @state ::commands k)]
+    (let [m (or (meta command) {})
+          n (@state ::repeat-counter)
+          action (cond (m :motion) #(apply-to-buffer (fn [buf] (command buf (max 1 n))))
+                       true command)]
+      (action)
+      (swap! state assoc ::repeat-counter 0
+                         ::last-action action)))
+   nil)
+
 (defn handle-input
   [c]
   ;(spit "/tmp/liq2.log" (str "INPUT: " c "\n"))
   (when (and @macro-record (not= c "Q"))
     (swap! macro-seq conj c))
-  (let [mode ((current-buffer) ::buffer/mode)
-        major-mode ((current-buffer) ::buffer/major-mode)
-        major-modes ((current-buffer) ::buffer/major-modes)
-        tmp-k-selfinsert (and @tmp-keymap (@tmp-keymap :selfinsert)) 
-        tmp-k (and @tmp-keymap
-                   (or (@tmp-keymap c)
-                       (and tmp-k-selfinsert
-                            (fn [] (apply-to-buffer #(tmp-k-selfinsert % c))))))
-        _ (reset! tmp-keymap nil)
-        action (or
-                 tmp-k
-                 (and (fn? ((get-mode (first major-modes)) mode))
-                      (((get-mode (first major-modes)) mode) c))
-                 (get-mode-fun major-modes mode c)
-                 (when (not= mode :insert)
-                   (get-mode-fun major-modes :normal c)
-                   ))]
-    (cond (fn? action) (action)
-          (keyword? action) (when (-> @state ::commands action) ((-> @state ::commands action)))
-          (map? action) (reset! tmp-keymap action)
-          ;action (swap! state update-in [::buffers (current-buffer-id)] (action :function))
-          (= mode :insert) (apply-to-buffer #(buffer/insert-char % (first c))))
-    (cond (= c "esc") (highlight-buffer) ; TODO Maybe not highlight from scratch each time
-          (= mode :insert) (highlight-buffer-row))
-    (paint-buffer)))
+  (if (and (not= ((current-buffer) ::buffer/mode) :insert)
+           (contains? #{"1" "2" "3" "4" "5" "6" "7" "8" "9" "0"} c)
+           (not (and (= c "0") (= (@state ::repeat-counter) 0))))
+    (do (swap! state update ::repeat-counter (fn [t] (+ (* 10 t) (Integer/parseInt c))))
+        nil)
+    (let [mode ((current-buffer) ::buffer/mode)
+          major-mode ((current-buffer) ::buffer/major-mode)
+          major-modes ((current-buffer) ::buffer/major-modes)
+          tmp-k-selfinsert (and @tmp-keymap (@tmp-keymap :selfinsert)) 
+          tmp-k (and @tmp-keymap
+                     (or (@tmp-keymap c)
+                         (and tmp-k-selfinsert
+                              (fn [] (apply-to-buffer #(tmp-k-selfinsert % c))))))
+          _ (reset! tmp-keymap nil)
+          action (or
+                   tmp-k
+                   (and (fn? ((get-mode (first major-modes)) mode))
+                        (((get-mode (first major-modes)) mode) c))
+                   (get-mode-fun major-modes mode c)
+                   (when (not= mode :insert)
+                     (get-mode-fun major-modes :normal c)
+                     ))]
+      (cond (= action ::last-action) (when (@state ::last-action) ((@state ::last-action))) 
+            (fn? action) (do (swap! state assoc ::last-action action) (action))
+            (keyword? action) (handle-keyword-action action)
+            (map? action) (reset! tmp-keymap action)
+            ;action (swap! state update-in [::buffers (current-buffer-id)] (action :function))
+            (= mode :insert) (apply-to-buffer #(buffer/insert-char % (first c))))
+      (cond (= c "esc") (highlight-buffer) ; TODO Maybe not highlight from scratch each time
+            (= mode :insert) (highlight-buffer-row))
+      (paint-buffer))))
 
 (defn record-macro
   []

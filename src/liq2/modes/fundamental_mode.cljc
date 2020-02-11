@@ -6,7 +6,7 @@
 
 (defn non-repeat-fun
   [fun]
-  (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
+  (when (not= (@editor/state ::editor/repeat-counter) 0) (swap! editor/state assoc ::editor/repeat-counter 0))
   (editor/apply-to-buffer fun))
 
 (def mode
@@ -23,19 +23,20 @@
             "up" :up 
             "right" :right 
             "C-x" {"C-e" :eval-sexp-at-point} 
-            "M-x" (fn [] (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
+            "M-x" (fn [] ;(when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
                          (switch-to-buffer "*minibuffer*")
                          (non-repeat-fun #(-> % buffer/clear
                                                 (buffer/insert-char \M)
                                                 (buffer/insert-char \-)
                                                 (buffer/insert-char \x)
                                                 (buffer/insert-char \space))))}
-   :normal {"esc" (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
+   :normal {"esc" (when (not= (@editor/state ::editor/repeat-counter) 0) (swap! editor/state assoc ::editor/repeat-counter 0))
             "C- " #(((editor/get-mode :buffer-chooser-mode) :init))
             "C-b" :previous-regular-buffer
             "t" (fn [] (apply-to-buffer #(buffer/insert-string % "Just\nTesting")))
             "f2" editor/oldest-buffer
             "f3" #(non-repeat-fun buffer/debug-clear-undo)
+            "." ::editor/last-action 
             "0" :0 
             "1" :1 
             "2" :2 
@@ -104,7 +105,7 @@
             "A" :insert-at-line-end
             "D" :delete-to-line-end
             "r" {:selfinsert (fn [buf c]
-                               (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
+                               (when (not= (@editor/state ::editor/repeat-counter) 0) (swap! editor/state assoc ::editor/repeat-counter 0))
                                (buffer/set-char buf (first c)))}
             "c" {"p" {"p" :eval-sexp-at-point
                       "r" :raw-eval-sexp-at-point
@@ -123,11 +124,11 @@
                  "e" :change-to-end-of-word
                  "w" :change-to-end-of-word}
             "C" :change-eol
-            "/" (fn [] (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
+            "/" (fn [] (when (not= (@editor/state ::editor/repeat-counter) 0) (swap! editor/state assoc ::editor/repeat-counter 0))
                        (switch-to-buffer "*minibuffer*")
                        (non-repeat-fun #(-> % buffer/clear (buffer/insert-char \/))))
             "f" {:selfinsert buffer/search} 
-            ":" (fn [] (when (not= (@editor/state ::repeat-counter) 0) (swap! editor/state assoc ::repeat-counter 0))
+            ":" (fn [] (when (not= (@editor/state ::editor/repeat-counter) 0) (swap! editor/state assoc ::editor/repeat-counter 0))
                        (switch-to-buffer "*minibuffer*")
                        (non-repeat-fun #(-> % buffer/clear (buffer/insert-char \:))))
             "Q" editor/record-macro
