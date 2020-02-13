@@ -20,7 +20,7 @@
      (if (= l 0)
        row
        (loop [r (inc row)]
-         (cond (= r lc) r
+         (cond (> r lc) lc
                (<= 1 (get-headline-level buf r) l) (dec r)
                true (recur (inc r)))))))
   ([buf]

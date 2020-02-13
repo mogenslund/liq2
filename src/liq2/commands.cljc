@@ -238,9 +238,9 @@
    :move-matching-paren #(non-repeat-fun buffer/move-matching-paren)
    :word-forward ^:motion #(buffer/word-forward %1 %2)
    :word-forward-ws ^:motion #(buffer/word-forward-ws %1 %2)
-   :beginning-of-word (fn [& args] (repeat-fun buffer/beginning-of-word args))
-   :end-of-word (fn [& args] (repeat-fun buffer/end-of-word args))
-   :end-of-word-ws (fn [& args] (repeat-fun buffer/end-of-word-ws args))
+   :beginning-of-word ^:motion #(buffer/beginning-of-word %1 %2)
+   :end-of-word ^:motion #(buffer/end-of-word %1 %2)
+   :end-of-word-ws ^:motion #(buffer/end-of-word-ws %1 %2)
    :end-of-line ^:motion (fn [buf n] (buffer/end-of-line buf))
 ;   :delete-char (fn [& args] (repeat-fun buffer/delete-char args))
    :delete-char (fn [& args] (repeat-fun #(do (util/set-clipboard-content (str (buffer/get-char %1)) false) (buffer/delete-char %1 %2)) args))
@@ -268,8 +268,10 @@
    :delete-outer-bracket  (fn [] (non-repeat-fun #(->> % buffer/bracket-region  (cut-region %))))
    :delete-outer-brace (fn [] (non-repeat-fun #(->> % buffer/brace-region  (cut-region %))))
    :delete-outer-quote (fn [] (non-repeat-fun #(->> % buffer/quote-region  (cut-region %))))
-   :delete-to-word (fn [] (non-repeat-fun #(cut-region % [(% ::buffer/cursor) ((buffer/left (buffer/word-forward %)) ::buffer/cursor)])))
-   :delete-to-end-of-word (fn [& args] (repeat-fun #(cut-region %1 [(%1 ::buffer/cursor) ((buffer/end-of-word %1 %2) ::buffer/cursor)]) args))
+   :delete-to-word (fn [& args] (repeat-fun #(cut-region %1
+                                  [(%1 ::buffer/cursor)
+                                   ((buffer/left (buffer/word-forward %1 %2)) ::buffer/cursor)]) args))
+   :delete-to-end-of-word (fn [& args] (repeat-fun #(cut-region %1 (buffer/end-of-word-region %1 %2)) args))
 
    :change-inner-word (fn [] (non-repeat-fun #(->> % buffer/word-region (cut-region %) set-insert-mode)))
    :change-inner-paren (fn [] (non-repeat-fun #(->> % buffer/paren-region (shrink-region %) (cut-region %) set-insert-mode)))
@@ -282,9 +284,7 @@
    :change-outer-quote (fn [] (non-repeat-fun #(->> % buffer/quote-region (cut-region %) set-insert-mode)))
    :change-line (fn [] (non-repeat-fun #(->> % buffer/line-region (cut-region %) set-insert-mode)))
    :change-eol (fn [] (non-repeat-fun #(->> % buffer/eol-region (cut-region %) set-insert-mode)))
-   :change-to-end-of-word (fn [] (non-repeat-fun
-                                   #(set-insert-mode
-                                      (cut-region % [(% ::buffer/cursor) ((buffer/end-of-word %) ::buffer/cursor)]))))
+   :change-to-end-of-word (fn [& args] (repeat-fun #(set-insert-mode (cut-region %1 (buffer/end-of-word-region %1 %2))) args))
 
    :insert-at-line-end #(non-repeat-fun buffer/insert-at-line-end)
    :insert-at-beginning-of-line #(non-repeat-fun buffer/insert-at-beginning-of-line)
