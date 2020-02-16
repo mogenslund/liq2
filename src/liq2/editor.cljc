@@ -303,6 +303,7 @@
   (when (and @macro-record (not= c "Q"))
     (swap! macro-seq conj c))
   (if (and (not= ((current-buffer) ::buffer/mode) :insert)
+           (not (and @tmp-keymap (@tmp-keymap :selfinsert)))
            (contains? #{"1" "2" "3" "4" "5" "6" "7" "8" "9" "0"} c)
            (not (and (= c "0") (= (@state ::repeat-counter) 0))))
     (do (swap! state update ::repeat-counter (fn [t] (+ (* 10 t) (Integer/parseInt c))))
@@ -324,6 +325,7 @@
                    (when (not= mode :insert)
                      (get-mode-fun major-modes :normal c)
                      ))]
+      (swap! state assoc ::skip-number false)
       (cond (= action ::last-action) (when (@state ::last-action) ((@state ::last-action))) 
             (fn? action) (do (swap! state assoc ::last-action action) (action))
             (keyword? action) (handle-keyword-action action)

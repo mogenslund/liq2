@@ -10,6 +10,7 @@
             #?(:clj [liq2.extras.cool-stuff :as cool-stuff])
             [liq2.extras.markdownfolds :as markdownfolds]
             [liq2.extras.snake-mode :as snake-mode]
+            #?(:clj [liq2.jframe-io :as jframe-io])
             [liq2.buffer :as buffer]
             [liq2.editor :as editor]
             [liq2.tty-input :as input]
@@ -17,6 +18,26 @@
             [liq2.commands :as commands]
             [liq2.tty-output :as output])
   #?(:clj (:gen-class)))
+
+(defn- read-arg
+  "Reads the value of an argument.
+  If the argument is on the form --arg=value
+  then (read-args args \"--arg=\") vil return
+  value.
+  If the argument is on the form --arg then
+  non-nil will bereturned if the argument exists
+  otherwise nil."
+  [args arg]
+  (first (filter identity
+                 (map #(re-find (re-pattern (str "(?<=" arg ").*"))
+                                %)
+                      args))))
+
+(defn- read-arg-int
+  [args arg]
+  (let [strres (read-arg args arg)]
+    (when strres (Integer/parseInt strres))))
+
 
 (defn load-dot-liq2
   []
@@ -35,8 +56,7 @@
 
 ;; clj -m liq2.experiments.core
 (defn -main
-  []
-  (input/init)
+  [& args]
   (swap! editor/state update ::editor/commands merge commands/commands)
   (editor/add-mode :fundamental-mode fundamental-mode/mode)
   (editor/add-mode :minibuffer-mode minibuffer-mode/mode)
@@ -45,9 +65,15 @@
   (editor/add-mode :dired-mode dired-mode/mode)
   (editor/add-mode :clojure-mode clojure-mode/mode)
   (editor/add-mode :info-dialog-mode info-dialog-mode/mode)
-  (editor/set-output-handler output/output-handler)
-  (editor/set-exit-handler input/exit-handler)
-  (input/input-handler editor/handle-input)
+  (if (read-arg args "--jframe")
+    (do
+      (editor/set-output-handler jframe-io/output-handler)
+      (jframe-io/init editor/handle-input))
+    (do
+      (editor/set-output-handler output/output-handler)
+      (input/init)
+      (editor/set-exit-handler input/exit-handler)
+      (input/input-handler editor/handle-input)))
   (let [w (editor/get-window)
         rows (w ::buffer/rows)
         cols (w ::buffer/cols w)]

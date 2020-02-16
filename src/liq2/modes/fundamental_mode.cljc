@@ -106,7 +106,7 @@
             "D" :delete-to-line-end
             "r" {:selfinsert (fn [buf c]
                                (when (not= (@editor/state ::editor/repeat-counter) 0) (swap! editor/state assoc ::editor/repeat-counter 0))
-                               (buffer/set-char buf (first c)))}
+                                 (buffer/set-char buf (first c)))}
             "c" {"p" {"p" :eval-sexp-at-point
                       "r" :raw-eval-sexp-at-point
                       "f" :evaluate-file-raw}
