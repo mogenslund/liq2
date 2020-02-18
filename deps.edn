@@ -18,7 +18,7 @@
      :extra-paths ["test"]}
    :uberjar
     {:extra-deps {luchiniatwork/cambada {:mvn/version "1.0.0"}}
-     :main-opts ["-m" "cambada.uberjar" "-m" "liq2.core"]}
+     :main-opts ["-m" "cambada.uberjar" "-m" "liq2.core" "--jframe"]}
    :native-image
     {:extra-deps {luchiniatwork/cambada {:mvn/version "1.0.0"}}
      :main-opts ["-m" "cambada.native-image"  "-m" "liq2.core"]}}}

@@ -34,8 +34,8 @@
 (def colors (atom 
   (convert-colormap
     {:plain "e4e4ef"
-     :definition "ffdd33"
-     :special "95a99f"
+     :definition "95a99f"
+     :special "ffdd33"
      :keyword "ffdd33"
      :green "73c936"
      :yellow "ffdd33"
@@ -236,8 +236,8 @@
                 cm (or (-> buf ::buffer/lines (get (dec row)) (get (dec col))) {}) ; Char map like {::buffer/char \x ::buffer/style :string} 
                 c (or ; (when (and cursor-match (buf :status-line)) "█") 
                       (cm ::buffer/char)
-                      \space
-                      ;(if (and (= col 1) (> row (buffer/line-count buf))) \~ \space)
+                      ;\space
+                      (if (and (= col 1) (> row (buffer/line-count buf))) "~" \space)
                       )
                 new-cursor-row (if cursor-match trow cursor-row)
                 new-cursor-col (if cursor-match tcol cursor-col)

@@ -111,6 +111,18 @@
    :definition "38;5;40"
    nil "0"})
 
+(def char-cache (atom {}))
+(defn- draw-char
+  [ch row col color bgcolor]
+  (let [k (str row "-" col)
+        footprint (str ch row col color bgcolor)]
+    (when (not= (@char-cache k) footprint)
+      (tty-print esc color "m")
+      (tty-print esc bgcolor "m")
+      (tty-print esc row ";" col "H" esc "s" ch)
+      (swap! char-cache assoc k footprint))))
+
+
 (defn print-buffer
   [buf]
   (let [cache-id (buffer-footprint buf)
@@ -156,12 +168,13 @@
                           true row)
               n-col (cond (and (< cols tcol) (> col (buffer/col-count buf row))) 1
                           true (inc col))]
-            (when (or (not= color new-color) (not= bgcolor new-bgcolor))
-              (tty-print esc new-color "m")
-              (tty-print esc new-bgcolor "m"))
-            (if (= tcol left)
-              (tty-print esc trow ";" tcol "H" esc "s" c)
-              (tty-print c))
+             (draw-char c trow tcol new-color new-bgcolor)
+;            (when (or (not= color new-color) (not= bgcolor new-bgcolor))
+;              (tty-print esc new-color "m")
+;              (tty-print esc new-bgcolor "m"))
+;            (if (= tcol left)
+;              (tty-print esc trow ";" tcol "H" esc "s" c)
+;              (tty-print c))
             (when (and (= col (buffer/col-count buf row)) (> (buffer/next-visible-row buf row) (+ row 1))) (tty-print "…"))
             (recur n-trow n-tcol n-row n-col new-cursor-row new-cursor-col new-color new-bgcolor)))
       (when (buf :status-line)
