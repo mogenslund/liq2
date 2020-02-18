@@ -34,8 +34,10 @@
       (future
         (loop []
           (when @socket
-            (editor/message (.readLine (@socket :reader))))
-          (recur))))))
+            (let [l (.readLine (@socket :reader))]
+              (when l
+                (editor/message l)
+                (recur)))))))))
 
 (defn jack-out
   []

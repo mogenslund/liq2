@@ -68,7 +68,8 @@
   (if (read-arg args "--jframe")
     (do
       (editor/set-output-handler jframe-io/output-handler)
-      (jframe-io/init editor/handle-input))
+      (jframe-io/init editor/handle-input)
+      (editor/set-exit-handler jframe-io/exit-handler))
     (do
       (editor/set-output-handler output/output-handler)
       (input/init)
