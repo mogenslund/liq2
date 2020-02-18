@@ -145,9 +145,7 @@
          row (tow ::buffer/row)
          col (tow ::buffer/col)
          cursor-row nil
-         cursor-col nil
-         color nil
-         bgcolor nil]
+         cursor-col nil]
     (if (< trow (+ rows top))
       (do
       ;; Check if row has changed...
@@ -160,23 +158,17 @@
                     (if (and (= col 1) (> row (buffer/line-count buf))) (str esc "36m~" esc "0m") \space))
               new-cursor-row (if cursor-match trow cursor-row)
               new-cursor-col (if cursor-match tcol cursor-col)
-              new-color (theme (cm ::buffer/style))
-              new-bgcolor (if (buffer/selected? buf row col) "48;5;17" "49")
+              color (theme (cm ::buffer/style))
+              bgcolor (if (buffer/selected? buf row col) "48;5;17" "49")
               n-trow (if (< cols tcol) (inc trow) trow)
               n-tcol (if (< cols tcol) left (inc tcol))
               n-row (cond (and (< cols tcol) (> col (buffer/col-count buf row))) (buffer/next-visible-row buf row)
                           true row)
               n-col (cond (and (< cols tcol) (> col (buffer/col-count buf row))) 1
                           true (inc col))]
-             (draw-char c trow tcol new-color new-bgcolor)
-;            (when (or (not= color new-color) (not= bgcolor new-bgcolor))
-;              (tty-print esc new-color "m")
-;              (tty-print esc new-bgcolor "m"))
-;            (if (= tcol left)
-;              (tty-print esc trow ";" tcol "H" esc "s" c)
-;              (tty-print c))
+             (draw-char c trow tcol color bgcolor)
             (when (and (= col (buffer/col-count buf row)) (> (buffer/next-visible-row buf row) (+ row 1))) (tty-print "…"))
-            (recur n-trow n-tcol n-row n-col new-cursor-row new-cursor-col new-color new-bgcolor)))
+            (recur n-trow n-tcol n-row n-col new-cursor-row new-cursor-col)))
       (when (buf :status-line)
         (tty-print esc cursor-row ";" cursor-col "H" esc "s" (or (buffer/get-char buf) \space))
         (tty-print esc "?25h" esc cursor-row ";" cursor-col "H" esc "s")
