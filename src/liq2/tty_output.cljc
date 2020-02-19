@@ -72,34 +72,6 @@
   [buf]
   [(buf ::buffer/window) (buf ::buffer/name) (buf ::buffer/file-name)])
 
-;(defn calculate-wrapped-row-dist
-;  [buf cols row1 row2]
-;  (reduce #(+ 1 %1 (quot (dec (buffer/col-count buf %2)) cols)) 0 (range row1 row2))) 
-
-;(defn recalculate-tow
-;  "This is a first draft, which does not handle edge
-;  cases with very long lines and positioning logic."
-;  [buf rows cols tow1]
-;  (cond (< (-> buf ::buffer/cursor ::buffer/row) (tow1 :row)) (assoc tow1 :row (-> buf ::buffer/cursor ::buffer/row))
-;        (> (- (-> buf ::buffer/cursor ::buffer/row) (tow1 :row)) rows)
-;          (recalculate-tow buf rows cols (assoc tow1 :row (- (-> buf ::buffer/cursor ::buffer/row) rows)))
-;        (> (calculate-wrapped-row-dist buf cols (tow1 :row) (+ (-> buf ::buffer/cursor ::buffer/row) 1)) rows)
-;          (recalculate-tow buf rows cols (update tow1 :row inc))
-;        true tow1))
-
-;(defn recalculate-tow
-;  "Basic version, just to check possible speed"
-;  [buf rows cols tow1]
-;  (assoc tow1 :row (-> buf ::buffer/cursor ::buffer/row)))
-
-
-;(comment
-;  (calculate-wrapped-row-dist (buffer/buffer "aaaaaaaaaaaaaaaaaaaaaaaaaa\nbbbbbbbbbbbbbb") 10 2 3)
-;  )
-
-
-; Two pointers trow tcol in terminal row col in buffer
-
 (def theme
   {:string "38;5;131"
    :keyword "38;5;117"
@@ -153,9 +125,11 @@
                                (and (= row crow) (not cursor-col) (> col ccol))
                                (and (not cursor-row) (> row crow)))
               cm (or (-> buf ::buffer/lines (get (dec row)) (get (dec col))) {}) ; Char map like {::buffer/char \x ::buffer/style :string} 
-              c (or (when (and cursor-match (buf :status-line)) "█") 
-                    (cm ::buffer/char)
-                    (if (and (= col 1) (> row (buffer/line-count buf))) (str esc "36m~" esc "0m") \space))
+              c (cond (and cursor-match (buf :status-line)) "█" 
+                      (cm ::buffer/char) (cm ::buffer/char)
+                      (and (= col (inc (buffer/col-count buf row))) (> (buffer/next-visible-row buf row) (+ row 1))) "…"
+                      (and (= col 1) (> row (buffer/line-count buf))) (str esc "36m~" esc "0m")
+                      true \space)
               new-cursor-row (if cursor-match trow cursor-row)
               new-cursor-col (if cursor-match tcol cursor-col)
               color (theme (cm ::buffer/style))
@@ -167,7 +141,6 @@
               n-col (cond (and (< cols tcol) (> col (buffer/col-count buf row))) 1
                           true (inc col))]
              (draw-char c trow tcol color bgcolor)
-            (when (and (= col (buffer/col-count buf row)) (> (buffer/next-visible-row buf row) (+ row 1))) (tty-print "…"))
             (recur n-trow n-tcol n-row n-col new-cursor-row new-cursor-col)))
       (when (buf :status-line)
         (tty-print esc cursor-row ";" cursor-col "H" esc "s" (or (buffer/get-char buf) \space))
