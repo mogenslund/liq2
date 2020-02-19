@@ -48,10 +48,11 @@
    #?(:cljs (do)))
 
 (defn e-cmd
-  [t]
-  (cond (= t ".") (((editor/get-mode :dired-mode) :init))
-        (util/folder? t) (((editor/get-mode :dired-mode) :init) t)
-        true (editor/open-file t)))
+  [& args]
+  (let [t (first args)]
+    (cond (or (= t ".") (not t)) (((editor/get-mode :dired-mode) :init))
+          (util/folder? t) (((editor/get-mode :dired-mode) :init) t)
+          true (editor/open-file t))))
 
 (defn copy-selection-to-clipboard
   [buf]
@@ -340,5 +341,6 @@
    :t6 #(((editor/get-mode :info-dialog-mode) :init) "This is the info dialog")
    :! (fn [& args] (external-command (str/join " " args)))
    :e e-cmd
+   :Ex (fn [] (e-cmd "."))
    :edit e-cmd})
  

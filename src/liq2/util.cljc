@@ -47,7 +47,7 @@
 
 (defn resolve-home
   [path]
-  (str/replace path #"^~" (System/getProperty "user.home")))
+  (str/replace path #"^~" (str/replace (System/getProperty "user.home") "\\" "\\\\")))
 
 (defn resolve-path
   [part alternative-parent]
