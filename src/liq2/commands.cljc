@@ -3,6 +3,7 @@
             [liq2.editor :as editor :refer [apply-to-buffer switch-to-buffer get-buffer]]
             [liq2.buffer :as buffer :refer [delete-region shrink-region set-insert-mode]]
             #?(:clj [liq2.tools.shell :as s])
+            #?(:cljs [cljs.js :refer [eval eval-str empty-state]])
             [liq2.util :as util]))
 
 (swap! editor/state assoc ::editor/repeat-counter 0)
@@ -181,23 +182,33 @@
 
 (defn eval-sexp-at-point
   [buf]
-  (when (not= (@editor/state ::editor/repeat-counter) 0) (swap! editor/state assoc ::editor/repeat-counter 0))
-  (let [sexp (if (= (buf ::buffer/mode) :visuel) (buffer/get-selected-text buf) (buffer/sexp-at-point buf))
-        namespace (or (get-namespace buf) "user")]
-    (create-ns (symbol namespace))
-    (binding [*print-length* 200
-              *ns* (find-ns (symbol namespace))]
-      (editor/message "" :view true); ( :view true :timer 1500)
-      (future
-        (with-redefs [println (fn [& args] (editor/message (str/join " " args) :append true))]
-          (try
-            (println (sanitice-output
-              (load-string
-                (str
-                  "(do (ns " namespace ") (in-ns '"
-                  namespace
-                  ") " sexp "\n)"))))
-            (catch Exception e (println (util/pretty-exception e)))))))))
+  #?(:clj
+      (do
+        (when (not= (@editor/state ::editor/repeat-counter) 0) (swap! editor/state assoc ::editor/repeat-counter 0))
+        (let [sexp (if (= (buf ::buffer/mode) :visuel) (buffer/get-selected-text buf) (buffer/sexp-at-point buf))
+              namespace (or (get-namespace buf) "user")]
+          (create-ns (symbol namespace))
+          (binding [*print-length* 200
+                    *ns* (find-ns (symbol namespace))]
+            (editor/message "" :view true); ( :view true :timer 1500)
+            (future
+              (with-redefs [println (fn [& args] (editor/message (str/join " " args) :append true))]
+                (try
+                  (println (sanitice-output
+                    (load-string
+                      (str
+                        "(do (ns " namespace ") (in-ns '"
+                        namespace
+                        ") " sexp "\n)"))))
+                  (catch Exception e (println (util/pretty-exception e)))))))))
+     :cljs (do
+             (when (not= (@editor/state ::editor/repeat-counter) 0) (swap! editor/state assoc ::editor/repeat-counter 0))
+             (let [sexp (if (= (buf ::buffer/mode) :visuel) (buffer/get-selected-text buf) (buffer/sexp-at-point buf))
+                   namespace (or (get-namespace buf) "user")]
+               (binding [cljs.js/*eval-fn* cljs.js/js-eval]
+                 (eval-str (cljs.js/empty-state) sexp "bla"
+                           {:eval cljs/js-eval :context :statements}
+                           #(editor/message (str %) :view true)))))))
 
 (defn raw-eval-sexp-at-point
   [buf]

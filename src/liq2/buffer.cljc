@@ -516,7 +516,7 @@
 
 (defn delete-char
   ([buf row col n]
-   (update-in (set-dirty buf true) [::lines (dec row)] #(remove-from-vector % col (+ col n -1))))
+   (update-in (set-undo-point (set-dirty buf true)) [::lines (dec row)] #(remove-from-vector % col (+ col n -1))))
   ([buf n]
    (-> buf
        (delete-char (-> buf ::cursor ::row) (-> buf ::cursor ::col) n)))
@@ -527,10 +527,10 @@
 (defn delete-line
   ([buf row]
    (if (<= (line-count buf) 1)
-     (assoc buf ::lines [[]]
+     (assoc (set-undo-point buf) ::lines [[]]
              ::cursor {::row 1 ::col 1}
              ::mem-col 1)
-     (let [b1 (update buf ::lines #(remove-from-vector % row))
+     (let [b1 (update (set-undo-point buf) ::lines #(remove-from-vector % row))
            newrow (min (line-count b1) row)
            newcol (min (col-count b1 newrow) (-> buf ::cursor ::col))]
         (-> b1
@@ -550,9 +550,10 @@
                [])  
           t2 (if (< (q ::col) (col-count buf (q ::row)))
                (subvec (-> buf ::lines (get (dec (q ::row)))) (q ::col) (col-count buf (q ::row)))
-               [])]  
+               [])
+          buf1 (set-undo-point buf)]  
       (-> (nth (iterate #(delete-line % (p ::row))
-                        (update buf ::lines
+                        (update buf1 ::lines
                                     #(insert-in-vector % (q ::row) (into [] (concat t1 t2)))))
                (- (q ::row) (p ::row) -1))
           set-normal-mode
