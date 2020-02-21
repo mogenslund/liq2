@@ -8,9 +8,10 @@
             [liq2.modes.clojure-mode :as clojure-mode]
             [liq2.modes.info-dialog-mode :as info-dialog-mode]
             #?(:clj [liq2.extras.cool-stuff :as cool-stuff])
+            #?(:clj [liq2.jframe-io :as jframe-io])
+            #?(:cljs [liq2.browser-io :as browser-io])
             [liq2.extras.markdownfolds :as markdownfolds]
             [liq2.extras.snake-mode :as snake-mode]
-            #?(:clj [liq2.jframe-io :as jframe-io])
             [liq2.buffer :as buffer]
             [liq2.editor :as editor]
             [liq2.tty-input :as input]
@@ -18,6 +19,8 @@
             [liq2.commands :as commands]
             [liq2.tty-output :as output])
   #?(:clj (:gen-class)))
+
+#?(:cljs (enable-console-print!))
 
 (defn- read-arg
   "Reads the value of an argument.
@@ -65,16 +68,24 @@
   (editor/add-mode :dired-mode dired-mode/mode)
   (editor/add-mode :clojure-mode clojure-mode/mode)
   (editor/add-mode :info-dialog-mode info-dialog-mode/mode)
-  (if (read-arg args "--jframe")
-    (do
-      (editor/set-output-handler jframe-io/output-handler)
-      (jframe-io/init editor/handle-input)
-      (editor/set-exit-handler jframe-io/exit-handler))
-    (do
-      (editor/set-output-handler output/output-handler)
-      (input/init)
-      (editor/set-exit-handler input/exit-handler)
-      (input/input-handler editor/handle-input)))
+  (cond (read-arg args "--jframe")
+        (do
+          (editor/set-output-handler jframe-io/output-handler)
+          (jframe-io/init editor/handle-input)
+          (editor/set-exit-handler jframe-io/exit-handler))
+        (read-arg args "--browser")
+        (do
+          #?(:cljs
+          (do
+          (editor/set-output-handler browser-io/output-handler)
+          (browser-io/init editor/handle-input)
+          (editor/set-exit-handler (fn [] (do))))))
+        true
+        (do
+          (editor/set-output-handler output/output-handler)
+          (input/init)
+          (editor/set-exit-handler input/exit-handler)
+          (input/input-handler editor/handle-input)))
   (let [w (editor/get-window)
         rows (w ::buffer/rows)
         cols (w ::buffer/cols w)]
@@ -94,3 +105,26 @@
     #?(:clj (load-dot-liq2))))
 
 #?(:cljs (set! cljs.core/*main-cli-fn* -main))
+#?(:cljs (defn init [] (-main "--browser")))
+
+;#?(:cljs
+;(do
+;(defn ^:export init
+;  []
+;  (.log js/console "Hello, world") (-main "--browser"))
+
+;(enable-console-print!)
+
+;(def mycounter (atom 0))
+
+;(defn keydown [e]
+;  ;(when (h/in? [32 37 38 39 40] (.-keyCode e)) (.preventDefault e))
+;  (swap! mycounter inc)
+;  (.log js/console e)
+;  (-> js/document
+;      (.getElementById "app")
+;      (.-innerHTML)
+;      (set! (str "<h1>It works</h1>" (.-key e) " " (.-keyCode e) " " @mycounter))))
+;(set! (.-onkeydown js/document) keydown)
+
+;))

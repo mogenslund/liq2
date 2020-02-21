@@ -3,8 +3,13 @@
   {:node-build
    {:extra-deps
      {org.clojure/clojurescript {:git/url "https://github.com/clojure/clojurescript.git"
-                                 :sha "2f233d633f6dc44823105fd544685fc4da43ac6c"}}
+                                 :sha "6ab76973ab31033b2307f88a2ebc5ad9ebd5cf3e"}}
     :main-opts ["-m" "cljs.main" "--target" "node" "--output-to" "liq2.js" "-O" "simple" "-c" "liq2.core"]}
+   :browser-build
+   {:extra-deps
+     {org.clojure/clojurescript {:git/url "https://github.com/clojure/clojurescript.git"
+                                 :sha "6ab76973ab31033b2307f88a2ebc5ad9ebd5cf3e"}}
+    :main-opts ["-m" "cljs.main" "--compile" "liq2.core" "--optimizations" "simple"]}
    :test
     {:extra-paths ["test"]
      :extra-deps
