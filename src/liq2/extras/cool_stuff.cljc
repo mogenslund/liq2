@@ -59,10 +59,27 @@
                (buffer/sexp-at-point buf))]
     (send-to-repl sexp)))
 
+(defn output-split
+  ([n]
+   (editor/set-setting :auto-switch-to-output false)
+   (let [w (editor/get-window)
+         rows (w ::buffer/rows)
+         cols (w ::buffer/cols w)
+         sp (min (if (re-matches #"\d+" n) (Integer/parseInt n) 5) (- rows 3))]
+     (editor/set-setting :auto-switch-to-output false)
+     (editor/switch-to-buffer "scratch")
+     (editor/apply-to-buffer "output" #(assoc % ::buffer/window {::buffer/top (- rows sp) ::buffer/left 1 ::buffer/rows sp ::buffer/cols cols}))
+     (editor/apply-to-buffer "scratch" #(assoc % ::buffer/window {::buffer/top 1 ::buffer/left 1 ::buffer/rows (- rows sp 2) ::buffer/cols cols}))
+     (editor/new-buffer "-----------------------------" {:name "*delimeter*" :top (- rows sp 1) :left 1 :rows 1 :cols cols})
+     (editor/switch-to-buffer "scratch")
+     (editor/paint-buffer)))
+  ([] (output-split "5")))
+
 (defn load-cool-stuff
   []
   (swap! editor/state assoc-in [::editor/commands :jack-in] jack-in) 
   (swap! editor/state assoc-in [::editor/commands :jack-out] jack-out) 
+  (swap! editor/state assoc-in [::editor/commands :output-split] output-split) 
   (editor/add-key-bindings :clojure-mode :normal
     {"C-o" output-snapshot
      "f5" #(send-sexp-at-point-to-repl (editor/current-buffer))
