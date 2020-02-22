@@ -32,10 +32,14 @@
         footprint (str ch row col color bgcolor)]
     ;(.log js/console k)
     (when (and (not= (@char-cache k) footprint) (<= row @rows) (<= col @cols))
-      (-> js/document
-          (.getElementById k)
-          (.-innerHTML)
-          (set! ch))
+      (let [elem (.getElementById js/document k)]
+        (set! (.-innerHTML elem) ch)
+        (.log js/console (str (name color) " " (name bgcolor)))
+        (.setAttribute elem "class" (str (name color) " " (name bgcolor))))
+  ;    (-> js/document
+  ;        (.getElementById k)
+  ;        (.-innerHTML)
+  ;        (set! ch))
       (swap! char-cache assoc k footprint))))
 
 
