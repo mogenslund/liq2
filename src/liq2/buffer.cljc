@@ -963,6 +963,12 @@
              true (recur (right b))))))
   ([buf n] (nth (iterate end-of-word-ws buf) n)))
 
+(defn end-of-word-ws-region
+  ([buf]
+   [(buf ::cursor) ((end-of-word-ws buf) ::cursor)])
+  ([buf n]
+   [(buf ::cursor) ((end-of-word-ws buf n) ::cursor)]))
+
 
 (defn word-region
   ([buf]

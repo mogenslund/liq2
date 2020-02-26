@@ -48,22 +48,24 @@
 (defn execute
   []
   (let [st @state
-        index (- (-> (editor/current-buffer) ::buffer/cursor ::buffer/row) 2)
+        index (max (- (-> (editor/current-buffer) ::buffer/cursor ::buffer/row) 2) 0)
         res (first (drop index (st ::filtered)))] 
     ((st ::callback) res)))
 
 (defn handle-input
   [c]
-  (if-let [f ({"esc" (fn [] (apply-to-buffer #(-> % buffer/set-normal-mode buffer/left)))
-               "C-n" (fn [] (apply-to-buffer #(-> % buffer/set-normal-mode buffer/left buffer/down)))
-               "down" (fn [] (apply-to-buffer #(-> % buffer/set-normal-mode buffer/left buffer/down)))
-               "backspace" (fn [] (swap! state update ::search #(subs % 0 (max (dec (count %)) 0)))
-                                  (apply-to-buffer update-view))}
-              c)]
-    (f)
-    (do
-      (swap! state update ::search #(str % c))
-      (apply-to-buffer update-view))))
+  (if (= c "\n")
+    execute
+    (if-let [f ({"esc" (fn [] (apply-to-buffer #(-> % buffer/set-normal-mode buffer/left)))
+                 "C-n" (fn [] (apply-to-buffer #(-> % buffer/set-normal-mode buffer/left buffer/down)))
+                 "down" (fn [] (apply-to-buffer #(-> % buffer/set-normal-mode buffer/left buffer/down)))
+                 "backspace" (fn [] (swap! state update ::search #(subs % 0 (max (dec (count %)) 0)))
+                                    (apply-to-buffer update-view))}
+                c)]
+      (f)
+      (do
+        (swap! state update ::search #(str % c))
+        (apply-to-buffer update-view)))))
 
 (def mode
   {:insert handle-input

@@ -93,6 +93,7 @@
             "d" {"d" :delete-line
                  "w" :delete-to-word
                  "e" :delete-to-end-of-word
+                 "E" :delete-to-end-of-word-ws
                  "i" {"w" :delete-inner-word
                       "(" :delete-inner-paren
                       "[" :delete-inner-bracket
@@ -122,6 +123,7 @@
                  "c" :change-line
                  "$" :change-eol
                  "e" :change-to-end-of-word
+                 "E" :change-to-end-of-word-ws
                  "w" :change-to-end-of-word}
             "C" :change-eol
             "/" (fn [] (when (not= (@editor/state ::editor/repeat-counter) 0) (swap! editor/state assoc ::editor/repeat-counter 0))
