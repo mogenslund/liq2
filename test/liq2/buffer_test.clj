@@ -2,6 +2,17 @@
   (:require [clojure.test :refer :all]
             [liq2.buffer :refer :all]))
 
+(deftest sub-buffer-test
+  (testing "Sub buffer"
+    (is (= (-> (buffer "aaa\nbbb\nccc\nddd\neee") (sub-buffer 2 3) get-text)
+           "bbb\nccc"))
+    (is (= (-> (buffer "aaa\nbbb\nccc\nddd\neee") (sub-buffer 1 3) get-text)
+           "aaa\nbbb\nccc"))
+    (is (= (-> (buffer "aaa\nbbb\nccc\nddd\neee") down down down right (sub-buffer 2 4) :liq2.buffer/cursor :liq2.buffer/row)
+           3))
+    (is (= (-> (buffer "aaa\nbbb\nccc\nddd\neee") down down down right (sub-buffer 1 4) :liq2.buffer/cursor :liq2.buffer/row)
+           4))))
+
 (deftest line-count-test
   (testing "Line count"
     (is (= (-> (buffer "") line-count) 1)) 

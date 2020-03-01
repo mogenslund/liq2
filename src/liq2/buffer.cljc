@@ -62,6 +62,14 @@
                 (into [] (subvec v n))))
      v)))
 
+(defn sub-buffer
+  "Buffer with row1 as first row and row2 as last.
+  Cursor translated accordingly." 
+  [buf row1 row2]
+  (-> buf
+      (update ::lines subvec (dec row1) row2)
+      (update-in [::cursor ::row] #(max (- % row1 -1) 1))))
+
 (defn set-undo-point
   "Return new lines with the current lines to the undo stack.
   Input: Buffer
