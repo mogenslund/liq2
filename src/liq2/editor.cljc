@@ -8,6 +8,7 @@
 (def state (atom {::commands {}
                   ::buffers {}
                   ::modes {}
+                  ::new-buffer-hooks []
                   ::settings {:auto-switch-to-output true}
                   ::exit-handler nil
                   ::window nil
@@ -248,7 +249,7 @@
                              :left (w ::buffer/left)
                              :rows (w ::buffer/rows)
                              :cols (w ::buffer/cols)))) 
-        buf (assoc (buffer/buffer text o) ::id id ::idx id)]
+        buf (reduce #(%2 %1) (assoc (buffer/buffer text o) ::id id ::idx id) (@state ::new-buffer-hooks))]
     (swap! state update ::buffers assoc id buf) 
     (highlight-buffer id)
     (switch-to-buffer id)

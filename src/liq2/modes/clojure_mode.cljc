@@ -17,7 +17,7 @@
    :green-begin "✔"
    :red-begin "✘"
    :yellow-begin "➜"
-   :bold-begin #"(?<= \*)\w+"
+   :bold-begin #"(?<=\*)\w+"
    :bold-end #"\*"
    :definition-begin #"[\w\#\.\-\_\:\+\=\>\<\/\!\?\*]+"
    :definition-end #"."})

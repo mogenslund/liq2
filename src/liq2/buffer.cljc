@@ -538,7 +538,7 @@
      (assoc (set-undo-point buf) ::lines [[]]
              ::cursor {::row 1 ::col 1}
              ::mem-col 1)
-     (let [b1 (update (set-undo-point buf) ::lines #(remove-from-vector % row))
+     (let [b1 (update buf ::lines #(remove-from-vector % row))
            newrow (min (line-count b1) row)
            newcol (min (col-count b1 newrow) (-> buf ::cursor ::col))]
         (-> b1
