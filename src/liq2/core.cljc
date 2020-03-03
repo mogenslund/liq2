@@ -6,6 +6,8 @@
             [liq2.modes.dired-mode :as dired-mode]
             [liq2.modes.typeahead-mode :as typeahead-mode]
             [liq2.modes.clojure-mode :as clojure-mode]
+            [liq2.modes.spacemacs-mode :as spacemacs-mode]
+            [liq2.modes.parinfer-mode :as parinfer-mode]
             [liq2.modes.info-dialog-mode :as info-dialog-mode]
             #?(:clj [liq2.extras.cool-stuff :as cool-stuff])
             #?(:clj [liq2.jframe-io :as jframe-io])
@@ -55,7 +57,16 @@
   #?(:clj (cool-stuff/load-cool-stuff))
   (markdownfolds/load-markdownfolds)
   (swap! editor/state assoc-in [:liq2.editor/modes :snake-mode] liq2.extras.snake-mode/mode)
-  (swap! editor/state assoc-in [:liq2.editor/commands :snake] liq2.extras.snake-mode/run))
+  (swap! editor/state assoc-in [:liq2.editor/commands :snake] liq2.extras.snake-mode/run)
+  (swap! editor/state assoc-in [:liq2.editor/commands :p]
+    (fn [] (editor/apply-to-buffer #(update % ::buffer/major-modes conj :parinfer-mode))))
+  (swap! editor/state assoc-in [:liq2.editor/commands :parinfer]
+    (fn [] (editor/apply-to-buffer #(update % ::buffer/major-modes conj :parinfer-mode))))
+  (swap! editor/state assoc-in [:liq2.editor/commands :parinferoff]
+    (fn [] (editor/apply-to-buffer #(update % ::buffer/major-modes (fn [l] (remove (fn [elem] (= elem :parinfer-mode)) l))))))
+  (swap! editor/state assoc-in [:liq2.editor/commands :poff]
+    (fn [] (editor/apply-to-buffer #(update % ::buffer/major-modes (fn [l] (remove (fn [elem] (= elem :parinfer-mode)) l)))))))
+
 
 ;; clj -m liq2.experiments.core
 (defn -main
@@ -67,6 +78,8 @@
   (editor/add-mode :typeahead-mode typeahead-mode/mode)
   (editor/add-mode :dired-mode dired-mode/mode)
   (editor/add-mode :clojure-mode clojure-mode/mode)
+  (editor/add-mode :spacemacs-mode spacemacs-mode/mode)
+  (editor/add-mode :parinfer-mode parinfer-mode/mode)
   (editor/add-mode :info-dialog-mode info-dialog-mode/mode)
   (cond (read-arg args "--jframe")
         (do
@@ -76,10 +89,10 @@
         (read-arg args "--browser")
         (do
           #?(:cljs
-          (do
-          (editor/set-output-handler browser-io/output-handler)
-          (browser-io/init editor/handle-input)
-          (editor/set-exit-handler (fn [] (do))))))
+              (do
+                (editor/set-output-handler browser-io/output-handler)
+                (browser-io/init editor/handle-input)
+                (editor/set-exit-handler (fn [] (do))))))
         true
         (do
           (editor/set-output-handler output/output-handler)
@@ -91,10 +104,9 @@
         cols (w ::buffer/cols w)]
     ;(editor/paint-buffer)
     (editor/new-buffer "" {:name "*status-line*" :top rows :left 1 :rows 1 :cols cols
-                        :major-modes (list :fundamental-mode) :mode :insert})
-    (editor/new-buffer ""
-                       {:name "*minibuffer*" :top rows :left 1 :rows 1 :cols cols
-                        :major-modes (list :minibuffer-mode) :mode :insert})
+                           :major-modes (list :fundamental-mode) :mode :insert})
+    (editor/new-buffer "" {:name "*minibuffer*" :top rows :left 1 :rows 1 :cols cols
+                           :major-modes (list :minibuffer-mode) :mode :insert})
     ;(editor/new-buffer "Output" {:name "output" :top (- rows 5) :left 1 :rows 5 :cols cols :mode :normal})
     ;(editor/new-buffer "-----------------------------" {:name "*delimeter*" :top (- rows 6) :left 1 :rows 1 :cols cols})
     ;(editor/new-buffer "" {:top 1 :left 1 :rows (- rows 7) :cols cols :major-mode :clojure-mode})
