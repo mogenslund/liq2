@@ -330,7 +330,7 @@
       (cond (= action ::last-action) (when (@state ::last-action) ((@state ::last-action))) 
             (fn? action) (do (swap! state assoc ::last-action action) (action))
             (keyword? action) (handle-keyword-action action)
-            (map? action) (reset! tmp-keymap action)
+            (map? action) (do (reset! tmp-keymap action) (when (action :description) (message (action :description))))
             ;action (swap! state update-in [::buffers (current-buffer-id)] (action :function))
             (= mode :insert) (apply-to-buffer #(buffer/insert-char % (first c))))
       (cond (= c "esc") (highlight-buffer) ; TODO Maybe not highlight from scratch each time

@@ -33,7 +33,7 @@
       ::encoding :utf-8          ; This allows cursor to be "after line", like vim. (Separate from major and minor modes!)
       ::search-word ""
       ::dirty false
-      ::major-modes (or major-modes (list :clojure-mode :fundamental-mode))}))
+      ::major-modes (or major-modes (list :spacemacs-mode :clojure-mode :fundamental-mode))}))
   ([text] (buffer text {})))
 
 (defn insert-in-vector
