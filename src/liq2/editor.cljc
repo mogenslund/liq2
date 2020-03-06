@@ -139,8 +139,8 @@
   ([fun] (apply-to-buffer (current-buffer-id) fun)))
 
 (comment
-  (new-buffer)
-  )
+  (new-buffer))
+  
 
 (defn highlight-paren
   [buf]
@@ -167,7 +167,7 @@
                    (-> buf ::buffer/cursor ::buffer/row) "," (-> buf ::buffer/cursor ::buffer/col)))
             buffer/beginning-of-buffer))
      ;((@state ::output-handler) (get-buffer "*status-line*"))
-       ((-> @state ::output-handler :printer) (assoc (highlight-paren buf) :status-line (get-buffer "*status-line*")))))
+     ((-> @state ::output-handler :printer) (assoc (highlight-paren buf) :status-line (get-buffer "*status-line*")))))
   ([] (paint-buffer-old (current-buffer))))
 
 (defn paint-buffer
@@ -188,18 +188,18 @@
               buffer/beginning-of-buffer
               buffer/update-tow))
        ;((@state ::output-handler) (get-buffer "*status-line*"))
-         ((-> @state ::output-handler :printer) (assoc (highlight-paren buf) :status-line (get-buffer "*status-line*"))))))
+       ((-> @state ::output-handler :printer) (assoc (highlight-paren buf) :status-line (get-buffer "*status-line*"))))))
   ([] (paint-buffer (current-buffer-id))))
 
 (defn message
   [s & {:keys [:append :view :timer]}]
   (if append
-    ;(apply-to-buffer "output" #(-> % (buffer/append-buffer (buffer/buffer (str s "\n"))) buffer/end-of-buffer))
-    (apply-to-buffer "output" #(-> % buffer/end-of-buffer (buffer/insert-string (str s "\n")) buffer/end-of-buffer))
-    (apply-to-buffer "output" #(-> % buffer/clear (buffer/insert-string (str s)))))
-  (paint-buffer "output")
+    ;(apply-to-buffer "*output*" #(-> % (buffer/append-buffer (buffer/buffer (str s "\n"))) buffer/end-of-buffer))
+    (apply-to-buffer "*output*" #(-> % buffer/end-of-buffer (buffer/insert-string (str s "\n")) buffer/end-of-buffer))
+    (apply-to-buffer "*output*" #(-> % buffer/clear (buffer/insert-string (str s)))))
+  (paint-buffer "*output*")
   (when (and view (get-setting :auto-switch-to-output))
-    (switch-to-buffer "output")
+    (switch-to-buffer "*output*")
     (when timer (future (Thread/sleep timer) (previous-buffer) (paint-buffer))))
   (paint-buffer))
 
@@ -208,7 +208,7 @@
    (when (> (count (regular-buffers)) 1)
      (let [id (if (number? idname) idname (get-buffer-id-by-name idname))]
        (swap! state update ::buffers dissoc id))
-       (previous-regular-buffer)))
+     (previous-regular-buffer)))
   ([] (force-kill-buffer (current-buffer-id))))
 
 (defn kill-buffer
@@ -277,8 +277,8 @@
       (force-exit-program)
       (do
         (message (str
-          "There are unsaved files. Use :q! to force quit:\n"
-          (str/join "\n" (map ::buffer/filename bufs))) :view true :timer 1500)))))
+                  "There are unsaved files. Use :q! to force quit:\n"
+                  (str/join "\n" (map ::buffer/filename bufs))) :view true :timer 1500)))))
 
 (def tmp-keymap (atom nil))
 
@@ -296,7 +296,7 @@
       (action)
       (swap! state assoc ::repeat-counter 0
                          ::last-action action)))
-   nil)
+  nil)
 
 (defn handle-input
   [c]
@@ -324,8 +324,8 @@
                         (((get-mode (first major-modes)) mode) c))
                    (get-mode-fun major-modes mode c)
                    (when (not= mode :insert)
-                     (get-mode-fun major-modes :normal c)
-                     ))]
+                     (get-mode-fun major-modes :normal c)))]
+                     
       (swap! state assoc ::skip-number false)
       (cond (= action ::last-action) (when (@state ::last-action) ((@state ::last-action))) 
             (fn? action) (do (swap! state assoc ::last-action action) (action))

@@ -110,13 +110,13 @@
                            :major-modes (list :minibuffer-mode) :mode :insert})
     (if (read-arg args "--simple")
       (do
-        (editor/new-buffer "" {:name "output" :top 1 :left 1 :rows (- rows 1) :cols cols :mode :normal})
+        (editor/new-buffer "" {:name "*output*" :top 1 :left 1 :rows (- rows 1) :cols cols :mode :normal})
         (editor/new-buffer "" {:name "scratch" :top 1 :left 1 :rows (- rows 1) :cols cols}))
       (do
         (editor/set-setting :auto-switch-to-output false)
-        (editor/new-buffer "Output" {:name "output" :top (- rows 5) :left 1 :rows 5 :cols cols :mode :normal})
+        (editor/new-buffer "Output" {:name "*output*" :top (- rows 5) :left 1 :rows 5 :cols cols :mode :normal})
         (editor/new-buffer "-----------------------------" {:name "*delimeter*" :top (- rows 6) :left 1 :rows 1 :cols cols})
-        (editor/new-buffer "scratch" {:top 1 :left 1 :rows (- rows 7) :cols cols :major-mode :clojure-mode})))
+        (editor/new-buffer "scratch" {:name "scratch" :top 1 :left 1 :rows (- rows 7) :cols cols :major-mode :clojure-mode})))
     (editor/paint-buffer)
     (load-extras)
     #?(:clj (load-dot-liq2))))
