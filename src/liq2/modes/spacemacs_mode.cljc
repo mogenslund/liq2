@@ -25,11 +25,41 @@
 ;  (editor/set-spacekey ["\t"] "Last buffer" editor/previous-real-buffer)
 ;  (editor/set-spacekey [" "] "Command typeahead" #(do (editor/request-fullupdate) (commandapp/run)))
 
-(def mode
-  {:normal {" " {:description "m Clojure commands\nf Files\nw Window\nq Quit"
-                 "m" {:description "e Evaluation\ng Goto"
-                      "e" {:description "e eval-last-sexp"
-                           "e" :eval-sexp-at-point}}
-                 "f" {:description "f find-file"
-                      "f" :Ex}}}})
+(defn add-description
+   [keys description]
+   (swap! editor/state
+          assoc-in
+          (concat [::editor/modes :spacemacs-mode :normal] keys [:description])
+          description))
+
+(defn add-mapping
+   [keys fun]
+   (swap! editor/state
+          assoc-in
+          (concat [::editor/modes :spacemacs-mode :normal] keys)
+          fun))
+
+
+
+;(def mode
+;  {:normal {" " {:description "m Clojure commands\nf Files\nw Window\nq Quit"
+;                 "m" {:description "e Evaluation\ng Goto"
+;                      "e" {:description "e eval-last-sexp"
+;                           "e" :eval-sexp-at-point}}
+;                 "f" {:description "f find-file"
+;                      "f" :Ex}}}})
+
+(defn load-spacemacs-mode
+  []
+  (editor/add-mode :spacemacs-mode {:normal {}})
+  (add-description [" "] "m Clojure commands    f Files    q Quit")
+  (add-description [" " "m"] "e Evaluation      g Goto")
+  (add-description [" " "m" "e"] "e eval-last-sexp")
+  (add-mapping [" " "m" "e" "e"] :eval-sexp-at-point)
+  (add-description [" " "f"] "f Find file     s Save file")
+  (add-mapping [" " "f" "f"] :Ex)
+  (add-mapping [" " "f" "s"] :w)
+  (add-description [" " "q"] "q Quit")
+  (add-mapping [" " "q" "q"] :q))
+ 
  

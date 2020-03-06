@@ -61,6 +61,7 @@
   {:insert {"esc" (fn [] (apply-to-buffer #(-> % (assoc ::buffer/mode :normal) buffer/left)))
             "\n" choose}
    :normal {"q" editor/previous-buffer
+            "esc" editor/previous-buffer
             "\n" choose
             "h" :left 
             "j" :down
