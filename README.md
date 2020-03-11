@@ -1,4 +1,14 @@
 # liq2
+:warning:
+
+UPDATE:
+I have copied the code back to [Liquid](https://github.com/mogenslund/liquid) into a new branch called "liq2".
+
+Namespaces in the branch have been renamed to "liq" from "liq2".
+
+I am focussing on documentation, help and stability before merging liq2 into master.
+
+
 Hi all
 
 This repo is a **playground** for trying out different constructs and functions in the process of evolving a **text editor**.
